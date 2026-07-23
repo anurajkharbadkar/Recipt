@@ -29,3 +29,9 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# PWA Service Workers
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
