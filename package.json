@@ -1,0 +1,25 @@
+{
+  "name": "digital-pavti-book",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Digital Receipt Book for Indian Religious & Community Organizations",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "db:migrate": "cd apps/api && pnpm prisma migrate dev",
+    "db:studio": "cd apps/api && pnpm prisma studio",
+    "db:seed": "cd apps/api && pnpm prisma db seed",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.9"
+}

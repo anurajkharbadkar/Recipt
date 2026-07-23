@@ -1,0 +1,301 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ORG_ADMIN
+  TREASURER
+  COLLECTOR
+  VIEWER
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum CollectionType {
+  DONATION
+  INTERNAL
+}
+
+enum ReceiptStatus {
+  PAID
+  PENDING
+  CANCELLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CHEQUE
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum DonationCategory {
+  GENERAL
+  DECORATION
+  FOOD
+  SOUND
+  FIREWORKS
+  PRASAD
+  CONSTRUCTION
+  OTHER
+  SPONSOR
+  COMMITTEE_MEMBER
+  MEMBERSHIP_FEE
+  STALL_CHARGE
+  EVENT_REGISTRATION
+}
+
+enum ExpenseCategory {
+  DECORATION
+  SOUND_SYSTEM
+  FOOD
+  FIREWORKS
+  VENUE
+  PRINTING
+  TRANSPORT
+  MISC
+  DJ_SOUND
+  LIGHTING
+  SECURITY
+  STAGE
+  ELECTRICITY
+  PERMISSIONS
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Organization {
+  id                String           @id @default(uuid())
+  name              String
+  nameMarathi       String?
+  nameHindi         String?
+  slug              String           @unique
+  address           String
+  city              String
+  state             String           @default("Maharashtra")
+  pincode           String?
+  phone             String           @unique
+  email             String?          @unique
+  logoUrl           String?
+  regNumber         String?
+  bankName          String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  bankBranch        String?
+  upiId             String?
+  subscriptionPlan  SubscriptionPlan @default(FREE)
+  subscriptionExpiry DateTime?
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  users       User[]
+  campaigns   Campaign[]
+  areas       CollectorArea[]
+  auditLogs   AuditLog[]
+  rolePermissions RolePermission[]
+
+  receiptTemplateSettings Json?
+
+  @@index([slug])
+}
+
+model User {
+  id             String   @id @default(uuid())
+  orgId          String
+  name           String
+  phone          String
+  email          String?
+  passwordHash   String?
+  role           UserRole @default(COLLECTOR)
+  areaId         String?
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime?
+  otpCode        String?
+  otpExpiry      DateTime?
+  refreshToken   String?
+  permissionsOverride Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  area         CollectorArea? @relation(fields: [areaId], references: [id])
+  receipts     Receipt[]
+  expensesAdded    Expense[] @relation("ExpenseAddedBy")
+  expensesApproved Expense[] @relation("ExpenseApprovedBy")
+  auditLogs    AuditLog[]
+
+  @@unique([orgId, phone])
+  @@index([orgId])
+  @@index([phone])
+}
+
+model CollectorArea {
+  id          String  @id @default(uuid())
+  orgId       String
+  name        String
+  description String?
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  collectors   User[]
+  receipts     Receipt[]
+
+  @@index([orgId])
+}
+
+model Campaign {
+  id            String         @id @default(uuid())
+  orgId         String
+  name          String
+  nameMarathi   String?
+  nameHindi     String?
+  year          Int
+  startDate     DateTime
+  endDate       DateTime?
+  targetAmount  Float?
+  receiptPrefix String
+  receiptSeq    Int            @default(0)
+  status        CampaignStatus @default(DRAFT)
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  receipts     Receipt[]
+  expenses     Expense[]
+
+  @@unique([orgId, receiptPrefix])
+  @@index([orgId])
+}
+
+model Receipt {
+  id             String           @id @default(uuid())
+  campaignId     String
+  collectorId    String
+  areaId         String?
+  receiptNumber  String           @unique
+  donorName      String
+  donorPhone     String?
+  donorAddress   String?
+  amount         Float
+  amountInWords  String
+  category       DonationCategory @default(GENERAL)
+  paymentMode    PaymentMode      @default(CASH)
+  chequeNumber   String?
+  notes          String?
+  pdfUrl         String?
+  qrCodeData     String?
+  whatsappSent   Boolean          @default(false)
+  smsSent        Boolean          @default(false)
+  latitude       Float?
+  longitude      Float?
+  deviceInfo     String?
+  isVoided       Boolean          @default(false)
+  voidReason     String?
+  voidedAt       DateTime?
+  voidedById     String?
+  collectionType CollectionType   @default(DONATION)
+  status         ReceiptStatus    @default(PAID)
+  dueDate        DateTime?
+  contributorType String?
+  supportingDocUrl String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  campaign   Campaign       @relation(fields: [campaignId], references: [id])
+  collector  User           @relation(fields: [collectorId], references: [id])
+  area       CollectorArea? @relation(fields: [areaId], references: [id])
+
+  @@index([campaignId])
+  @@index([collectorId])
+  @@index([createdAt])
+  @@index([receiptNumber])
+}
+
+model Expense {
+  id           String          @id @default(uuid())
+  campaignId   String
+  addedById    String
+  approvedById String?
+  category     ExpenseCategory
+  amount       Float
+  description  String
+  receiptUrl   String?
+  isApproved   Boolean         @default(false)
+  approvedAt   DateTime?
+  paidTo       String          @default("")
+  beneficiaryPhone String?
+  gstNumber    String?
+  paymentMode  PaymentMode     @default(CASH)
+  expenseDate  DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  addedBy    User     @relation("ExpenseAddedBy", fields: [addedById], references: [id])
+  approvedBy User?    @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+
+  @@index([campaignId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  orgId       String?
+  userId      String
+  action      String
+  entity      String
+  entityId    String
+  oldValue    Json?
+  newValue    Json?
+  deviceInfo  String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+  user         User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model RolePermission {
+  id          String   @id @default(uuid())
+  orgId       String
+  role        UserRole
+  module      String   // "Receipts", "Expenses", "Reports", "Users", "Settings"
+  canView     Boolean  @default(false)
+  canCreate   Boolean  @default(false)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  canExport   Boolean  @default(false)
+  canApprove  Boolean  @default(false)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  @@unique([orgId, role, module])
+}
+

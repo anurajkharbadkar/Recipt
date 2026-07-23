@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "newReceipt": "नई रसीद",
+    "receipts": "रसीदें",
+    "collectors": "संग्रहकर्ता",
+    "campaigns": "अभियान",
+    "expenses": "व्यय",
+    "reports": "रिपोर्ट",
+    "settings": "सेटिंग्स",
+    "logout": "लॉगआउट"
+  },
+  "receipt": {
+    "title": "रसीद",
+    "pavti": "रसीद",
+    "number": "रसीद नं.",
+    "donorName": "दानकर्ता का नाम",
+    "donorPhone": "दानकर्ता का मोबाइल",
+    "donorAddress": "दानकर्ता का पता",
+    "amount": "राशि",
+    "amountInWords": "शब्दों में राशि",
+    "category": "श्रेणी",
+    "paymentMode": "भुगतान मोड",
+    "collector": "संग्रहकर्ता",
+    "area": "क्षेत्र",
+    "date": "तारीख",
+    "signature": "अधिकृत हस्ताक्षर",
+    "scanToVerify": "सत्यापन के लिए स्कैन करें",
+    "thankYou": "आपके दान के लिए धन्यवाद!",
+    "verifiedMessage": "यह एक सत्यापित डिजिटल रसीद है"
+  },
+  "dashboard": {
+    "totalCollections": "कुल संग्रह",
+    "todayCollections": "आज का संग्रह",
+    "totalReceipts": "कुल रसीदें",
+    "todayReceipts": "आज की रसीदें",
+    "netBalance": "शुद्ध शेष",
+    "totalExpenses": "कुल व्यय",
+    "activeCollectors": "सक्रिय संग्रहकर्ता",
+    "pendingExpenses": "लंबित अनुमोदन",
+    "quickActions": "त्वरित क्रियाएं",
+    "recentReceipts": "हालिया रसीदें"
+  },
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "create": "बनाएं",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "search": "खोजें...",
+    "filter": "फ़िल्टर",
+    "export": "CSV निर्यात",
+    "print": "प्रिंट",
+    "share": "साझा करें",
+    "whatsapp": "व्हाट्सएप",
+    "loading": "लोड हो रहा है...",
+    "noData": "कोई डेटा नहीं मिला",
+    "required": "आवश्यक",
+    "optional": "वैकल्पिक",
+    "success": "सफलता",
+    "error": "त्रुटि"
+  }
+}

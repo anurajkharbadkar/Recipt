@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "dashboard": "डॅशबोर्ड",
+    "newReceipt": "नवीन पावती",
+    "receipts": "पावत्या",
+    "collectors": "संग्राहक",
+    "campaigns": "मोहीम",
+    "expenses": "खर्च",
+    "reports": "अहवाल",
+    "settings": "सेटिंग्स",
+    "logout": "लॉगआउट"
+  },
+  "receipt": {
+    "title": "पावती",
+    "pavti": "पावती",
+    "number": "पावती क्र.",
+    "donorName": "देणगीदाराचे नाव",
+    "donorPhone": "देणगीदाराचा मोबाईल",
+    "donorAddress": "देणगीदाराचा पत्ता",
+    "amount": "रक्कम",
+    "amountInWords": "अक्षरी रक्कम",
+    "category": "प्रकार",
+    "paymentMode": "देय पद्धत",
+    "collector": "संग्राहक",
+    "area": "क्षेत्र",
+    "date": "दिनांक",
+    "signature": "अधिकृत स्वाक्षरी",
+    "scanToVerify": "सत्यापनासाठी स्कॅन करा",
+    "thankYou": "आपल्या देणगीबद्दल धन्यवाद!",
+    "verifiedMessage": "ही एक सत्यापित डिजिटल पावती आहे"
+  },
+  "dashboard": {
+    "totalCollections": "एकूण संग्रह",
+    "todayCollections": "आजचा संग्रह",
+    "totalReceipts": "एकूण पावत्या",
+    "todayReceipts": "आजच्या पावत्या",
+    "netBalance": "निव्वळ शिल्लक",
+    "totalExpenses": "एकूण खर्च",
+    "activeCollectors": "सक्रिय संग्राहक",
+    "pendingExpenses": "प्रलंबित मंजुरी",
+    "quickActions": "त्वरित क्रिया",
+    "recentReceipts": "अलीकडील पावत्या"
+  },
+  "common": {
+    "save": "जतन करा",
+    "cancel": "रद्द करा",
+    "create": "तयार करा",
+    "edit": "संपादित करा",
+    "delete": "हटवा",
+    "search": "शोधा...",
+    "filter": "फिल्टर",
+    "export": "CSV निर्यात",
+    "print": "प्रिंट",
+    "share": "शेअर करा",
+    "whatsapp": "व्हॉट्सअॅप",
+    "loading": "लोड होत आहे...",
+    "noData": "कोणताही डेटा आढळला नाही",
+    "required": "आवश्यक",
+    "optional": "पर्यायी",
+    "success": "यशस्वी",
+    "error": "त्रुटी"
+  }
+}

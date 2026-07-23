@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "newReceipt": "New Receipt",
+    "receipts": "Receipts",
+    "collectors": "Collectors",
+    "campaigns": "Campaigns",
+    "expenses": "Expenses",
+    "reports": "Reports",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "receipt": {
+    "title": "Receipt",
+    "pavti": "Pavti",
+    "number": "Receipt No.",
+    "donorName": "Donor Name",
+    "donorPhone": "Donor Phone",
+    "donorAddress": "Donor Address",
+    "amount": "Amount",
+    "amountInWords": "Amount in Words",
+    "category": "Category",
+    "paymentMode": "Payment Mode",
+    "collector": "Collector",
+    "area": "Area",
+    "date": "Date",
+    "signature": "Authorized Signature",
+    "scanToVerify": "Scan to Verify",
+    "thankYou": "Thank You for Your Donation!",
+    "verifiedMessage": "This is a verified digital receipt"
+  },
+  "dashboard": {
+    "totalCollections": "Total Collections",
+    "todayCollections": "Today's Collections",
+    "totalReceipts": "Total Receipts",
+    "todayReceipts": "Today's Receipts",
+    "netBalance": "Net Balance",
+    "totalExpenses": "Total Expenses",
+    "activeCollectors": "Active Collectors",
+    "pendingExpenses": "Pending Approvals",
+    "quickActions": "Quick Actions",
+    "recentReceipts": "Recent Receipts"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search...",
+    "filter": "Filter",
+    "export": "Export CSV",
+    "print": "Print",
+    "share": "Share",
+    "whatsapp": "WhatsApp",
+    "loading": "Loading...",
+    "noData": "No data found",
+    "required": "Required",
+    "optional": "Optional",
+    "success": "Success",
+    "error": "Error"
+  }
+}
