@@ -12,8 +12,10 @@ export class PdfService {
   async generateExpenseVoucherPdf(expense: any): Promise<Buffer> {
     let browser;
     try {
+      const executablePath = this.config.get<string>('PUPPETEER_EXECUTABLE_PATH');
       browser = await puppeteer.launch({
         headless: true,
+        executablePath: executablePath || undefined,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
 
@@ -208,8 +210,10 @@ export class PdfService {
   async generateReceiptPdf(receipt: any): Promise<Buffer> {
     let browser;
     try {
+      const executablePath = this.config.get<string>('PUPPETEER_EXECUTABLE_PATH');
       browser = await puppeteer.launch({
         headless: true,
+        executablePath: executablePath || undefined,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
 
