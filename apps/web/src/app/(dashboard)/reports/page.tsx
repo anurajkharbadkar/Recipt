@@ -15,8 +15,8 @@ const COLORS = ['#ff6600', '#ffb300', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c'
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
     return (
-      <div className="glass-card p-3 text-sm border border-white/10">
-        <p className="text-white/60 text-xs mb-1">{label}</p>
+      <div className="glass-card p-3 text-sm border border-theme-fg/10">
+        <p className="text-theme-fg/60 text-xs mb-1">{label}</p>
         {payload.map((p: any, i: number) => (
           <p key={i} style={{ color: p.color }} className="font-semibold">
             {typeof p.value === 'number' && p.value > 100 ? formatCurrency(p.value) : p.value}
@@ -79,13 +79,13 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">
+      <h1 className="text-2xl font-bold text-theme-fg">
         {language === 'mr' ? 'अहवाल' : language === 'hi' ? 'रिपोर्ट' : 'Reports & Analytics'}
       </h1>
 
       {/* Daily Trend */}
       <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">
+        <h3 className="text-sm font-semibold text-theme-fg mb-4">
           {language === 'mr' ? 'दैनिक संग्रह (30 दिवस)' : 'Daily Collection Trend (30 days)'}
         </h3>
         <ResponsiveContainer width="100%" height={240}>
@@ -107,7 +107,7 @@ export default function ReportsPage() {
 
       {/* Income vs Expense Trend */}
       <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">
+        <h3 className="text-sm font-semibold text-theme-fg mb-4">
           {language === 'mr' ? 'उत्पन्न वि. खर्च (30 दिवस)' : 'Income vs Expense Trend (30 days)'}
         </h3>
         <ResponsiveContainer width="100%" height={220}>
@@ -125,19 +125,19 @@ export default function ReportsPage() {
 
       {/* Donation vs Internal Collection */}
       <div className="glass-card p-5">
-        <h3 className="text-sm font-semibold text-white mb-4">
+        <h3 className="text-sm font-semibold text-theme-fg mb-4">
           {language === 'mr' ? 'देणगी वि. अंतर्गत संग्रह' : 'Donation vs Internal Collection'}
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="stat-card">
             <p className="form-label">🤝 Donations</p>
             <p className="text-xl font-bold text-emerald-400">{formatCurrency(donationAmount)}</p>
-            <p className="text-xs text-white/40 mt-1">{donationCount} receipts</p>
+            <p className="text-xs text-theme-fg/40 mt-1">{donationCount} receipts</p>
           </div>
           <div className="stat-card">
             <p className="form-label">🏢 Internal Collections</p>
             <p className="text-xl font-bold text-saffron-400">{formatCurrency(internalAmount)}</p>
-            <p className="text-xs text-white/40 mt-1">{internalCount} receipts</p>
+            <p className="text-xs text-theme-fg/40 mt-1">{internalCount} receipts</p>
           </div>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Collector Bar Chart */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">
             {language === 'mr' ? 'संग्राहकनिहाय संग्रह' : 'Collector-wise Collections'}
           </h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -162,7 +162,7 @@ export default function ReportsPage() {
 
         {/* Area Pie Chart */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">
             {language === 'mr' ? 'क्षेत्रनिहाय संग्रह' : 'Area-wise Collections'}
           </h3>
           <ResponsiveContainer width="100%" height={200}>
@@ -192,7 +192,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Category */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">
             {language === 'mr' ? 'प्रकारनिहाय संग्रह' : 'Category-wise Collections'}
           </h3>
           <div className="space-y-3">
@@ -202,10 +202,10 @@ export default function ReportsPage() {
               return (
                 <div key={c.category}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white/70">{c.category}</span>
+                    <span className="text-theme-fg/70">{c.category}</span>
                     <span className="text-saffron-400 font-semibold">{formatCurrency(c._sum?.amount || 0)} ({pct}%)</span>
                   </div>
-                  <div className="h-1.5 bg-white/8 rounded-full">
+                  <div className="h-1.5 bg-theme-fg/8 rounded-full">
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: COLORS[i % COLORS.length] }} />
                   </div>
                 </div>
@@ -216,24 +216,24 @@ export default function ReportsPage() {
 
         {/* Top Donors */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">
             {language === 'mr' ? 'शीर्ष देणगीदार' : 'Top Donors'}
           </h3>
           <div className="space-y-3">
             {(topDonors || []).map((d: any, i: number) => (
               <div key={i} className="flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white/50'}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-yellow-500 text-black' : 'bg-theme-fg/10 text-theme-fg/50'}`}>
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/90 truncate">{d.donorName}</p>
-                  <p className="text-xs text-white/40">{d.donationCount} donations</p>
+                  <p className="text-sm text-theme-fg/90 truncate">{d.donorName}</p>
+                  <p className="text-xs text-theme-fg/40">{d.donationCount} donations</p>
                 </div>
                 <span className="text-sm font-bold text-emerald-400">{formatCurrency(d.totalAmount)}</span>
               </div>
             ))}
             {(!topDonors?.length) && (
-              <p className="text-white/30 text-sm text-center py-6">No donor data yet</p>
+              <p className="text-theme-fg/30 text-sm text-center py-6">No donor data yet</p>
             )}
           </div>
         </div>

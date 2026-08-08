@@ -5,6 +5,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OrganizationsService } from './organizations.service';
+import { UpdateOrganizationDto } from './dto/organization.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -20,17 +21,17 @@ export class OrganizationsController {
   @Get('me')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
-  @ApiOperation({ summary: 'Get current organization profile' })
-  getMe(@CurrentUser('orgId') orgId: string) {
-    return this.service.getMe(orgId);
+  @ApiOperation({ summary: 'Get current organization profile (bank transfer details are omitted for COLLECTOR/VIEWER roles)' })
+  getMe(@CurrentUser('orgId') orgId: string, @CurrentUser('role') role: UserRole) {
+    return this.service.getMe(orgId, role);
   }
 
   @Patch('me')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Update organization profile' })
-  update(@CurrentUser('orgId') orgId: string, @Body() data: any) {
-    return this.service.update(orgId, data);
+  update(@CurrentUser('orgId') orgId: string, @Body() dto: UpdateOrganizationDto) {
+    return this.service.update(orgId, dto);
   }
 
   @Post('me/logo')
@@ -44,26 +45,6 @@ export class OrganizationsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.service.uploadLogo(orgId, file);
-  }
-
-  @Post('me/receipt-template-image')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ORG_ADMIN)
-  @UseInterceptors(FileInterceptor('image'))
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a custom receipt design image (JPG/PNG)' })
-  uploadReceiptTemplateImage(
-    @CurrentUser('orgId') orgId: string,
-    @UploadedFile() file: Express.Multer.File,
-    @Body('width') width?: string,
-    @Body('height') height?: string,
-  ) {
-    return this.service.uploadReceiptTemplateImage(
-      orgId,
-      file,
-      width ? parseInt(width, 10) : undefined,
-      height ? parseInt(height, 10) : undefined,
-    );
   }
 
   @Get('areas')

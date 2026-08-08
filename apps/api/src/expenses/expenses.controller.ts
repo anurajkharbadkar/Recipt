@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Re
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ExpensesService } from './expenses.service';
+import { CreateExpenseDto } from './dto/expense.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -24,7 +25,7 @@ export class ExpensesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
-  create(@CurrentUser() user: any, @Body() data: any) {
+  create(@CurrentUser() user: any, @Body() data: CreateExpenseDto) {
     return this.service.create(user.orgId, user.id, data);
   }
 

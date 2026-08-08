@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CampaignsService } from './campaigns.service';
+import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -38,14 +39,14 @@ export class CampaignsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN)
-  create(@CurrentUser('orgId') orgId: string, @Body() data: any) {
+  create(@CurrentUser('orgId') orgId: string, @Body() data: CreateCampaignDto) {
     return this.service.create(orgId, data);
   }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN)
-  update(@Param('id') id: string, @CurrentUser('orgId') orgId: string, @Body() data: any) {
+  update(@Param('id') id: string, @CurrentUser('orgId') orgId: string, @Body() data: UpdateCampaignDto) {
     return this.service.update(id, orgId, data);
   }
 

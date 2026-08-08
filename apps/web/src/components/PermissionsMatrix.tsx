@@ -20,10 +20,10 @@ export default function PermissionsMatrix({ modules, value, onChange }: Permissi
         const modPerms = value[mod] || { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true };
 
         return (
-          <div key={mod} className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-2">
+          <div key={mod} className="p-3 bg-theme-fg/5 rounded-xl border border-theme-fg/5 space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-white">{mod}</p>
-              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-white/70">
+              <p className="text-xs font-semibold text-theme-fg">{mod}</p>
+              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-theme-fg/70">
                 <input
                   type="checkbox"
                   checked={!!modPerms.canView}
@@ -45,7 +45,7 @@ export default function PermissionsMatrix({ modules, value, onChange }: Permissi
                   if (mod === 'Receipts' && action === 'canEdit') return null;
 
                   return (
-                    <label key={action} className="flex items-center gap-1 text-[10px] text-white/50 cursor-pointer hover:text-white">
+                    <label key={action} className="flex items-center gap-1 text-[10px] text-theme-fg/50 cursor-pointer hover:text-theme-fg">
                       <input
                         type="checkbox"
                         checked={!!modPerms[action]}

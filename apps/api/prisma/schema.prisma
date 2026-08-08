@@ -106,6 +106,7 @@ model Organization {
   bankIfsc          String?
   bankBranch        String?
   upiId             String?
+  brandColor        String?
   subscriptionPlan  SubscriptionPlan @default(FREE)
   subscriptionExpiry DateTime?
   isActive          Boolean          @default(true)
@@ -117,10 +118,28 @@ model Organization {
   areas       CollectorArea[]
   auditLogs   AuditLog[]
   rolePermissions RolePermission[]
+  members     Member[]
 
   receiptTemplateSettings Json?
 
   @@index([slug])
+}
+
+model Member {
+  id          String   @id @default(uuid())
+  orgId       String
+  name        String
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  contributions Receipt[]
+
+  @@index([orgId])
 }
 
 model User {
@@ -196,6 +215,7 @@ model Receipt {
   campaignId     String
   collectorId    String
   areaId         String?
+  memberId       String?
   receiptNumber  String           @unique
   donorName      String
   donorPhone     String?
@@ -228,11 +248,13 @@ model Receipt {
   campaign   Campaign       @relation(fields: [campaignId], references: [id])
   collector  User           @relation(fields: [collectorId], references: [id])
   area       CollectorArea? @relation(fields: [areaId], references: [id])
+  member     Member?        @relation(fields: [memberId], references: [id])
 
   @@index([campaignId])
   @@index([collectorId])
   @@index([createdAt])
   @@index([receiptNumber])
+  @@index([memberId])
 }
 
 model Expense {

@@ -35,3 +35,8 @@ apps/web/public/sw.js
 apps/web/public/sw.js.map
 apps/web/public/workbox-*.js
 apps/web/public/workbox-*.js.map
+
+# Locally-stored uploads (StorageService falls back to local disk when R2 is
+# unconfigured) — generated receipt PDFs, logos and template images should
+# never be committed; production uses Cloudflare R2 instead.
+apps/api/uploads/

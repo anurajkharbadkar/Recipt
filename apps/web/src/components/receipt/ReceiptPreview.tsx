@@ -1,17 +1,21 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
-import { formatCurrency } from '@pavti/shared';
-import { format } from 'date-fns';
 import { useAuthStore } from '@/store/auth.store';
+import { resolveReceiptTheme, formatReceiptDateTime } from '@pavti/shared';
 
 interface ReceiptPreviewProps {
   receipt: any;
   printMode?: boolean;
+  /** Overrides the dashboard's global language for this receipt only — lets
+   *  the receipt detail/print pages offer their own language toggle without
+   *  changing what language the rest of the dashboard is shown in. */
+  language?: 'en' | 'hi' | 'mr';
 }
 
-export default function ReceiptPreview({ receipt, printMode = false }: ReceiptPreviewProps) {
-  const { language } = useAuthStore();
+export default function ReceiptPreview({ receipt, printMode = false, language: languageOverride }: ReceiptPreviewProps) {
+  const { language: dashboardLanguage } = useAuthStore();
+  const language = languageOverride || dashboardLanguage;
   const org = receipt.campaign?.organization;
   const verifyUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/receipt/${receipt.id}`
@@ -24,124 +28,41 @@ export default function ReceiptPreview({ receipt, printMode = false }: ReceiptPr
   };
   const l = labels[language] || labels.en;
 
-  const theme = org?.receiptTemplateSettings?.theme || 'DEFAULT';
+  // Single source of truth shared with the PDF renderer (apps/api/src/pdf/pdf.service.ts)
+  // so the on-screen preview an admin approves always matches the PDF sent to donors.
+  const theme = resolveReceiptTheme(org?.receiptTemplateSettings?.theme);
+  const border = `${theme.borderWidth}px ${theme.borderStyle} ${theme.primaryColor}`;
+  const amountBorder = `${theme.amountBorderWidth}px ${theme.amountBorderStyle} ${theme.amountBorderColor}`;
+  const bannerIcon = theme.bannerEmoji ? (
+    <div className="absolute top-0 right-0 text-2xl opacity-15 p-2 pointer-events-none">{theme.bannerEmoji}</div>
+  ) : null;
+  const bannerLine = theme.tricolorBanner ? (
+    <div className="h-1 bg-gradient-to-r from-orange-400 via-white to-green-500 w-full" />
+  ) : null;
 
-  let primaryColor = '#C85000';
-  let gradient = 'linear-gradient(135deg, #C85000 0%, #FF8C00 100%)';
-  let border = 'border-3 border-orange-500';
-  let amountBg = 'bg-orange-50';
-  let amountBorder = 'border-orange-200 border-2';
-  let badgeColor = 'text-orange-700';
-  let bannerIcon = null;
-  let bannerLine = null;
-
-  if (theme === 'GANESHOTSAV') {
-    primaryColor = '#E65100';
-    gradient = 'linear-gradient(135deg, #E65100 0%, #F57C00 50%, #FFB300 100%)';
-    border = 'border-4 border-double border-amber-600';
-    amountBg = 'bg-amber-50';
-    amountBorder = 'border-amber-200 border-2 border-dashed';
-    badgeColor = 'text-amber-800';
-    bannerIcon = <div className="absolute top-0 right-0 text-2xl opacity-15 p-2 pointer-events-none">🪔</div>;
-  } else if (theme === 'EID') {
-    primaryColor = '#004D20';
-    gradient = 'linear-gradient(135deg, #004D20 0%, #00873C 100%)';
-    border = 'border-3 border-emerald-800';
-    amountBg = 'bg-emerald-50';
-    amountBorder = 'border-emerald-200 border-2';
-    badgeColor = 'text-emerald-800';
-    bannerIcon = <div className="absolute top-0 right-0 text-2xl opacity-15 p-2 pointer-events-none">🌙</div>;
-  } else if (theme === 'BHAGAT_SINGH') {
-    primaryColor = '#1A2530';
-    gradient = 'linear-gradient(135deg, #1A2530 0%, #2c3e50 100%)';
-    border = 'border-3 border-slate-800';
-    amountBg = 'bg-slate-50';
-    amountBorder = 'border-slate-300 border-2';
-    badgeColor = 'text-slate-800';
-    bannerLine = <div className="h-1 bg-gradient-to-r from-orange-400 via-white to-green-500 w-full" />;
-  }
+  const logoUrl = org?.logoUrl;
+  const fontFamily = "'Noto Sans Devanagari', 'Inter', sans-serif";
 
   const isInternal = receipt.collectionType === 'INTERNAL';
   const isUnpaid = receipt.status === 'PENDING';
 
-  if (theme === 'CUSTOM_IMAGE' && org?.receiptTemplateSettings?.customImageUrl) {
-    const templateSettings = org.receiptTemplateSettings;
-    const positions = templateSettings.fieldPositions || {};
-    const fieldValues: Record<string, string> = {
-      donorName: receipt.donorName || '',
-      donorAddress: receipt.donorAddress || '',
-      amount: `₹${Number(receipt.amount).toLocaleString('en-IN')}`,
-      amountInWords: receipt.amountInWords || '',
-      receiptNumber: receipt.receiptNumber || '',
-      date: format(new Date(receipt.createdAt), 'dd MMM yyyy'),
-      collectorName: receipt.collector?.name || '',
-      areaName: receipt.area?.name || '',
-      category: receipt.category || '',
-      paymentMode: receipt.paymentMode || '',
-    };
-
-    return (
-      <div id="receipt-print" className={`${printMode ? 'w-[148mm] mx-auto' : 'max-w-sm mx-auto'} relative`}>
-        <img src={templateSettings.customImageUrl} alt="Receipt" className="w-full block rounded-lg" />
-        {Object.entries(positions).map(([key, pos]: [string, any]) => {
-          if (!pos) return null;
-          if (key === 'qrCode') {
-            return (
-              <div key={key} style={{ position: 'absolute', left: `${pos.xPct}%`, top: `${pos.yPct}%`, transform: 'translate(-50%,-50%)' }}>
-                <QRCodeSVG value={verifyUrl} size={pos.fontSizePx ? pos.fontSizePx * 5 : 64} bgColor="transparent" fgColor={pos.color || '#000000'} level="M" />
-              </div>
-            );
-          }
-          const value = fieldValues[key];
-          if (!value) return null;
-          return (
-            <div
-              key={key}
-              style={{
-                position: 'absolute',
-                left: `${pos.xPct}%`,
-                top: `${pos.yPct}%`,
-                fontSize: pos.fontSizePx || 14,
-                color: pos.color || '#000000',
-                fontWeight: pos.bold ? 700 : 400,
-                textAlign: pos.align || 'left',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {value}
-            </div>
-          );
-        })}
-        {receipt.isVoided ? (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-white/40">
-            <div className="border-4 border-red-500 text-red-500 font-black text-4xl px-4 py-2 rotate-[-15deg] opacity-75 bg-white uppercase">Void</div>
-          </div>
-        ) : isUnpaid ? (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-            <div className="border-4 border-amber-600 text-amber-600 font-black text-4xl px-4 py-2 rotate-[-15deg] opacity-25 uppercase">Unpaid</div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
   return (
     <div
       id="receipt-print"
-      className={`${printMode ? 'w-[148mm] mx-auto' : 'max-w-sm mx-auto'} bg-white text-gray-900 rounded-2xl overflow-hidden shadow-2xl relative ${border}`}
-      style={{ fontFamily: "'Noto Sans Devanagari', 'Inter', sans-serif" }}
+      className={`${printMode ? 'w-[148mm] mx-auto' : 'max-w-sm mx-auto'} bg-white text-gray-900 rounded-2xl overflow-hidden shadow-2xl relative`}
+      style={{ fontFamily, border }}
     >
       {bannerLine}
       {/* Header */}
       <div
         className="px-5 py-4 text-white relative overflow-hidden"
-        style={{ background: gradient }}
+        style={{ background: theme.gradient }}
       >
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
         {bannerIcon}
         <div className="flex items-center gap-3 relative z-10">
-          {org?.logoUrl && (
-            <img src={org.logoUrl} alt="" className="w-14 h-14 rounded-lg object-cover bg-white/10 p-0.5 border border-white/10 shrink-0" />
+          {logoUrl && (
+            <img src={logoUrl} alt="" className="w-14 h-14 rounded-lg object-contain bg-white/10 p-0.5 border border-white/10 shrink-0" />
           )}
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-base sm:text-lg leading-tight truncate">{org?.name}</h2>
@@ -163,12 +84,12 @@ export default function ReceiptPreview({ receipt, printMode = false }: ReceiptPr
           <span className="text-[10px] text-gray-500 uppercase tracking-wider">
             {isInternal ? (language === 'mr' ? 'अंतर्गत पावती' : 'Internal Receipt') : l.receipt} {l.no}
           </span>
-          <div className="font-bold text-orange-800 text-base" style={{ color: primaryColor }}>{receipt.receiptNumber}</div>
+          <div className="font-bold text-base" style={{ color: theme.primaryColor }}>{receipt.receiptNumber}</div>
         </div>
         <div className="text-right">
           <span className="text-[10px] text-gray-500 uppercase tracking-wider">Date</span>
           <div className="text-sm font-semibold text-gray-700">
-            {format(new Date(receipt.createdAt), 'dd MMM yyyy')}
+            {formatReceiptDateTime(receipt.createdAt)}
           </div>
         </div>
       </div>
@@ -188,13 +109,18 @@ export default function ReceiptPreview({ receipt, printMode = false }: ReceiptPr
         )}
 
         {/* Amount Box */}
-        <div className={`${amountBg} ${amountBorder} rounded-xl p-3 text-center my-2`}>
-          <div className="text-3xl font-bold" style={{ color: primaryColor }}>
+        <div className="rounded-xl p-3 text-center my-2" style={{ background: theme.amountBg, border: amountBorder }}>
+          <div className="text-3xl font-bold" style={{ color: theme.primaryColor }}>
             ₹{Number(receipt.amount).toLocaleString('en-IN')}
           </div>
           <div className="text-xs text-gray-500 italic mt-1">
             {receipt.amountInWords}
           </div>
+          {org?.upiId && (
+            <div className="text-xs text-gray-600 mt-1.5 pt-1.5 border-t border-dashed border-gray-300">
+              📲 Pay via UPI: <strong>{org.upiId}</strong>
+            </div>
+          )}
         </div>
 
         {/* Category, Mode & Status */}
@@ -249,7 +175,7 @@ export default function ReceiptPreview({ receipt, printMode = false }: ReceiptPr
             value={verifyUrl}
             size={64}
             bgColor="transparent"
-            fgColor={primaryColor}
+            fgColor={theme.primaryColor}
             level="M"
           />
           <p className="text-[9px] text-gray-400 mt-1">{l.scan}</p>

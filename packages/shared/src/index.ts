@@ -15,6 +15,19 @@ export enum SubscriptionPlan {
   PREMIUM = 'PREMIUM',
 }
 
+// How many campaigns an org may run ACTIVE at once, by plan. Enforced when a
+// campaign transitions to ACTIVE (apps/api CampaignsService.activate) — a
+// campaign can always be created/edited as DRAFT regardless of this limit,
+// since only ACTIVE campaigns accept receipts. Shared so the web app can
+// pre-emptively disable/explain the "Activate" action instead of only
+// discovering the block after a failed request.
+export const MAX_ACTIVE_CAMPAIGNS_BY_PLAN: Record<SubscriptionPlan, number> = {
+  [SubscriptionPlan.FREE]: 1,
+  [SubscriptionPlan.BASIC]: 1,
+  [SubscriptionPlan.STANDARD]: 2,
+  [SubscriptionPlan.PREMIUM]: 5,
+};
+
 export enum CollectionType {
   DONATION = 'DONATION',
   INTERNAL = 'INTERNAL',
@@ -85,29 +98,94 @@ export enum ReceiptTheme {
   GANESHOTSAV = 'GANESHOTSAV',
   EID = 'EID',
   BHAGAT_SINGH = 'BHAGAT_SINGH',
-  CUSTOM_IMAGE = 'CUSTOM_IMAGE',
-}
-
-// Fixed set of overlay-able fields for the CUSTOM_IMAGE theme
-export type ReceiptTemplateFieldKey =
-  | 'donorName' | 'donorAddress' | 'amount' | 'amountInWords' | 'receiptNumber'
-  | 'date' | 'collectorName' | 'areaName' | 'category' | 'paymentMode' | 'qrCode';
-
-export interface FieldPosition {
-  xPct: number;
-  yPct: number;
-  fontSizePx?: number;
-  color?: string;
-  align?: 'left' | 'center' | 'right';
-  bold?: boolean;
+  NAVRATRI = 'NAVRATRI',
+  TEMPLE_GOLD = 'TEMPLE_GOLD',
+  ELEGANT_TRUST = 'ELEGANT_TRUST',
 }
 
 export interface ReceiptTemplateSettings {
   theme: ReceiptTheme | string;
-  customImageUrl?: string;
-  imageWidth?: number;
-  imageHeight?: number;
-  fieldPositions?: Partial<Record<ReceiptTemplateFieldKey, FieldPosition>>;
+}
+
+// ─── Receipt Theme Style Registry ──────────────────────────────────────────────
+// Single source of truth for theme visuals, consumed by BOTH the PDF renderer
+// (apps/api/src/pdf/pdf.service.ts) and the on-screen preview
+// (apps/web/src/components/receipt/ReceiptPreview.tsx) plus the theme picker
+// (apps/web settings page) — so what an admin sees on screen is guaranteed to
+// match the actual PDF sent to donors, and adding a theme means editing one place.
+export interface ReceiptThemeStyle {
+  id: string;
+  label: string;
+  emoji: string;
+  primaryColor: string;
+  gradient: string;
+  borderWidth: number;
+  borderStyle: 'solid' | 'double' | 'dashed';
+  amountBg: string;
+  amountBorderColor: string;
+  amountBorderWidth: number;
+  amountBorderStyle: 'solid' | 'dashed';
+  /** Small emoji rendered in the top-right corner of the header. */
+  bannerEmoji?: string;
+  /** BHAGAT_SINGH-only: a saffron/white/green stripe instead of a banner emoji. */
+  tricolorBanner?: boolean;
+}
+
+export const RECEIPT_THEMES: ReceiptThemeStyle[] = [
+  {
+    id: 'DEFAULT', label: 'Default Saffron', emoji: '🟠',
+    primaryColor: '#C85000', gradient: 'linear-gradient(135deg, #C85000 0%, #FF8C00 100%)',
+    borderWidth: 3, borderStyle: 'solid',
+    amountBg: '#fff8f0', amountBorderColor: '#ffccaa', amountBorderWidth: 2, amountBorderStyle: 'solid',
+  },
+  {
+    id: 'GANESHOTSAV', label: 'Ganeshotsav Special', emoji: '🪔',
+    primaryColor: '#E65100', gradient: 'linear-gradient(135deg, #E65100 0%, #F57C00 50%, #FFB300 100%)',
+    borderWidth: 4, borderStyle: 'double',
+    amountBg: '#FFF8E1', amountBorderColor: '#FFE082', amountBorderWidth: 2, amountBorderStyle: 'dashed',
+    bannerEmoji: '🪔',
+  },
+  {
+    id: 'EID', label: 'Eid Special', emoji: '🌙',
+    primaryColor: '#004D20', gradient: 'linear-gradient(135deg, #004D20 0%, #00873C 100%)',
+    borderWidth: 3, borderStyle: 'solid',
+    amountBg: '#E8F5E9', amountBorderColor: '#A5D6A7', amountBorderWidth: 2, amountBorderStyle: 'solid',
+    bannerEmoji: '🌙',
+  },
+  {
+    id: 'NAVRATRI', label: 'Navratri Special', emoji: '💃',
+    primaryColor: '#9C1B5C', gradient: 'linear-gradient(135deg, #9C1B5C 0%, #C2185B 50%, #E91E8C 100%)',
+    borderWidth: 4, borderStyle: 'double',
+    amountBg: '#FCE4EC', amountBorderColor: '#F48FB1', amountBorderWidth: 2, amountBorderStyle: 'dashed',
+    bannerEmoji: '💃',
+  },
+  {
+    id: 'TEMPLE_GOLD', label: 'Temple Gold', emoji: '🛕',
+    primaryColor: '#7B1E1E', gradient: 'linear-gradient(135deg, #7B1E1E 0%, #A52A2A 50%, #D4A017 100%)',
+    borderWidth: 4, borderStyle: 'double',
+    amountBg: '#FFF9E6', amountBorderColor: '#D4A017', amountBorderWidth: 2, amountBorderStyle: 'solid',
+    bannerEmoji: '🛕',
+  },
+  {
+    id: 'BHAGAT_SINGH', label: 'Tricolor Mandal', emoji: '🇮🇳',
+    primaryColor: '#1A2530', gradient: 'linear-gradient(135deg, #1A2530 0%, #2c3e50 100%)',
+    borderWidth: 3, borderStyle: 'solid',
+    amountBg: '#ECEFF1', amountBorderColor: '#B0BEC5', amountBorderWidth: 2, amountBorderStyle: 'solid',
+    tricolorBanner: true,
+  },
+  {
+    id: 'ELEGANT_TRUST', label: 'Elegant Trust', emoji: '📘',
+    primaryColor: '#0D3B66', gradient: 'linear-gradient(135deg, #0D3B66 0%, #14568C 100%)',
+    borderWidth: 2, borderStyle: 'solid',
+    amountBg: '#F8FAFC', amountBorderColor: '#E2E8F0', amountBorderWidth: 2, amountBorderStyle: 'solid',
+  },
+];
+
+export const DEFAULT_RECEIPT_THEME_ID = 'DEFAULT';
+
+/** Resolves a (possibly stale/unknown) stored theme id to a style, falling back to DEFAULT. */
+export function resolveReceiptTheme(themeId?: string | null): ReceiptThemeStyle {
+  return RECEIPT_THEMES.find((t) => t.id === themeId) || RECEIPT_THEMES[0];
 }
 
 // ─── DTOs / Interfaces ────────────────────────────────────────────────────────
@@ -352,10 +430,23 @@ export function generateReceiptNumber(prefix: string, sequence: number): string 
   return `${prefix}-${String(sequence).padStart(4, '0')}`;
 }
 
+/**
+ * Single source of truth for the "date + time" stamp shown on a receipt —
+ * used by both the PDF renderer (apps/api pdf.service.ts) and the on-screen
+ * preview (apps/web ReceiptPreview.tsx) so they never drift, e.g. "08 Aug
+ * 2026, 10:18 PM".
+ */
+export function formatReceiptDateTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const datePart = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timePart = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `${datePart}, ${timePart}`;
+}
+
 // ─── Access Management ────────────────────────────────────────────────────────
 
 export const PERMISSION_MODULES = [
-  'Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Reports', 'Settings',
+  'Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings',
 ] as const;
 export type PermissionModule = typeof PERMISSION_MODULES[number];
 
@@ -407,6 +498,12 @@ export function inferApiModuleAndAction(
     else if (method === 'POST') action = 'canCreate';
     else if (method === 'PATCH' || method === 'PUT') action = 'canEdit';
     else if (method === 'DELETE') action = 'canDelete';
+  } else if (path.includes('/members') || path.includes('/internal-collections')) {
+    module = 'Members';
+    if (method === 'GET') action = 'canView';
+    else if (method === 'POST') action = 'canCreate';
+    else if (method === 'PATCH' || method === 'PUT') action = 'canEdit';
+    else if (method === 'DELETE') action = 'canDelete';
   } else if (path.includes('/reports')) {
     module = 'Reports';
     if (method === 'GET') action = 'canView';
@@ -425,6 +522,7 @@ export function inferRouteModule(pathname: string): PermissionModule | 'Dashboar
   if (pathname.startsWith('/receipts')) return 'Receipts';
   if (pathname.startsWith('/collectors')) return 'Collectors';
   if (pathname.startsWith('/campaigns')) return 'Campaigns';
+  if (pathname.startsWith('/members')) return 'Members';
   if (pathname.startsWith('/expenses')) return 'Expenses';
   if (pathname.startsWith('/reports')) return 'Reports';
   if (pathname.startsWith('/settings')) return 'Settings';

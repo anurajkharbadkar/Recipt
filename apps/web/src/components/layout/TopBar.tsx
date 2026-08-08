@@ -27,7 +27,7 @@ export default function TopBar() {
       <div className="flex items-center gap-3 ml-10 md:ml-0">
         {activeCampaigns.length > 0 ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-white/40 hidden sm:block">Campaign:</span>
+            <span className="text-xs text-theme-fg/40 hidden sm:block">Campaign:</span>
             <select
               value={activeCampaignId || ''}
               onChange={(e) => setActiveCampaign(e.target.value)}
@@ -39,7 +39,7 @@ export default function TopBar() {
             </select>
           </div>
         ) : (
-          <span className="text-xs text-white/30">No active campaign</span>
+          <span className="text-xs text-theme-fg/30">No active campaign</span>
         )}
       </div>
 
@@ -57,7 +57,7 @@ export default function TopBar() {
                 <button
                   key={code}
                   onClick={() => setLanguage(code as any)}
-                  className={`px-3 py-1.5 text-xs rounded-lg text-left transition-colors ${language === code ? 'bg-saffron-600/20 text-saffron-400' : 'text-white/70 hover:bg-white/5'}`}
+                  className={`px-3 py-1.5 text-xs rounded-lg text-left transition-colors ${language === code ? 'bg-saffron-600/20 text-saffron-400' : 'text-theme-fg/70 hover:bg-theme-fg/5'}`}
                 >
                   {label}
                 </button>

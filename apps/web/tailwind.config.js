@@ -34,6 +34,17 @@ module.exports = {
           500: '#ffca28',
           600: '#ffb300',
         },
+        // Theme-aware foreground token — resolves to white in Dark mode and
+        // slate-900 in Light mode via the --fg-rgb CSS var (globals.css),
+        // and supports Tailwind opacity modifiers (text-theme-fg/60) through
+        // the <alpha-value> placeholder. Use this instead of literal
+        // text-white/bg-white/border-white anywhere the surface underneath
+        // is theme-following (page background, glass-card, table row) —
+        // literal white utilities don't react to the Light theme toggle and
+        // render invisible text once the card background turns solid white.
+        theme: {
+          fg: 'rgb(var(--fg-rgb) / <alpha-value>)',
+        },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'Inter', 'sans-serif'],

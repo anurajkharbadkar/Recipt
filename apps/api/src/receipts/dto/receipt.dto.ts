@@ -162,3 +162,53 @@ export class VoidReceiptDto {
   @IsString()
   reason: string;
 }
+
+/**
+ * Deliberately narrower than CreateReceiptDto: campaignId, collectionType and
+ * receiptNumber are immutable after issuance (receiptNumber backs the atomic
+ * sequence and any public verification link already shared with the donor),
+ * and status has its own dedicated PATCH /:id/status endpoint.
+ */
+export class UpdateReceiptDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  donorName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  donorPhone?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  donorAddress?: string;
+
+  @ApiPropertyOptional({ example: 500 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  amount?: number;
+
+  @ApiPropertyOptional({ enum: DonationCategory })
+  @IsOptional()
+  @IsEnum(DonationCategory)
+  category?: DonationCategory;
+
+  @ApiPropertyOptional({ enum: PaymentMode })
+  @IsOptional()
+  @IsEnum(PaymentMode)
+  paymentMode?: PaymentMode;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Date)
+  dueDate?: Date;
+}

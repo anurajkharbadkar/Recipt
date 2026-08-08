@@ -83,7 +83,7 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-theme-fg">
           {language === 'mr' ? 'खर्च' : language === 'hi' ? 'व्यय' : 'Expenses'}
         </h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
@@ -105,7 +105,7 @@ export default function ExpensesPage() {
 
       {showForm && (
         <div className="glass-card p-6 animate-slide-up">
-          <h3 className="text-sm font-semibold text-white mb-4">Log Expense</h3>
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">Log Expense</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Campaign *</label>
@@ -173,7 +173,7 @@ export default function ExpensesPage() {
       {/* Expenses List */}
       <div className="glass-card overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-white/30">Loading...</div>
+          <div className="p-8 text-center text-theme-fg/30">Loading...</div>
         ) : (
           <div className="table-container">
             <table className="data-table">
@@ -195,17 +195,17 @@ export default function ExpensesPage() {
                   <tr key={e.id}>
                     <td>
                       <span className="text-lg">{CATEGORY_EMOJI[e.category]}</span>
-                      <span className="ml-2 text-xs text-white/60">{e.category.replace('_', ' ')}</span>
+                      <span className="ml-2 text-xs text-theme-fg/60">{e.category.replace('_', ' ')}</span>
                     </td>
                     <td>
-                      <div className="font-semibold text-white/80">{e.paidTo || '—'}</div>
-                      {e.beneficiaryPhone && <div className="text-[10px] text-white/40">{e.beneficiaryPhone}</div>}
+                      <div className="font-semibold text-theme-fg/80">{e.paidTo || '—'}</div>
+                      {e.beneficiaryPhone && <div className="text-[10px] text-theme-fg/40">{e.beneficiaryPhone}</div>}
                     </td>
-                    <td className="text-white/70 text-sm">{e.description}</td>
+                    <td className="text-theme-fg/70 text-sm">{e.description}</td>
                     <td className="font-bold text-red-400">{formatCurrency(e.amount)}</td>
                     <td><span className="badge badge-info text-[10px]">{e.paymentMode}</span></td>
-                    <td className="text-white/40 text-xs">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</td>
-                    <td className="text-white/60 text-sm">{e.addedBy?.name}</td>
+                    <td className="text-theme-fg/40 text-xs">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</td>
+                    <td className="text-theme-fg/60 text-sm">{e.addedBy?.name}</td>
                     <td>
                       {e.isApproved ? (
                         <span className="badge badge-success">✓ Approved</span>
@@ -215,16 +215,16 @@ export default function ExpensesPage() {
                     </td>
                     <td>
                       <div className="flex gap-1">
-                        <button onClick={() => voucherMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-saffron-500/10 text-white/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
+                        <button onClick={() => voucherMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-saffron-500/10 text-theme-fg/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
                           <FileDown size={14} />
                         </button>
                         {!e.isApproved && (
-                          <button onClick={() => approveMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-white/40 hover:text-emerald-400 transition-colors">
+                          <button onClick={() => approveMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-theme-fg/40 hover:text-emerald-400 transition-colors">
                             <CheckCircle size={14} />
                           </button>
                         )}
                         {!e.isApproved && (
-                          <button onClick={() => deleteMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-colors">
+                          <button onClick={() => deleteMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -233,7 +233,7 @@ export default function ExpensesPage() {
                   </tr>
                 ))}
                 {!expenses?.length && (
-                  <tr><td colSpan={11} className="text-center text-white/30 py-8">No expenses logged yet</td></tr>
+                  <tr><td colSpan={11} className="text-center text-theme-fg/30 py-8">No expenses logged yet</td></tr>
                 )}
               </tbody>
             </table>

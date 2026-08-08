@@ -6,10 +6,17 @@ export class ReportsService {
   constructor(private prisma: PrismaService) {}
 
   async getDashboardSummary(orgId: string, campaignId?: string) {
-    const receiptWhere: any = { campaign: { orgId }, isVoided: false };
-    const expenseWhere: any = { campaign: { orgId }, isApproved: true };
+    // "Collected" means actually paid — a PENDING (unpaid/due) receipt is a
+    // promise, not cash in hand, so it's tracked separately as
+    // pendingCollections instead of inflating totalCollections/netBalance.
+    const paidReceiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const pendingReceiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PENDING' };
+    // Expenses count toward the balance as soon as they're logged — approval
+    // is a separate audit workflow, not a gate on whether money was spent.
+    const expenseWhere: any = { campaign: { orgId } };
     if (campaignId) {
-      receiptWhere.campaignId = campaignId;
+      paidReceiptWhere.campaignId = campaignId;
+      pendingReceiptWhere.campaignId = campaignId;
       expenseWhere.campaignId = campaignId;
     }
 
@@ -19,17 +26,21 @@ export class ReportsService {
     const [
       totalResult,
       todayResult,
+      pendingCollectionsResult,
       expenseResult,
+      approvedExpenseResult,
       pendingExpenses,
       activeCollectors,
     ] = await Promise.all([
-      this.prisma.receipt.aggregate({ where: receiptWhere, _sum: { amount: true }, _count: true }),
+      this.prisma.receipt.aggregate({ where: paidReceiptWhere, _sum: { amount: true }, _count: true }),
       this.prisma.receipt.aggregate({
-        where: { ...receiptWhere, createdAt: { gte: todayStart } },
+        where: { ...paidReceiptWhere, createdAt: { gte: todayStart } },
         _sum: { amount: true },
         _count: true,
       }),
+      this.prisma.receipt.aggregate({ where: pendingReceiptWhere, _sum: { amount: true }, _count: true }),
       this.prisma.expense.aggregate({ where: expenseWhere, _sum: { amount: true } }),
+      this.prisma.expense.aggregate({ where: { ...expenseWhere, isApproved: true }, _sum: { amount: true } }),
       this.prisma.expense.count({ where: { ...expenseWhere, isApproved: false } }),
       this.prisma.user.count({
         where: { orgId, role: 'COLLECTOR', isActive: true },
@@ -45,9 +56,12 @@ export class ReportsService {
       totalReceipts: totalResult._count,
       todayReceipts: todayResult._count,
       totalExpenses,
+      approvedExpenses: approvedExpenseResult._sum.amount || 0,
       netBalance: totalCollections - totalExpenses,
       activeCollectors,
       pendingExpenses,
+      pendingCollections: pendingCollectionsResult._sum.amount || 0,
+      pendingCollectionsCount: pendingCollectionsResult._count,
     };
   }
 
@@ -58,6 +72,7 @@ export class ReportsService {
     const where: any = {
       campaign: { orgId },
       isVoided: false,
+      status: 'PAID',
       createdAt: { gte: startDate },
     };
     if (campaignId) where.campaignId = campaignId;
@@ -84,7 +99,7 @@ export class ReportsService {
   }
 
   async getCollectorStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false };
+    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     const results = await this.prisma.receipt.groupBy({
@@ -116,7 +131,7 @@ export class ReportsService {
   }
 
   async getAreaStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false, areaId: { not: null } };
+    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID', areaId: { not: null } };
     if (campaignId) where.campaignId = campaignId;
 
     const results = await this.prisma.receipt.groupBy({
@@ -142,7 +157,7 @@ export class ReportsService {
   }
 
   async getCategoryStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false };
+    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     return this.prisma.receipt.groupBy({
@@ -155,7 +170,7 @@ export class ReportsService {
   }
 
   async getCollectionTypeStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false };
+    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     return this.prisma.receipt.groupBy({
@@ -171,8 +186,8 @@ export class ReportsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const receiptWhere: any = { campaign: { orgId }, isVoided: false, createdAt: { gte: startDate } };
-    const expenseWhere: any = { campaign: { orgId }, isApproved: true, expenseDate: { gte: startDate } };
+    const receiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID', createdAt: { gte: startDate } };
+    const expenseWhere: any = { campaign: { orgId }, expenseDate: { gte: startDate } };
     if (campaignId) {
       receiptWhere.campaignId = campaignId;
       expenseWhere.campaignId = campaignId;
@@ -201,7 +216,7 @@ export class ReportsService {
   }
 
   async getTopDonors(orgId: string, campaignId?: string, limit = 10) {
-    const where: any = { campaign: { orgId }, isVoided: false };
+    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     const results = await this.prisma.receipt.groupBy({

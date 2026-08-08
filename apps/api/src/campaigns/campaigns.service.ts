@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
+import { MAX_ACTIVE_CAMPAIGNS_BY_PLAN, SubscriptionPlan } from '@pavti/shared';
 
 @Injectable()
 export class CampaignsService {
@@ -27,7 +29,7 @@ export class CampaignsService {
     return campaign;
   }
 
-  async create(orgId: string, data: any) {
+  async create(orgId: string, data: CreateCampaignDto) {
     const year = data.year || new Date().getFullYear();
     const prefix = data.receiptPrefix ||
       `${data.name.substring(0, 3).toUpperCase()}-${year}`;
@@ -49,16 +51,43 @@ export class CampaignsService {
     });
   }
 
-  async update(id: string, orgId: string, data: any) {
+  // Deliberately spreads through an allowlisted DTO (not the raw request body)
+  // so a client can never smuggle orgId/receiptPrefix/receiptSeq overrides
+  // into this update — receiptSeq in particular backs atomic receipt-number
+  // generation (see ReceiptsService.create) and must never be client-writable.
+  async update(id: string, orgId: string, data: UpdateCampaignDto) {
     await this.findOne(id, orgId);
     return this.prisma.campaign.update({
       where: { id },
-      data,
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.nameMarathi !== undefined && { nameMarathi: data.nameMarathi }),
+        ...(data.nameHindi !== undefined && { nameHindi: data.nameHindi }),
+        ...(data.year !== undefined && { year: data.year }),
+        ...(data.startDate !== undefined && { startDate: new Date(data.startDate) }),
+        ...(data.endDate !== undefined && { endDate: data.endDate ? new Date(data.endDate) : null }),
+        ...(data.targetAmount !== undefined && { targetAmount: data.targetAmount }),
+        ...(data.description !== undefined && { description: data.description }),
+      },
     });
   }
 
   async activate(id: string, orgId: string) {
-    await this.findOne(id, orgId);
+    const campaign = await this.findOne(id, orgId);
+    if (campaign.status === 'ACTIVE') return campaign;
+
+    const plan = (campaign.organization.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
+    const limit = MAX_ACTIVE_CAMPAIGNS_BY_PLAN[plan] ?? 1;
+    const activeCount = await this.prisma.campaign.count({
+      where: { orgId, status: 'ACTIVE', id: { not: id } },
+    });
+    if (activeCount >= limit) {
+      throw new ForbiddenException(
+        `Your ${plan} plan allows ${limit} active campaign${limit === 1 ? '' : 's'} at a time. `
+        + `Complete or pause an existing campaign, or upgrade your plan to run this one alongside it.`,
+      );
+    }
+
     return this.prisma.campaign.update({
       where: { id },
       data: { status: 'ACTIVE' },
@@ -76,14 +105,23 @@ export class CampaignsService {
   async getStats(id: string, orgId: string) {
     await this.findOne(id, orgId);
 
-    const [totalResult, expenseResult, receiptCount] = await Promise.all([
+    const [totalResult, pendingResult, expenseResult, receiptCount] = await Promise.all([
+      // Only PAID receipts count as "collected" — a PENDING receipt is a due
+      // amount, not cash in hand (see reports.service.ts getDashboardSummary).
       this.prisma.receipt.aggregate({
-        where: { campaignId: id, isVoided: false },
+        where: { campaignId: id, isVoided: false, status: 'PAID' },
         _sum: { amount: true },
         _count: true,
       }),
+      this.prisma.receipt.aggregate({
+        where: { campaignId: id, isVoided: false, status: 'PENDING' },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      // All logged expenses, not just approved ones — approval is an audit
+      // workflow flag, not a gate on whether the money was actually spent.
       this.prisma.expense.aggregate({
-        where: { campaignId: id, isApproved: true },
+        where: { campaignId: id },
         _sum: { amount: true },
       }),
       this.prisma.receipt.count({ where: { campaignId: id } }),
@@ -97,6 +135,8 @@ export class CampaignsService {
       totalExpenses,
       netBalance: totalCollected - totalExpenses,
       receiptCount,
+      pendingCollections: pendingResult._sum.amount || 0,
+      pendingCollectionsCount: pendingResult._count,
     };
   }
 }

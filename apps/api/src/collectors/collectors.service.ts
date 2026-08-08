@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCollectorDto, UpdateCollectorDto } from './dto/collector.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -26,7 +27,7 @@ export class CollectorsService {
     return collector;
   }
 
-  async create(orgId: string, data: any) {
+  async create(orgId: string, data: CreateCollectorDto) {
     const existing = await this.prisma.user.findUnique({
       where: { orgId_phone: { orgId, phone: data.phone } },
     });
@@ -51,7 +52,7 @@ export class CollectorsService {
     });
   }
 
-  async update(id: string, orgId: string, data: any) {
+  async update(id: string, orgId: string, data: UpdateCollectorDto) {
     await this.findOne(id, orgId);
     const updateData: any = {
       name: data.name,

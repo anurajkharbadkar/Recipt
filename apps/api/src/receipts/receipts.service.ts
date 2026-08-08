@@ -9,7 +9,7 @@ import { PdfService } from '../pdf/pdf.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { SmsService } from '../sms/sms.service';
 import { StorageService } from '../storage/storage.service';
-import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto } from './dto/receipt.dto';
+import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto, UpdateReceiptDto } from './dto/receipt.dto';
 import { amountToWords, generateReceiptNumber, UserRole, ReceiptStatus } from '@pavti/shared';
 import * as QRCode from 'qrcode';
 
@@ -218,7 +218,10 @@ export class ReceiptsService {
         campaign: {
           include: {
             organization: {
-              select: { name: true, nameMarathi: true, logoUrl: true, address: true },
+              // Include theme + UPI so the public verify page (which reuses
+              // ReceiptPreview) renders identically to the dashboard preview
+              // and the PDF, instead of silently falling back to defaults.
+              select: { name: true, nameMarathi: true, logoUrl: true, address: true, upiId: true, receiptTemplateSettings: true },
             },
           },
         },
@@ -240,6 +243,59 @@ export class ReceiptsService {
       campaign: receipt.campaign,
       area: receipt.area,
     };
+  }
+
+  /**
+   * Lets a treasurer correct a receipt after issuance (e.g. a mistyped amount,
+   * or dialing in an Internal Collection member's contribution away from the
+   * declared default). Void+reissue is the alternative but throws away the
+   * receipt number and history — this instead audit-logs the before/after and
+   * regenerates the PDF so it never goes stale relative to the stored data.
+   */
+  async update(id: string, dto: UpdateReceiptDto, userId: string, orgId: string) {
+    const existing = await this.findOne(id, orgId);
+    if (existing.isVoided) throw new BadRequestException('Cannot edit a voided receipt');
+
+    const data: any = {};
+    if (dto.donorName !== undefined) data.donorName = dto.donorName;
+    if (dto.donorPhone !== undefined) data.donorPhone = dto.donorPhone;
+    if (dto.donorAddress !== undefined) data.donorAddress = dto.donorAddress;
+    if (dto.category !== undefined) data.category = dto.category;
+    if (dto.paymentMode !== undefined) data.paymentMode = dto.paymentMode;
+    if (dto.notes !== undefined) data.notes = dto.notes;
+    if (dto.dueDate !== undefined) data.dueDate = dto.dueDate;
+    if (dto.amount !== undefined) {
+      data.amount = dto.amount;
+      data.amountInWords = amountToWords(dto.amount);
+    }
+
+    const updated = await this.prisma.receipt.update({
+      where: { id },
+      data,
+      include: {
+        collector: true,
+        campaign: { include: { organization: true } },
+        area: true,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        orgId,
+        userId,
+        action: 'UPDATE',
+        entity: 'Receipt',
+        entityId: id,
+        oldValue: { donorName: existing.donorName, amount: existing.amount, category: existing.category, paymentMode: existing.paymentMode, notes: existing.notes },
+        newValue: data,
+      },
+    });
+
+    // The previously-generated PDF (if any) now shows stale data — regenerate
+    // it the same fire-and-forget way receipt creation does.
+    this.generateAndStorePdf(updated).catch(console.error);
+
+    return updated;
   }
 
   async void(id: string, dto: VoidReceiptDto, userId: string, orgId: string) {
@@ -370,7 +426,10 @@ export class ReceiptsService {
   }
 
   async findUniqueDonors(orgId: string) {
-    const receipts = await this.prisma.receipt.findMany({
+    // DB-level dedup (Prisma `distinct`) instead of pulling every historical
+    // receipt into Node memory just to dedupe by donorPhone in JS — scales with
+    // unique donor count instead of total receipt count.
+    return this.prisma.receipt.findMany({
       where: {
         campaign: { orgId },
         donorPhone: { not: null },
@@ -381,18 +440,9 @@ export class ReceiptsService {
         donorAddress: true,
         areaId: true,
       },
+      distinct: ['donorPhone'],
       orderBy: { createdAt: 'desc' },
     });
-
-    const seen = new Set<string>();
-    const uniqueDonors = [];
-    for (const r of receipts) {
-      if (r.donorPhone && !seen.has(r.donorPhone)) {
-        seen.add(r.donorPhone);
-        uniqueDonors.push(r);
-      }
-    }
-    return uniqueDonors;
   }
 
   private async generateAndStorePdf(receipt: any) {

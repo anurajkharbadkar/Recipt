@@ -129,10 +129,10 @@ export default function NewReceiptPage() {
           <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={32} className="text-emerald-400" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-1">
+          <h2 className="text-xl font-bold text-theme-fg mb-1">
             {language === 'mr' ? 'पावती तयार झाली!' : 'Receipt Created!'}
           </h2>
-          <p className="text-white/50 text-sm mb-6">{createdReceipt.receiptNumber}</p>
+          <p className="text-theme-fg/50 text-sm mb-6">{createdReceipt.receiptNumber}</p>
 
           <div className="flex flex-wrap gap-3 justify-center mb-6">
             <button onClick={handleShare} className="btn-primary gap-2" disabled={!createdReceipt.donorPhone}>
@@ -159,17 +159,17 @@ export default function NewReceiptPage() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-xl font-bold text-theme-fg">
             {language === 'mr' ? 'नवीन पावती' : language === 'hi' ? 'नई रसीद' : 'New Receipt'}
           </h1>
-          <p className="text-xs text-white/40">{STEPS[step]}</p>
+          <p className="text-xs text-theme-fg/40">{STEPS[step]}</p>
         </div>
       </div>
 
       {/* Step Progress */}
       <div className="flex gap-2">
         {STEPS.map((s, i) => (
-          <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-white/10">
+          <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-theme-fg/10">
             <div className={`h-full bg-gradient-brand transition-all duration-500 ${i <= step ? 'w-full' : 'w-0'}`} />
           </div>
         ))}
@@ -185,14 +185,14 @@ export default function NewReceiptPage() {
                 <button
                   type="button"
                   onClick={() => setValue('collectionType', CollectionType.DONATION)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.DONATION ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-white/5 text-white/50 border border-white/8 hover:text-white'}`}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.DONATION ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/8 hover:text-theme-fg'}`}
                 >
                   🤝 Donation
                 </button>
                 <button
                   type="button"
                   onClick={() => setValue('collectionType', CollectionType.INTERNAL)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.INTERNAL ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-white/5 text-white/50 border border-white/8 hover:text-white'}`}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.INTERNAL ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/8 hover:text-theme-fg'}`}
                 >
                   🏢 Internal Collection
                 </button>
@@ -232,7 +232,7 @@ export default function NewReceiptPage() {
               {errors.donorName && <p className="form-error">{errors.donorName.message}</p>}
 
               {showSuggestions && donorSearch.length >= 2 && (
-                <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto glass-card border border-white/10 bg-navy-800 z-50 shadow-2xl rounded-xl">
+                <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto glass-card border border-theme-fg/10 bg-navy-800 z-50 shadow-2xl rounded-xl">
                   {(existingDonors || [])
                     .filter((d: any) =>
                       d.donorName.toLowerCase().includes(donorSearch.toLowerCase()) ||
@@ -250,17 +250,17 @@ export default function NewReceiptPage() {
                           setShowSuggestions(false);
                           toast.success('Prefilled donor details! ⚡');
                         }}
-                        className="w-full text-left px-4 py-2 text-xs text-white/80 hover:bg-saffron-600/20 hover:text-white border-b border-white/5 last:border-0"
+                        className="w-full text-left px-4 py-2 text-xs text-theme-fg/80 hover:bg-saffron-600/20 hover:text-theme-fg border-b border-theme-fg/5 last:border-0"
                       >
                         <p className="font-semibold">{d.donorName}</p>
-                        {d.donorPhone && <p className="text-[10px] text-white/40">{d.donorPhone}</p>}
+                        {d.donorPhone && <p className="text-[10px] text-theme-fg/40">{d.donorPhone}</p>}
                       </button>
                     ))}
                   {(existingDonors || []).filter((d: any) =>
                     d.donorName.toLowerCase().includes(donorSearch.toLowerCase()) ||
                     d.donorPhone?.includes(donorSearch)
                   ).length === 0 && (
-                    <p className="p-3 text-xs text-white/30 text-center">No matching existing donors</p>
+                    <p className="p-3 text-xs text-theme-fg/30 text-center">No matching existing donors</p>
                   )}
                 </div>
               )}
@@ -352,7 +352,7 @@ export default function NewReceiptPage() {
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {Object.values(PaymentMode).map((mode) => (
-                  <label key={mode} className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-medium ${watch('paymentMode') === mode ? 'border-saffron-500 bg-saffron-600/15 text-saffron-400' : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/8'}`}>
+                  <label key={mode} className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-medium ${watch('paymentMode') === mode ? 'border-saffron-500 bg-saffron-600/15 text-saffron-400' : 'border-theme-fg/10 bg-theme-fg/5 text-theme-fg/60 hover:bg-theme-fg/8'}`}>
                     <input {...register('paymentMode')} type="radio" value={mode} className="hidden" />
                     {mode === 'CASH' ? '💵' : mode === 'UPI' ? '📱' : mode === 'CHEQUE' ? '📄' : mode === 'BANK_TRANSFER' ? '🏦' : '💻'}
                     {mode}
@@ -385,26 +385,26 @@ export default function NewReceiptPage() {
             </div>
 
             {/* Notification options */}
-            <div className="border border-white/8 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Send Notification</p>
+            <div className="border border-theme-fg/8 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-theme-fg/50 uppercase tracking-wider">Send Notification</p>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-10 h-5 rounded-full transition-colors relative ${watch('sendWhatsapp') ? 'bg-saffron-600' : 'bg-white/15'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${watch('sendWhatsapp') ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`w-10 h-5 rounded-full transition-colors relative ${watch('sendWhatsapp') ? 'bg-saffron-600' : 'bg-theme-fg/15'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-theme-fg rounded-full transition-transform ${watch('sendWhatsapp') ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </div>
                 <input {...register('sendWhatsapp')} type="checkbox" className="hidden" />
                 <div>
-                  <p className="text-sm text-white/80 flex items-center gap-1.5">
+                  <p className="text-sm text-theme-fg/80 flex items-center gap-1.5">
                     <MessageCircle size={14} className="text-green-400" />
-                    WhatsApp {!donorPhone && <span className="text-xs text-white/30">(phone required)</span>}
+                    WhatsApp {!donorPhone && <span className="text-xs text-theme-fg/30">(phone required)</span>}
                   </p>
                 </div>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-10 h-5 rounded-full transition-colors relative ${watch('sendSms') ? 'bg-saffron-600' : 'bg-white/15'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${watch('sendSms') ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`w-10 h-5 rounded-full transition-colors relative ${watch('sendSms') ? 'bg-saffron-600' : 'bg-theme-fg/15'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-theme-fg rounded-full transition-transform ${watch('sendSms') ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </div>
                 <input {...register('sendSms')} type="checkbox" className="hidden" />
-                <p className="text-sm text-white/80">SMS</p>
+                <p className="text-sm text-theme-fg/80">SMS</p>
               </label>
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function NewReceiptPage() {
         {step === 2 && (
           <div className="space-y-4 animate-slide-up">
             <div className="glass-card p-6">
-              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">Review Receipt</h3>
+              <h3 className="text-sm font-semibold text-theme-fg/60 uppercase tracking-wider mb-4">Review Receipt</h3>
               <div className="space-y-3">
                 {[
                   { label: 'Type', value: getValues('collectionType') },
@@ -426,9 +426,9 @@ export default function NewReceiptPage() {
                   { label: 'Status', value: getValues('status') },
                   { label: 'WhatsApp', value: getValues('sendWhatsapp') && getValues('donorPhone') ? '✅ Will be sent' : '❌ Not sending' },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between items-center py-2 border-b border-white/5">
-                    <span className="text-xs text-white/40">{label}</span>
-                    <span className="text-sm text-white font-medium">{value}</span>
+                  <div key={label} className="flex justify-between items-center py-2 border-b border-theme-fg/5">
+                    <span className="text-xs text-theme-fg/40">{label}</span>
+                    <span className="text-sm text-theme-fg font-medium">{value}</span>
                   </div>
                 ))}
               </div>

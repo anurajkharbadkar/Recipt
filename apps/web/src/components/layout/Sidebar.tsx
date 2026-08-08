@@ -5,18 +5,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import {
-  LayoutDashboard, Plus, Users, Megaphone,
+  Home, Plus, Users, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
-  IndianRupee, BookOpen, Sun, Moon
+  IndianRupee, BookOpen, Sun, Moon, UserSquare2
 } from 'lucide-react';
 import clsx from 'clsx';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, labelMr: 'डॅशबोर्ड' },
+  { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड' },
   { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', highlight: true },
   { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या' },
   { href: '/collectors', label: 'Collectors', icon: Users, labelMr: 'संग्राहक' },
   { href: '/campaigns', label: 'Campaigns', icon: Megaphone, labelMr: 'मोहीम' },
+  { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद' },
   { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च' },
   { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल' },
   { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स' },
@@ -38,6 +39,7 @@ export default function Sidebar() {
     else if (href.startsWith('/receipts')) moduleName = 'Receipts';
     else if (href.startsWith('/collectors')) moduleName = 'Collectors';
     else if (href.startsWith('/campaigns')) moduleName = 'Campaigns';
+    else if (href.startsWith('/members')) moduleName = 'Members';
     else if (href.startsWith('/expenses')) moduleName = 'Expenses';
     else if (href.startsWith('/reports')) moduleName = 'Reports';
     else if (href.startsWith('/settings')) moduleName = 'Settings';

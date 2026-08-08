@@ -64,7 +64,7 @@ export default function ReceiptsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-theme-fg">
           {language === 'mr' ? 'पावत्या' : language === 'hi' ? 'रसीदें' : 'Receipts'}
         </h1>
         <div className="flex gap-2">
@@ -84,15 +84,15 @@ export default function ReceiptsPage() {
           onClick={() => setShowDonors((s) => !s)}
           className="w-full flex items-center justify-between p-4 text-left"
         >
-          <span className="flex items-center gap-2 text-sm font-semibold text-white">
+          <span className="flex items-center gap-2 text-sm font-semibold text-theme-fg">
             <Users size={15} className="text-saffron-400" /> Repeat Donors — One-Click Receipt
           </span>
-          {showDonors ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+          {showDonors ? <ChevronUp size={16} className="text-theme-fg/40" /> : <ChevronDown size={16} className="text-theme-fg/40" />}
         </button>
         {showDonors && (
           <div className="p-4 pt-0 space-y-3 animate-slide-up">
             <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
               <input
                 value={donorFilter}
                 onChange={(e) => setDonorFilter(e.target.value)}
@@ -108,10 +108,10 @@ export default function ReceiptsPage() {
                 )
                 .slice(0, 50)
                 .map((d: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between p-2.5 bg-white/5 rounded-lg">
+                  <div key={idx} className="flex items-center justify-between p-2.5 bg-theme-fg/5 rounded-lg">
                     <div>
-                      <p className="text-sm text-white/85 font-medium">{d.donorName}</p>
-                      {d.donorPhone && <p className="text-[10px] text-white/40">{d.donorPhone}</p>}
+                      <p className="text-sm text-theme-fg/85 font-medium">{d.donorName}</p>
+                      {d.donorPhone && <p className="text-[10px] text-theme-fg/40">{d.donorPhone}</p>}
                     </div>
                     <Link
                       href={`/receipts/new?donorPhone=${encodeURIComponent(d.donorPhone || '')}`}
@@ -122,7 +122,7 @@ export default function ReceiptsPage() {
                   </div>
                 ))}
               {!repeatDonors?.length && (
-                <p className="text-xs text-white/30 text-center py-4">No repeat donors yet</p>
+                <p className="text-xs text-theme-fg/30 text-center py-4">No repeat donors yet</p>
               )}
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function ReceiptsPage() {
       {/* Filters */}
       <div className="glass-card p-4 flex flex-wrap gap-3">
         <div className="flex-1 min-w-[200px] relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -176,7 +176,7 @@ export default function ReceiptsPage() {
       {/* Table */}
       <div className="glass-card overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-white/30">Loading...</div>
+          <div className="p-8 text-center text-theme-fg/30">Loading...</div>
         ) : (
           <>
             <div className="table-container">
@@ -204,14 +204,14 @@ export default function ReceiptsPage() {
                         </Link>
                       </td>
                       <td>
-                        <div className="font-medium text-white">{r.donorName}</div>
-                        {r.donorPhone && <div className="text-xs text-white/40">{r.donorPhone}</div>}
+                        <div className="font-medium text-theme-fg">{r.donorName}</div>
+                        {r.donorPhone && <div className="text-xs text-theme-fg/40">{r.donorPhone}</div>}
                       </td>
                       <td className="font-bold text-emerald-400">{formatCurrency(r.amount)}</td>
                       <td><span className="badge badge-saffron text-xs">{r.category}</span></td>
                       <td><span className="badge badge-info text-xs">{r.paymentMode}</span></td>
-                      <td className="text-white/70 text-sm">{r.collector?.name}</td>
-                      <td className="text-white/40 text-xs">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</td>
+                      <td className="text-theme-fg/70 text-sm">{r.collector?.name}</td>
+                      <td className="text-theme-fg/40 text-xs">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</td>
                       <td>
                         {r.status === 'PENDING' ? (
                           <span className="badge badge-warning">🟡 Pending</span>
@@ -232,11 +232,11 @@ export default function ReceiptsPage() {
                       </td>
                       <td>
                         <div className="flex gap-1">
-                          <Link href={`/receipts/${r.id}`} className="p-1.5 rounded-lg hover:bg-white/8 text-white/50 hover:text-white transition-colors">
+                          <Link href={`/receipts/${r.id}`} className="p-1.5 rounded-lg hover:bg-theme-fg/8 text-theme-fg/50 hover:text-theme-fg transition-colors">
                             <Eye size={14} />
                           </Link>
                           {r.donorPhone && (
-                            <button onClick={() => handleShare(r)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-white/50 hover:text-green-400 transition-colors">
+                            <button onClick={() => handleShare(r)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
                               <Share2 size={14} />
                             </button>
                           )}
@@ -246,7 +246,7 @@ export default function ReceiptsPage() {
                   ))}
                   {!data?.data?.length && (
                     <tr>
-                      <td colSpan={10} className="text-center text-white/30 py-12">
+                      <td colSpan={10} className="text-center text-theme-fg/30 py-12">
                         {language === 'mr' ? 'कोणत्याही पावत्या आढळल्या नाहीत' : 'No receipts found'}
                       </td>
                     </tr>
@@ -257,8 +257,8 @@ export default function ReceiptsPage() {
 
             {/* Pagination */}
             {data && data.totalPages > 1 && (
-              <div className="flex items-center justify-between p-4 border-t border-white/8">
-                <p className="text-xs text-white/40">
+              <div className="flex items-center justify-between p-4 border-t border-theme-fg/8">
+                <p className="text-xs text-theme-fg/40">
                   Showing {((page - 1) * 20) + 1}–{Math.min(page * 20, data.total)} of {data.total}
                 </p>
                 <div className="flex gap-2">

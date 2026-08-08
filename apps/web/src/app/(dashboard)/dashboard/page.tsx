@@ -18,8 +18,8 @@ function StatCard({ title, value, icon: Icon, change, color }: any) {
     <div className="stat-card animate-slide-up">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs text-white/45 font-medium uppercase tracking-wider mb-1">{title}</p>
-          <p className="text-2xl font-bold text-white">{value}</p>
+          <p className="text-xs text-theme-fg/45 font-medium uppercase tracking-wider mb-1">{title}</p>
+          <p className="text-2xl font-bold text-theme-fg">{value}</p>
           {change !== undefined && (
             <div className="flex items-center gap-1 mt-1">
               <ArrowUpRight size={12} className="text-emerald-400" />
@@ -39,7 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
     return (
       <div className="glass-card p-3 text-sm">
-        <p className="text-white/60 text-xs mb-1">{label}</p>
+        <p className="text-theme-fg/60 text-xs mb-1">{label}</p>
         <p className="text-saffron-400 font-bold">{formatCurrency(payload[0].value)}</p>
       </div>
     );
@@ -97,10 +97,10 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-theme-fg">
             {language === 'mr' ? 'डॅशबोर्ड' : language === 'hi' ? 'डैशबोर्ड' : 'Dashboard'}
           </h1>
-          <p className="text-sm text-white/40 mt-0.5">
+          <p className="text-sm text-theme-fg/40 mt-0.5">
             {language === 'mr' ? `नमस्कार, ${user?.name}!` : `Welcome back, ${user?.name}!`}
           </p>
         </div>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Daily Collection Chart */}
         <div className="lg:col-span-2 glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">
             {language === 'mr' ? 'दैनिक संग्रह (14 दिवस)' : 'Daily Collection Trend (14 days)'}
           </h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -148,24 +148,24 @@ export default function DashboardPage() {
 
         {/* Top Collectors */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">
             {language === 'mr' ? 'संग्राहक क्रमवारी' : 'Collector Rankings'}
           </h3>
           <div className="space-y-3">
             {(collectorStats || []).slice(0, 5).map((c: any, i: number) => (
               <div key={c.collectorId} className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-gold-500 text-navy-900' : i === 1 ? 'bg-white/20' : i === 2 ? 'bg-amber-800/40 text-amber-300' : 'bg-white/8 text-white/40'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-gold-500 text-navy-900' : i === 1 ? 'bg-theme-fg/20' : i === 2 ? 'bg-amber-800/40 text-amber-300' : 'bg-theme-fg/8 text-theme-fg/40'}`}>
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white/90 truncate">{c.collectorName}</p>
-                  <p className="text-[10px] text-white/40">{c.receiptCount} receipts</p>
+                  <p className="text-xs font-medium text-theme-fg/90 truncate">{c.collectorName}</p>
+                  <p className="text-[10px] text-theme-fg/40">{c.receiptCount} receipts</p>
                 </div>
                 <span className="text-xs font-semibold text-saffron-400">{formatCurrency(c.totalAmount)}</span>
               </div>
             ))}
             {(!collectorStats || collectorStats.length === 0) && (
-              <p className="text-xs text-white/30 text-center py-4">No data yet</p>
+              <p className="text-xs text-theme-fg/30 text-center py-4">No data yet</p>
             )}
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
       {/* Recent Receipts */}
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-theme-fg">
             {language === 'mr' ? 'अलीकडील पावत्या' : 'Recent Receipts'}
           </h3>
           <Link href="/receipts" className="text-xs text-saffron-400 hover:text-saffron-300 flex items-center gap-1">
@@ -202,12 +202,12 @@ export default function DashboardPage() {
                     </Link>
                   </td>
                   <td>
-                    <div className="font-medium text-white/90">{r.donorName}</div>
-                    {r.donorPhone && <div className="text-xs text-white/40">{r.donorPhone}</div>}
+                    <div className="font-medium text-theme-fg/90">{r.donorName}</div>
+                    {r.donorPhone && <div className="text-xs text-theme-fg/40">{r.donorPhone}</div>}
                   </td>
-                  <td className="text-white/70">{r.collector?.name}</td>
+                  <td className="text-theme-fg/70">{r.collector?.name}</td>
                   <td className="font-semibold text-emerald-400">{formatCurrency(r.amount)}</td>
-                  <td className="text-white/50 text-xs">{format(new Date(r.createdAt), 'dd MMM, h:mm a')}</td>
+                  <td className="text-theme-fg/50 text-xs">{format(new Date(r.createdAt), 'dd MMM, h:mm a')}</td>
                   <td>
                     {r.isVoided ? (
                       <span className="badge badge-danger">Voided</span>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                 </tr>
               ))}
               {(!recentReceipts?.data?.length) && (
-                <tr><td colSpan={6} className="text-center text-white/30 py-8">No receipts yet. Create your first receipt!</td></tr>
+                <tr><td colSpan={6} className="text-center text-theme-fg/30 py-8">No receipts yet. Create your first receipt!</td></tr>
               )}
             </tbody>
           </table>

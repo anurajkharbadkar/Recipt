@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { envValidationSchema } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { OrganizationsModule } from './organizations/organizations.module';
@@ -14,12 +16,16 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { SmsModule } from './sms/sms.module';
 import { StorageModule } from './storage/storage.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { MembersModule } from './members/members.module';
+import { InternalCollectionsModule } from './internal-collections/internal-collections.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env', 'apps/api/.env'],
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: false },
     }),
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1000, limit: 10 },
@@ -39,6 +45,14 @@ import { PermissionsModule } from './permissions/permissions.module';
     SmsModule,
     StorageModule,
     PermissionsModule,
+    MembersModule,
+    InternalCollectionsModule,
+  ],
+  providers: [
+    // Applies the ThrottlerModule limits above to every route by default
+    // (brute-force protection on login/OTP endpoints in particular). Was
+    // configured but never bound — see production_readiness_report.md.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

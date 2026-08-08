@@ -11,10 +11,20 @@ import { formatCurrency } from '@pavti/shared';
 import { format } from 'date-fns';
 import { useState } from 'react';
 
+const LANGUAGE_OPTIONS: { code: 'en' | 'hi' | 'mr'; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'hi', label: 'HI' },
+  { code: 'mr', label: 'MR' },
+];
+
 export default function ReceiptDetailPage({ params }: { params: { id: string } }) {
   const [voidMode, setVoidMode] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const { language, user } = useAuthStore();
+  // Independent of the dashboard's own language — lets staff preview/print/share
+  // this one receipt in whichever language the donor needs, without switching
+  // the language the rest of the portal is shown in.
+  const [receiptLanguage, setReceiptLanguage] = useState<'en' | 'hi' | 'mr'>(language);
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -57,7 +67,7 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
   };
 
   const handlePrint = () => {
-    window.open(`/receipt/${params.id}`, '_blank');
+    window.open(`/receipt/${params.id}?lang=${receiptLanguage}`, '_blank');
   };
 
   if (isLoading) {
@@ -82,8 +92,8 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-white">{receipt.receiptNumber}</h1>
-            <p className="text-xs text-white/40">{format(new Date(receipt.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
+            <h1 className="text-lg font-bold text-theme-fg">{receipt.receiptNumber}</h1>
+            <p className="text-xs text-theme-fg/40">{format(new Date(receipt.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -104,17 +114,30 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
           <XCircle size={20} className="text-red-400" />
           <div>
             <p className="text-red-400 font-semibold text-sm">This receipt has been voided</p>
-            {receipt.voidReason && <p className="text-white/40 text-xs">Reason: {receipt.voidReason}</p>}
+            {receipt.voidReason && <p className="text-theme-fg/40 text-xs">Reason: {receipt.voidReason}</p>}
           </div>
         </div>
       )}
 
       {/* Receipt Preview */}
-      <ReceiptPreview receipt={receipt} />
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="text-xs text-theme-fg/40 mr-1">Receipt language:</span>
+        {LANGUAGE_OPTIONS.map((opt) => (
+          <button
+            key={opt.code}
+            type="button"
+            onClick={() => setReceiptLanguage(opt.code)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${receiptLanguage === opt.code ? 'bg-saffron-600 text-white' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/10 hover:text-theme-fg'}`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <ReceiptPreview receipt={receipt} language={receiptLanguage} />
 
       {/* Metadata */}
       <div className="glass-card p-5">
-        <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Receipt Details</h3>
+        <h3 className="text-xs font-semibold text-theme-fg/40 uppercase tracking-wider mb-3">Receipt Details</h3>
         <div className="grid grid-cols-2 gap-3 text-sm">
           {[
             { label: 'Campaign', value: receipt.campaign?.name },
@@ -127,8 +150,8 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
             { label: 'Status', value: receipt.status || 'PAID' },
           ].map(({ label, value }) => (
             <div key={label}>
-              <p className="text-xs text-white/30">{label}</p>
-              <p className="text-white/80 font-medium">{value}</p>
+              <p className="text-xs text-theme-fg/30">{label}</p>
+              <p className="text-theme-fg/80 font-medium">{value}</p>
             </div>
           ))}
         </div>
@@ -163,7 +186,7 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
       {voidMode && (
         <div className="glass-card p-5 border border-red-500/30 animate-slide-up">
           <h3 className="text-sm font-semibold text-red-400 mb-3">⚠️ Void this receipt?</h3>
-          <p className="text-xs text-white/40 mb-3">This action cannot be undone. The receipt will be marked as invalid.</p>
+          <p className="text-xs text-theme-fg/40 mb-3">This action cannot be undone. The receipt will be marked as invalid.</p>
           <textarea
             value={voidReason}
             onChange={e => setVoidReason(e.target.value)}

@@ -1,27 +1,82 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as puppeteer from 'puppeteer';
-import { amountToWords } from '@pavti/shared';
+import { amountToWords, resolveReceiptTheme, formatReceiptDateTime } from '@pavti/shared';
+
+/** How long to wait for the receipt/voucher page (incl. Google Fonts) before giving up. */
+const RENDER_TIMEOUT_MS = 15000;
 
 @Injectable()
-export class PdfService {
+export class PdfService implements OnModuleDestroy {
   private readonly logger = new Logger(PdfService.name);
+  private browser: puppeteer.Browser | null = null;
+  private browserLaunchPromise: Promise<puppeteer.Browser> | null = null;
 
   constructor(private config: ConfigService) {}
 
-  async generateExpenseVoucherPdf(expense: any): Promise<Buffer> {
-    let browser;
-    try {
-      const executablePath = this.config.get<string>('PUPPETEER_EXECUTABLE_PATH');
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath: executablePath || undefined,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
+  async onModuleDestroy() {
+    if (this.browser) {
+      await this.browser.close().catch(() => undefined);
+      this.browser = null;
+    }
+  }
 
-      const page = await browser.newPage();
+  /**
+   * Puppeteer/Chromium cold-starts are expensive (100s of ms). A single browser
+   * instance is launched lazily on first use and reused for every subsequent PDF —
+   * only a lightweight Page is opened/closed per request. If the browser process
+   * dies (crash, OOM), the next call transparently relaunches it.
+   */
+  private async getBrowser(): Promise<puppeteer.Browser> {
+    if (this.browser?.connected) return this.browser;
+
+    if (!this.browserLaunchPromise) {
+      const executablePath = this.config.get<string>('PUPPETEER_EXECUTABLE_PATH');
+      this.browserLaunchPromise = puppeteer
+        .launch({
+          headless: true,
+          executablePath: executablePath || undefined,
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        })
+        .then((browser) => {
+          this.browser = browser;
+          browser.once('disconnected', () => {
+            this.logger.warn('Puppeteer browser disconnected — will relaunch on next PDF request');
+            this.browser = null;
+          });
+          return browser;
+        })
+        .finally(() => {
+          this.browserLaunchPromise = null;
+        });
+    }
+    return this.browserLaunchPromise;
+  }
+
+  /**
+   * Escapes user-controlled text before it is interpolated into the HTML strings
+   * below. Receipt/expense fields (donor name, notes, paid-to, description, ...)
+   * are plain strings entered by collectors/treasurers with no sanitization at the
+   * DTO layer — without this, a crafted value could inject markup/script into the
+   * page Puppeteer renders (which runs with --no-sandbox).
+   */
+  private esc(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  async generateExpenseVoucherPdf(expense: any): Promise<Buffer> {
+    let page: puppeteer.Page | undefined;
+    try {
+      const browser = await this.getBrowser();
+      page = await browser.newPage();
       const html = this.buildVoucherHtml(expense);
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'networkidle0', timeout: RENDER_TIMEOUT_MS });
 
       const pdfBuffer = await page.pdf({
         format: 'A5',
@@ -34,7 +89,7 @@ export class PdfService {
       this.logger.error('Voucher PDF generation error:', error);
       throw error;
     } finally {
-      if (browser) await browser.close();
+      if (page) await page.close().catch(() => undefined);
     }
   }
 
@@ -42,7 +97,7 @@ export class PdfService {
     const org = expense.campaign?.organization;
     const campaign = expense.campaign;
     const fontFamily = "'Noto Sans Devanagari', 'Inter', sans-serif";
-    const voucherNumber = `VCH-${campaign?.receiptPrefix || 'EXP'}-${String(expense.id).slice(0, 8).toUpperCase()}`;
+    const voucherNumber = `VCH-${this.esc(campaign?.receiptPrefix || 'EXP')}-${String(expense.id).slice(0, 8).toUpperCase()}`;
     const primaryColor = '#C85000';
     const gradient = 'linear-gradient(135deg, #C85000 0%, #FF8C00 100%)';
 
@@ -131,11 +186,11 @@ export class PdfService {
 <body>
 <div class="voucher">
   <div class="voucher-header">
-    ${org?.logoUrl ? `<img src="${org.logoUrl}" class="header-logo" />` : ''}
+    ${org?.logoUrl ? `<img src="${this.esc(org.logoUrl)}" class="header-logo" />` : ''}
     <div class="header-content">
-      <div class="org-name">${org?.name || 'Organization'}</div>
+      <div class="org-name">${this.esc(org?.name) || 'Organization'}</div>
       <div class="voucher-title">Payment Voucher / देय पावती</div>
-      ${campaign?.name ? `<div class="campaign-name">🎉 ${campaign.name}</div>` : ''}
+      ${campaign?.name ? `<div class="campaign-name">🎉 ${this.esc(campaign.name)}</div>` : ''}
     </div>
   </div>
 
@@ -147,27 +202,27 @@ export class PdfService {
   <div class="voucher-body">
     <div class="field">
       <div class="field-label">Paid To</div>
-      <div class="field-value">${expense.paidTo || '—'}</div>
+      <div class="field-value">${this.esc(expense.paidTo) || '—'}</div>
     </div>
     ${expense.beneficiaryPhone ? `
     <div class="field">
       <div class="field-label">Phone</div>
-      <div class="field-value">${expense.beneficiaryPhone}</div>
+      <div class="field-value">${this.esc(expense.beneficiaryPhone)}</div>
     </div>` : ''}
     ${expense.gstNumber ? `
     <div class="field">
       <div class="field-label">GST Number</div>
-      <div class="field-value">${expense.gstNumber}</div>
+      <div class="field-value">${this.esc(expense.gstNumber)}</div>
     </div>` : ''}
 
     <div class="amount-box">
-      <div class="amount-number">₹${expense.amount.toLocaleString('en-IN')}</div>
-      <div class="amount-words">${amountToWords(expense.amount)}</div>
+      <div class="amount-number">₹${Number(expense.amount).toLocaleString('en-IN')}</div>
+      <div class="amount-words">${this.esc(amountToWords(expense.amount))}</div>
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
-      <span class="badge">📂 ${expense.category.replace(/_/g, ' ')}</span>
-      <span class="payment-mode">💳 ${expense.paymentMode}</span>
+      <span class="badge">📂 ${this.esc(String(expense.category).replace(/_/g, ' '))}</span>
+      <span class="payment-mode">💳 ${this.esc(expense.paymentMode)}</span>
       ${expense.isApproved ? (
         `<span class="approval-badge approved">✓ APPROVED</span>`
       ) : (
@@ -179,16 +234,16 @@ export class PdfService {
 
     <div class="field">
       <div class="field-label">Description</div>
-      <div class="field-value">${expense.description}</div>
+      <div class="field-value">${this.esc(expense.description)}</div>
     </div>
     <div class="field">
       <div class="field-label">Added By</div>
-      <div class="field-value">${expense.addedBy?.name || ''}</div>
+      <div class="field-value">${this.esc(expense.addedBy?.name)}</div>
     </div>
     ${expense.approvedBy ? `
     <div class="field">
       <div class="field-label">Approved By</div>
-      <div class="field-value">${expense.approvedBy.name}</div>
+      <div class="field-value">${this.esc(expense.approvedBy.name)}</div>
     </div>` : ''}
   </div>
 
@@ -208,18 +263,12 @@ export class PdfService {
   }
 
   async generateReceiptPdf(receipt: any): Promise<Buffer> {
-    let browser;
+    let page: puppeteer.Page | undefined;
     try {
-      const executablePath = this.config.get<string>('PUPPETEER_EXECUTABLE_PATH');
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath: executablePath || undefined,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-
-      const page = await browser.newPage();
+      const browser = await this.getBrowser();
+      page = await browser.newPage();
       const html = this.buildReceiptHtml(receipt);
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'networkidle0', timeout: RENDER_TIMEOUT_MS });
 
       const pdfBuffer = await page.pdf({
         format: 'A5',
@@ -232,7 +281,7 @@ export class PdfService {
       this.logger.error('PDF generation error:', error);
       throw error;
     } finally {
-      if (browser) await browser.close();
+      if (page) await page.close().catch(() => undefined);
     }
   }
 
@@ -242,41 +291,21 @@ export class PdfService {
     const fontFamily = "'Noto Sans Devanagari', 'Inter', sans-serif";
 
     const templateSettings = org?.receiptTemplateSettings as any;
-    const theme = templateSettings?.theme || 'DEFAULT';
-
-    if (theme === 'CUSTOM_IMAGE' && templateSettings?.customImageUrl) {
-      return this.buildCustomImageReceiptHtml(receipt, templateSettings);
+    const requestedThemeId = templateSettings?.theme || 'DEFAULT';
+    const theme = resolveReceiptTheme(requestedThemeId);
+    if (theme.id !== requestedThemeId) {
+      this.logger.warn(
+        `Org ${org?.id || 'unknown'} has unknown/legacy receipt theme "${requestedThemeId}" — falling back to ${theme.id}`,
+      );
     }
 
-    let primaryColor = '#C85000';
-    let gradient = 'linear-gradient(135deg, #C85000 0%, #FF8C00 100%)';
-    let border = '3px solid #C85000';
-    let amountBg = '#fff8f0';
-    let amountBorder = '2px solid #ffccaa';
-    let bannerHtml = '';
-
-    if (theme === 'GANESHOTSAV') {
-      primaryColor = '#E65100';
-      gradient = 'linear-gradient(135deg, #E65100 0%, #F57C00 50%, #FFB300 100%)';
-      border = '4px double #E65100';
-      amountBg = '#FFF8E1';
-      amountBorder = '2px dashed #FFE082';
-      bannerHtml = '<div style="position: absolute; top: 0; right: 0; font-size: 24px; opacity: 0.15; padding: 4px;">🪔</div>';
-    } else if (theme === 'EID') {
-      primaryColor = '#004D20';
-      gradient = 'linear-gradient(135deg, #004D20 0%, #00873C 100%)';
-      border = '3px solid #004D20';
-      amountBg = '#E8F5E9';
-      amountBorder = '2px solid #A5D6A7';
-      bannerHtml = '<div style="position: absolute; top: 0; right: 0; font-size: 24px; opacity: 0.15; padding: 4px;">🌙</div>';
-    } else if (theme === 'BHAGAT_SINGH') {
-      primaryColor = '#1A2530';
-      gradient = 'linear-gradient(135deg, #1A2530 0%, #2c3e50 100%)';
-      border = '3px solid #1A2530';
-      amountBg = '#ECEFF1';
-      amountBorder = '2px solid #B0BEC5';
-      bannerHtml = '<div style="height: 4px; background: linear-gradient(90deg, #FF9933, #FFFFFF, #128807);"></div>';
-    }
+    const border = `${theme.borderWidth}px ${theme.borderStyle} ${theme.primaryColor}`;
+    const amountBorder = `${theme.amountBorderWidth}px ${theme.amountBorderStyle} ${theme.amountBorderColor}`;
+    const bannerHtml = theme.tricolorBanner
+      ? '<div style="height: 4px; background: linear-gradient(90deg, #FF9933, #FFFFFF, #128807);"></div>'
+      : theme.bannerEmoji
+        ? `<div style="position: absolute; top: 0; right: 0; font-size: 24px; opacity: 0.15; padding: 4px;">${theme.bannerEmoji}</div>`
+        : '';
 
     const isInternal = receipt.collectionType === 'INTERNAL';
     const isUnpaid = receipt.status === 'PENDING';
@@ -300,7 +329,7 @@ export class PdfService {
     position: relative;
   }
   .receipt-header {
-    background: ${gradient};
+    background: ${theme.gradient};
     color: white;
     padding: 16px 20px;
     display: flex;
@@ -328,35 +357,36 @@ export class PdfService {
   .campaign-name { font-size: 10px; margin-top: 4px; opacity: 0.85; background: rgba(0,0,0,0.15); padding: 2px 10px; border-radius: 20px; display: inline-block; }
   .receipt-badge {
     background: #fffbf5;
-    border-bottom: 2px dashed ${primaryColor};
+    border-bottom: 2px dashed ${theme.primaryColor};
     padding: 8px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .receipt-no { font-size: 15px; font-weight: 700; color: ${primaryColor}; }
+  .receipt-no { font-size: 15px; font-weight: 700; color: ${theme.primaryColor}; }
   .receipt-date { font-size: 12px; color: #666; }
   .receipt-body { padding: 16px 20px; }
   .field { margin-bottom: 10px; }
   .field-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
   .field-value { font-size: 14px; color: #1a1a1a; font-weight: 600; }
   .amount-box {
-    background: ${amountBg};
+    background: ${theme.amountBg};
     border: ${amountBorder};
     border-radius: 8px;
     padding: 12px 16px;
     margin: 12px 0;
     text-align: center;
   }
-  .amount-number { font-size: 28px; font-weight: 700; color: ${primaryColor}; }
+  .amount-number { font-size: 28px; font-weight: 700; color: ${theme.primaryColor}; }
   .amount-words { font-size: 11px; color: #666; margin-top: 4px; font-style: italic; }
+  .upi-line { font-size: 11px; color: #444; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #ddd; }
   .divider { border: none; border-top: 1px dashed #ddd; margin: 10px 0; }
   .receipt-footer {
     padding: 12px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 2px dashed ${primaryColor};
+    border-top: 2px dashed ${theme.primaryColor};
     background: #fffbf7;
   }
   .signature-area { text-align: center; }
@@ -391,40 +421,41 @@ export class PdfService {
 <div class="receipt">
   ${bannerHtml}
   <div class="receipt-header">
-    ${org?.logoUrl ? `<img src="${org.logoUrl}" class="header-logo" />` : ''}
+    ${org?.logoUrl ? `<img src="${this.esc(org.logoUrl)}" class="header-logo" />` : ''}
     <div class="header-content">
-      <div class="org-name">${org?.name || 'Organization'}</div>
-      ${org?.nameMarathi ? `<div class="org-name-local">${org.nameMarathi}</div>` : ''}
-      ${campaign?.name ? `<div class="campaign-name">🎉 ${campaign.name}</div>` : ''}
+      <div class="org-name">${this.esc(org?.name) || 'Organization'}</div>
+      ${org?.nameMarathi ? `<div class="org-name-local">${this.esc(org.nameMarathi)}</div>` : ''}
+      ${campaign?.name ? `<div class="campaign-name">🎉 ${this.esc(campaign.name)}</div>` : ''}
     </div>
   </div>
 
   <div class="receipt-badge">
     <div>
-      <div class="receipt-no">${isInternal ? 'अंतर्गत पावती / Internal Receipt' : 'पावती / Receipt'} #${receipt.receiptNumber}</div>
+      <div class="receipt-no">${isInternal ? 'अंतर्गत पावती / Internal Receipt' : 'पावती / Receipt'} #${this.esc(receipt.receiptNumber)}</div>
     </div>
-    <div class="receipt-date">📅 ${new Date(receipt.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+    <div class="receipt-date">📅 ${formatReceiptDateTime(receipt.createdAt)}</div>
   </div>
 
   <div class="receipt-body">
     <div class="field">
       <div class="field-label">नाव / Name</div>
-      <div class="field-value">${receipt.donorName}</div>
+      <div class="field-value">${this.esc(receipt.donorName)}</div>
     </div>
     ${receipt.donorAddress ? `
     <div class="field">
       <div class="field-label">पत्ता / Address</div>
-      <div class="field-value">${receipt.donorAddress}</div>
+      <div class="field-value">${this.esc(receipt.donorAddress)}</div>
     </div>` : ''}
 
     <div class="amount-box">
-      <div class="amount-number">₹${receipt.amount.toLocaleString('en-IN')}</div>
-      <div class="amount-words">${receipt.amountInWords}</div>
+      <div class="amount-number">₹${Number(receipt.amount).toLocaleString('en-IN')}</div>
+      <div class="amount-words">${this.esc(receipt.amountInWords)}</div>
+      ${org?.upiId ? `<div class="upi-line">📲 Pay via UPI: <strong>${this.esc(org.upiId)}</strong></div>` : ''}
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
-      <span class="badge">📂 ${receipt.category}</span>
-      <span class="payment-mode">💳 ${receipt.paymentMode}</span>
+      <span class="badge">📂 ${this.esc(receipt.category)}</span>
+      <span class="payment-mode">💳 ${this.esc(receipt.paymentMode)}</span>
       ${isUnpaid ? (
         `<span class="status-badge status-unpaid">थकबाकी / UNPAID</span>`
       ) : (
@@ -436,17 +467,17 @@ export class PdfService {
 
     <div class="field">
       <div class="field-label">संग्राहक / Collector</div>
-      <div class="field-value">${receipt.collector?.name || ''}</div>
+      <div class="field-value">${this.esc(receipt.collector?.name)}</div>
     </div>
     ${receipt.area ? `
     <div class="field">
       <div class="field-label">क्षेत्र / Area</div>
-      <div class="field-value">${receipt.area.name}</div>
+      <div class="field-value">${this.esc(receipt.area.name)}</div>
     </div>` : ''}
     ${receipt.notes ? `
     <div class="field">
       <div class="field-label">टीप / Notes</div>
-      <div class="field-value">${receipt.notes}</div>
+      <div class="field-value">${this.esc(receipt.notes)}</div>
     </div>` : ''}
   </div>
 
@@ -466,70 +497,6 @@ export class PdfService {
   ) : isUnpaid ? (
     `<div class="stamp-overlay" style="border-color: #f57f17; color: #f57f17; opacity: 0.25;">UNPAID</div>`
   ) : ''}
-</div>
-</body>
-</html>`;
-  }
-
-  private buildCustomImageReceiptHtml(receipt: any, templateSettings: any): string {
-    const fontFamily = "'Noto Sans Devanagari', 'Inter', sans-serif";
-    const positions = templateSettings.fieldPositions || {};
-
-    const fieldValues: Record<string, string> = {
-      donorName: receipt.donorName || '',
-      donorAddress: receipt.donorAddress || '',
-      amount: `₹${receipt.amount.toLocaleString('en-IN')}`,
-      amountInWords: receipt.amountInWords || '',
-      receiptNumber: receipt.receiptNumber || '',
-      date: new Date(receipt.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      collectorName: receipt.collector?.name || '',
-      areaName: receipt.area?.name || '',
-      category: receipt.category || '',
-      paymentMode: receipt.paymentMode || '',
-    };
-
-    const overlayHtml = Object.entries(positions)
-      .map(([key, pos]: [string, any]) => {
-        if (!pos) return '';
-        const textAlign = pos.align || 'left';
-        const baseStyle = `position:absolute; left:${pos.xPct}%; top:${pos.yPct}%; font-family:${fontFamily}; font-size:${pos.fontSizePx || 14}px; color:${pos.color || '#000000'}; font-weight:${pos.bold ? 700 : 400}; text-align:${textAlign}; white-space:nowrap;`;
-
-        if (key === 'qrCode') {
-          if (!receipt.qrCodeData) return '';
-          return `<img src="${receipt.qrCodeData}" style="position:absolute; left:${pos.xPct}%; top:${pos.yPct}%; width:70px; height:70px;" />`;
-        }
-
-        const value = fieldValues[key];
-        if (!value) return '';
-        return `<div style="${baseStyle}">${value}</div>`;
-      })
-      .join('');
-
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: ${fontFamily}; background: #fff; }
-  .custom-receipt { position: relative; width: 500px; margin: 0 auto; }
-  .custom-receipt img.bg { width: 100%; display: block; }
-  .stamp-overlay {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%) rotate(-15deg);
-    border: 4px solid #d32f2f; color: #d32f2f;
-    font-size: 38px; font-weight: 900; padding: 8px 16px; border-radius: 8px;
-    opacity: 0.2; pointer-events: none; text-transform: uppercase;
-  }
-</style>
-</head>
-<body>
-<div class="custom-receipt">
-  <img class="bg" src="${templateSettings.customImageUrl}" />
-  ${overlayHtml}
-  ${receipt.isVoided ? '<div class="stamp-overlay">VOID</div>' : receipt.status === 'PENDING' ? '<div class="stamp-overlay" style="border-color:#f57f17;color:#f57f17;">UNPAID</div>' : ''}
 </div>
 </body>
 </html>`;

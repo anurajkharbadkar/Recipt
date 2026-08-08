@@ -13,7 +13,9 @@ import { SmsModule } from '../sms/sms.module';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET', 'default-jwt-secret-change-in-production'),
+        // No fallback default: env validation (config/env.validation.ts) guarantees
+        // this is set at boot, so a missing/weak hardcoded secret can never ship.
+        secret: config.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '15m') },
       }),
     }),

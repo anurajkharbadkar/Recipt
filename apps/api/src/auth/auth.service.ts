@@ -162,7 +162,9 @@ export class AuthService {
   async refreshToken(dto: RefreshTokenDto) {
     try {
       const payload = this.jwtService.verify(dto.refreshToken, {
-        secret: this.configService.get('JWT_REFRESH_SECRET', 'refresh-secret'),
+        // No fallback default: env validation (config/env.validation.ts) guarantees
+        // this is set at boot, so a missing/weak hardcoded secret can never ship.
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
       const user = await this.prisma.user.findUnique({
@@ -200,7 +202,9 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get('JWT_REFRESH_SECRET', 'refresh-secret'),
+        // No fallback default: env validation (config/env.validation.ts) guarantees
+        // this is set at boot, so a missing/weak hardcoded secret can never ship.
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),
       }),
     ]);

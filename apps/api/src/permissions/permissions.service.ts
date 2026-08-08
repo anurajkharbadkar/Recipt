@@ -13,6 +13,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, Partial<Record<PermissionModule, 
     Receipts: { canView: true, canCreate: true, canEdit: true, canExport: true },
     Expenses: { canView: true, canCreate: true, canDelete: true },
     Campaigns: { canView: true },
+    Members: { canView: true, canCreate: true, canEdit: true },
     Reports: { canView: true },
   },
   [UserRole.COLLECTOR]: {
@@ -23,6 +24,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, Partial<Record<PermissionModule, 
     Expenses: { canView: true },
     Campaigns: { canView: true },
     Collectors: { canView: true },
+    Members: { canView: true },
     Reports: { canView: true },
     Settings: { canView: true },
   },
@@ -35,9 +37,10 @@ export class PermissionsService {
   constructor(private prisma: PrismaService) {}
 
   async getRoleDefaults(orgId: string) {
-    const existing = await this.prisma.rolePermission.findMany({ where: { orgId } });
-    if (existing.length > 0) return existing;
-
+    // Always run the (idempotent, skipDuplicates) seed rather than only on an
+    // org's very first call — otherwise an org seeded before a new module
+    // (e.g. Members, just added) existed would never get that module's rows
+    // backfilled, and its Access Management screen would silently omit it.
     await this.seedDefaults(orgId);
     return this.prisma.rolePermission.findMany({ where: { orgId } });
   }

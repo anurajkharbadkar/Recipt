@@ -9,7 +9,7 @@ import { formatCurrency } from '@pavti/shared';
 import toast from 'react-hot-toast';
 import PermissionsMatrix from '@/components/PermissionsMatrix';
 
-const ACCESS_MODULES = ['Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Reports', 'Settings'];
+const ACCESS_MODULES = ['Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings'];
 
 export default function CollectorsPage() {
   const [showForm, setShowForm] = useState(false);
@@ -51,7 +51,7 @@ export default function CollectorsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-theme-fg">
           {language === 'mr' ? 'संग्राहक' : language === 'hi' ? 'संग्रहकर्ता' : 'Collectors'}
         </h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
@@ -63,7 +63,7 @@ export default function CollectorsPage() {
       {/* Add Form */}
       {showForm && (
         <div className="glass-card p-6 animate-slide-up">
-          <h3 className="text-sm font-semibold text-white mb-4">New Collector</h3>
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">New Collector</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Full Name *</label>
@@ -92,7 +92,7 @@ export default function CollectorsPage() {
               </select>
             </div>
           </div>
-          <p className="text-xs text-white/30 mt-3">Default password will be their phone number</p>
+          <p className="text-xs text-theme-fg/30 mt-3">Default password will be their phone number</p>
           <div className="flex gap-3 mt-4">
             <button onClick={() => setShowForm(false)} className="btn-secondary flex-1">Cancel</button>
             <button
@@ -125,7 +125,7 @@ export default function CollectorsPage() {
             />
           ))}
           {!collectors?.length && (
-            <div className="col-span-3 glass-card p-12 text-center text-white/30">
+            <div className="col-span-3 glass-card p-12 text-center text-theme-fg/30">
               No collectors yet. Add your first collector!
             </div>
           )}
@@ -136,13 +136,13 @@ export default function CollectorsPage() {
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
           <div className="glass-card w-full max-w-lg p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-theme-fg flex items-center gap-2">
                 <Shield size={18} className="text-saffron-400" /> Module Access: {selectedCollector.name}
               </h3>
-              <button onClick={() => setSelectedCollector(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+              <button onClick={() => setSelectedCollector(null)} className="text-theme-fg/40 hover:text-theme-fg text-sm">✕ Close</button>
             </div>
             
-            <p className="text-xs text-white/50 mb-4">Configuring explicit module access levels. Unchecking "View" hides sidebar navigation links and restricts API access for that person. These overrides take precedence over the org's role defaults (Settings → Access Management).</p>
+            <p className="text-xs text-theme-fg/50 mb-4">Configuring explicit module access levels. Unchecking "View" hides sidebar navigation links and restricts API access for that person. These overrides take precedence over the org's role defaults (Settings → Access Management).</p>
 
             <PermissionsMatrix modules={ACCESS_MODULES} value={permissions} onChange={setPermissions} />
 
@@ -177,40 +177,40 @@ function CollectorCard({ collector: c, onToggle, onPermissionsEdit }: any) {
             {c.name[0]}
           </div>
           <div>
-            <p className="font-semibold text-white">{c.name}</p>
+            <p className="font-semibold text-theme-fg">{c.name}</p>
             <span className={`badge text-[10px] ${c.role === 'TREASURER' ? 'badge-warning' : 'badge-neutral'}`}>
               {c.role}
             </span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button onClick={() => onPermissionsEdit(c)} className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-saffron-400 transition-colors" title="Permissions">
+          <button onClick={() => onPermissionsEdit(c)} className="p-1.5 rounded-lg hover:bg-theme-fg/5 text-theme-fg/30 hover:text-saffron-400 transition-colors" title="Permissions">
             <Shield size={16} />
           </button>
-          <button onClick={() => onToggle(c.id, !c.isActive)} className="text-white/30 hover:text-saffron-400 transition-colors">
+          <button onClick={() => onToggle(c.id, !c.isActive)} className="text-theme-fg/30 hover:text-saffron-400 transition-colors">
             {c.isActive ? <ToggleRight size={22} className="text-saffron-400" /> : <ToggleLeft size={22} />}
           </button>
         </div>
       </div>
 
       <div className="space-y-1.5 mb-3">
-        <div className="flex items-center gap-2 text-xs text-white/50">
+        <div className="flex items-center gap-2 text-xs text-theme-fg/50">
           <Phone size={11} /> {c.phone}
         </div>
         {c.area && (
-          <div className="flex items-center gap-2 text-xs text-white/50">
+          <div className="flex items-center gap-2 text-xs text-theme-fg/50">
             <MapPin size={11} /> {c.area.name}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/8">
+      <div className="grid grid-cols-2 gap-2 pt-3 border-t border-theme-fg/8">
         <div className="text-center">
-          <p className="text-xs text-white/40">Today</p>
+          <p className="text-xs text-theme-fg/40">Today</p>
           <p className="text-sm font-bold text-saffron-400">{formatCurrency(stats?.todayAmount || 0)}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-white/40">Total</p>
+          <p className="text-xs text-theme-fg/40">Total</p>
           <p className="text-sm font-bold text-emerald-400">{formatCurrency(stats?.totalAmount || 0)}</p>
         </div>
       </div>

@@ -5,7 +5,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ReceiptsService } from './receipts.service';
-import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto } from './dto/receipt.dto';
+import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto, UpdateReceiptDto } from './dto/receipt.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -67,6 +67,19 @@ export class ReceiptsController {
   @ApiOperation({ summary: 'Get a single receipt by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.receiptsService.findOne(id, user.orgId);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Edit a receipt\'s donor/amount details (audit-logged, regenerates the PDF)' })
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateReceiptDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.receiptsService.update(id, dto, user.id, user.orgId);
   }
 
   @Patch(':id/void')

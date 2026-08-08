@@ -64,13 +64,6 @@ export const orgsApi = {
     form.append('logo', file);
     return apiClient.post('/organizations/me/logo', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
   },
-  uploadReceiptTemplateImage: (file: File, width: number, height: number) => {
-    const form = new FormData();
-    form.append('image', file);
-    form.append('width', String(width));
-    form.append('height', String(height));
-    return apiClient.post('/organizations/me/receipt-template-image', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
-  },
   getAreas: () => apiClient.get('/organizations/areas').then(r => r.data),
   createArea: (data: any) => apiClient.post('/organizations/areas', data).then(r => r.data),
   deleteArea: (id: string) => apiClient.delete(`/organizations/areas/${id}`).then(r => r.data),
@@ -93,6 +86,7 @@ export const receiptsApi = {
   get: (id: string) => apiClient.get(`/receipts/${id}`).then(r => r.data),
   verifyPublic: (id: string) => apiClient.get(`/receipts/verify/${id}`).then(r => r.data),
   create: (data: any) => apiClient.post('/receipts', data).then(r => r.data),
+  update: (id: string, data: any) => apiClient.patch(`/receipts/${id}`, data).then(r => r.data),
   void: (id: string, reason: string) => apiClient.patch(`/receipts/${id}/void`, { reason }).then(r => r.data),
   resend: (id: string) => apiClient.post(`/receipts/${id}/resend`).then(r => r.data),
   exportCsv: (campaignId?: string) => apiClient.get('/receipts/export/csv', { params: { campaignId }, responseType: 'blob' }).then(r => r.data),
@@ -128,6 +122,21 @@ export const reportsApi = {
   topDonors: (campaignId?: string) => apiClient.get('/reports/top-donors', { params: { campaignId } }).then(r => r.data),
   collectionType: (campaignId?: string) => apiClient.get('/reports/collection-type', { params: { campaignId } }).then(r => r.data),
   incomeExpenseTrend: (campaignId?: string, days?: number) => apiClient.get('/reports/income-expense-trend', { params: { campaignId, days } }).then(r => r.data),
+};
+
+// Members (सभासद नोंदणी — org member registry)
+export const membersApi = {
+  list: () => apiClient.get('/members').then(r => r.data),
+  create: (data: any) => apiClient.post('/members', data).then(r => r.data),
+  bulkCreate: (names: string[]) => apiClient.post('/members/bulk', { names }).then(r => r.data),
+  update: (id: string, data: any) => apiClient.patch(`/members/${id}`, data).then(r => r.data),
+  delete: (id: string) => apiClient.delete(`/members/${id}`).then(r => r.data),
+};
+
+// Internal Collections (Mandal Contribution / member subscription roster)
+export const internalCollectionsApi = {
+  declare: (data: any) => apiClient.post('/internal-collections/declare', data).then(r => r.data),
+  roster: (campaignId: string) => apiClient.get('/internal-collections/roster', { params: { campaignId } }).then(r => r.data),
 };
 
 // Permissions (Access Management — role defaults)

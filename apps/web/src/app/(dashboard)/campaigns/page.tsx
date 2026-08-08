@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { campaignsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -39,6 +40,7 @@ export default function CampaignsPage() {
   const activateMutation = useMutation({
     mutationFn: (id: string) => campaignsApi.activate(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['campaigns'] }); toast.success('Campaign activated!'); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to activate campaign'),
   });
 
   const completeMutation = useMutation({
@@ -49,7 +51,7 @@ export default function CampaignsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-theme-fg">
           {language === 'mr' ? 'मोहिमा' : language === 'hi' ? 'अभियान' : 'Campaigns'}
         </h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
@@ -60,7 +62,7 @@ export default function CampaignsPage() {
 
       {showForm && (
         <div className="glass-card p-6 animate-slide-up">
-          <h3 className="text-sm font-semibold text-white mb-4">Create Campaign</h3>
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">Create Campaign</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Campaign Name *</label>
@@ -116,7 +118,7 @@ export default function CampaignsPage() {
             <CampaignCard key={c.id} campaign={c} onActivate={() => activateMutation.mutate(c.id)} onComplete={() => completeMutation.mutate(c.id)} />
           ))}
           {!campaigns?.length && (
-            <div className="glass-card p-12 text-center text-white/30">
+            <div className="glass-card p-12 text-center text-theme-fg/30">
               No campaigns yet. Create your first campaign!
             </div>
           )}
@@ -141,11 +143,11 @@ function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-white text-lg">{c.name}</h3>
+            <Link href={`/campaigns/${c.id}`} className="font-bold text-theme-fg text-lg hover:text-saffron-400 transition-colors">{c.name}</Link>
             <span className={`badge text-xs ${STATUS_COLORS[c.status]}`}>{c.status}</span>
           </div>
-          {c.nameMarathi && <p className="text-sm text-white/40 font-devanagari">{c.nameMarathi}</p>}
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-white/40">
+          {c.nameMarathi && <p className="text-sm text-theme-fg/40 font-devanagari">{c.nameMarathi}</p>}
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-theme-fg/40">
             <span className="flex items-center gap-1"><Calendar size={11} /> {format(new Date(c.startDate), 'dd MMM yyyy')}</span>
             {c.endDate && <span>→ {format(new Date(c.endDate), 'dd MMM yyyy')}</span>}
             <span className="flex items-center gap-1"><Receipt size={11} /> {c._count?.receipts || 0} receipts</span>
@@ -168,15 +170,15 @@ function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
       {stats && (
         <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="glass-card p-3 text-center">
-            <p className="text-xs text-white/40">Collected</p>
+            <p className="text-xs text-theme-fg/40">Collected</p>
             <p className="font-bold text-emerald-400 text-sm">{formatCurrency(stats.totalCollected || 0)}</p>
           </div>
           <div className="glass-card p-3 text-center">
-            <p className="text-xs text-white/40">Expenses</p>
+            <p className="text-xs text-theme-fg/40">Expenses</p>
             <p className="font-bold text-red-400 text-sm">{formatCurrency(stats.totalExpenses || 0)}</p>
           </div>
           <div className="glass-card p-3 text-center">
-            <p className="text-xs text-white/40">Balance</p>
+            <p className="text-xs text-theme-fg/40">Balance</p>
             <p className={`font-bold text-sm ${(stats.netBalance || 0) >= 0 ? 'text-saffron-400' : 'text-red-400'}`}>{formatCurrency(stats.netBalance || 0)}</p>
           </div>
         </div>
@@ -184,11 +186,11 @@ function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
 
       {c.targetAmount && (
         <div>
-          <div className="flex justify-between text-xs text-white/40 mb-1.5">
+          <div className="flex justify-between text-xs text-theme-fg/40 mb-1.5">
             <span className="flex items-center gap-1"><Target size={10} /> Target: {formatCurrency(c.targetAmount)}</span>
             <span>{progress.toFixed(1)}%</span>
           </div>
-          <div className="h-2 bg-white/8 rounded-full overflow-hidden">
+          <div className="h-2 bg-theme-fg/8 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-brand rounded-full transition-all duration-1000"
               style={{ width: `${progress}%` }}

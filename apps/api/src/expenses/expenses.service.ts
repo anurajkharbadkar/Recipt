@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfService } from '../pdf/pdf.service';
+import { CreateExpenseDto } from './dto/expense.dto';
 
 @Injectable()
 export class ExpensesService {
@@ -21,7 +22,7 @@ export class ExpensesService {
     });
   }
 
-  async create(orgId: string, userId: string, data: any) {
+  async create(orgId: string, userId: string, data: CreateExpenseDto) {
     const campaign = await this.prisma.campaign.findFirst({
       where: { id: data.campaignId, orgId },
     });

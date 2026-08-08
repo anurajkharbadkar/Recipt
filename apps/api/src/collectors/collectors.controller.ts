@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CollectorsService } from './collectors.service';
+import { CreateCollectorDto, UpdateCollectorDto } from './dto/collector.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -41,7 +42,7 @@ export class CollectorsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN)
-  create(@CurrentUser('orgId') orgId: string, @Body() data: any) {
+  create(@CurrentUser('orgId') orgId: string, @Body() data: CreateCollectorDto) {
     return this.service.create(orgId, data);
   }
 
@@ -51,7 +52,7 @@ export class CollectorsController {
   update(
     @Param('id') id: string,
     @CurrentUser('orgId') orgId: string,
-    @Body() data: any,
+    @Body() data: UpdateCollectorDto,
   ) {
     return this.service.update(id, orgId, data);
   }

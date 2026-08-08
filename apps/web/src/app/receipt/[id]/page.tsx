@@ -1,11 +1,26 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import { receiptsApi } from '@/lib/api';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import { CheckCircle, XCircle, BookOpen } from 'lucide-react';
 
+const LANGUAGE_OPTIONS: { code: 'en' | 'hi' | 'mr'; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'hi', label: 'HI' },
+  { code: 'mr', label: 'MR' },
+];
+
 export default function PublicReceiptPage({ params }: { params: { id: string } }) {
+  const searchParams = useSearchParams();
+  const requestedLang = searchParams.get('lang');
+  const initialLang = (requestedLang === 'en' || requestedLang === 'hi' || requestedLang === 'mr') ? requestedLang : 'mr';
+  // No dashboard/global language here — this is a public, unauthenticated page —
+  // so it just remembers whatever was picked (or passed via ?lang=) for the visit.
+  const [language, setLanguage] = useState<'en' | 'hi' | 'mr'>(initialLang);
+
   const { data: receipt, isLoading, isError } = useQuery({
     queryKey: ['receipt-public', params.id],
     queryFn: () => receiptsApi.verifyPublic(params.id),
@@ -66,8 +81,22 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
               )}
             </div>
 
+            {/* Language toggle */}
+            <div className="flex items-center justify-center gap-1.5">
+              {LANGUAGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.code}
+                  type="button"
+                  onClick={() => setLanguage(opt.code)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${language === opt.code ? 'bg-saffron-600 text-white' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
             {/* Receipt Preview */}
-            <ReceiptPreview receipt={receipt} />
+            <ReceiptPreview receipt={receipt} language={language} />
 
             <p className="text-center text-xs text-white/20">Powered by Digital Pavti Book</p>
           </>

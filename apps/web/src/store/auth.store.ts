@@ -18,6 +18,7 @@ interface Organization {
   nameMarathi?: string;
   nameHindi?: string;
   logoUrl?: string;
+  brandColor?: string;
   subscriptionPlan: string;
 }
 
