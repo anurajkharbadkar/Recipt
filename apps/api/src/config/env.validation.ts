@@ -9,7 +9,10 @@ import * as Joi from 'joi';
  * about (PATH, HOME, RAILWAY_*, etc.) — without it every boot would fail.
  */
 export const envValidationSchema = Joi.object({
-  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+  // .empty('') maps an empty-string value (e.g. an unset/blank platform env var,
+  // as opposed to a truly absent key) to undefined so .default() still applies —
+  // otherwise a blank NODE_ENV fails .valid() and crash-loops the app at boot.
+  NODE_ENV: Joi.string().empty('').valid('development', 'production', 'test').default('development'),
   PORT: Joi.number().port().default(3001),
   BASE_URL: Joi.string().uri().optional(),
   FRONTEND_URL: Joi.string().uri().optional(),
