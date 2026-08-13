@@ -1,7 +1,12 @@
 import {
-  IsString, IsEmail, IsOptional, IsPhoneNumber, MinLength, IsNumberString, Length
+  IsString, IsEmail, IsOptional, IsPhoneNumber, MinLength, IsNumberString, Length, IsEnum, IsIn
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SubscriptionPlan } from '@pavti/shared';
+
+// FREE isn't publicly offered (see packages/shared PRICING_PLANS) — only
+// these three are selectable at signup.
+const SELECTABLE_PLANS = [SubscriptionPlan.BASIC, SubscriptionPlan.STANDARD, SubscriptionPlan.PREMIUM];
 
 export class RegisterDto {
   @ApiProperty({ example: 'Shree Ganesh Mandal' })
@@ -49,6 +54,10 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   state?: string;
+
+  @ApiProperty({ enum: SELECTABLE_PLANS, example: SubscriptionPlan.BASIC })
+  @IsIn(SELECTABLE_PLANS)
+  subscriptionPlan: SubscriptionPlan;
 }
 
 export class LoginDto {

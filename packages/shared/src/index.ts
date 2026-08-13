@@ -15,6 +15,12 @@ export enum SubscriptionPlan {
   PREMIUM = 'PREMIUM',
 }
 
+export enum SubscriptionStatus {
+  PENDING_PAYMENT = 'PENDING_PAYMENT',
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+}
+
 // How many campaigns an org may run ACTIVE at once, by plan. Enforced when a
 // campaign transitions to ACTIVE (apps/api CampaignsService.activate) — a
 // campaign can always be created/edited as DRAFT regardless of this limit,
@@ -27,6 +33,97 @@ export const MAX_ACTIVE_CAMPAIGNS_BY_PLAN: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.STANDARD]: 2,
   [SubscriptionPlan.PREMIUM]: 5,
 };
+
+// How many staff accounts (COLLECTOR/TREASURER — not the ORG_ADMIN account
+// itself) an org may add, by plan. Enforced in CollectorsService.create.
+export const MAX_COLLECTORS_BY_PLAN: Record<SubscriptionPlan, number> = {
+  [SubscriptionPlan.FREE]: 5,
+  [SubscriptionPlan.BASIC]: 5,
+  [SubscriptionPlan.STANDARD]: 10,
+  [SubscriptionPlan.PREMIUM]: 10,
+};
+
+// ─── Pricing (public plan catalog) ─────────────────────────────────────────
+// Single source of truth for the marketing pricing page AND the registration
+// plan picker, so the price/feature list a visitor sees before signing up is
+// guaranteed to match what they're actually offered on the signup form —
+// same "one definition, multiple consumers" approach as RECEIPT_THEMES.
+// There's no FREE tier on offer publicly — FREE stays in the SubscriptionPlan
+// enum only for internal/legacy use.
+export interface PricingPlanFeature {
+  label: string;
+  description?: string;
+  /** Feature is listed for transparency about what's coming, but not usable yet. */
+  comingSoon?: boolean;
+}
+
+export interface PricingPlan {
+  id: SubscriptionPlan;
+  name: string;
+  tagline: string;
+  priceInr: number;
+  priceNote: string;
+  highlighted?: boolean;
+  collectorLimit: number;
+  features: PricingPlanFeature[];
+}
+
+export const PRICING_PLANS: PricingPlan[] = [
+  {
+    id: SubscriptionPlan.BASIC,
+    name: 'Basic',
+    tagline: 'For small mandals starting their digital journey',
+    priceInr: 499,
+    priceNote: 'For whole Ganpati Utsav 2026',
+    collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
+    features: [
+      { label: 'Digital Receipts', description: 'Generate and share digital pavtis instantly' },
+      { label: 'Internal Donation Collection', description: 'Track member subscriptions & mandal contributions' },
+      { label: 'Donation Management & Expense Tracking' },
+      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
+      { label: `${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC]} Collectors` },
+      { label: 'Reports & Analytics' },
+    ],
+  },
+  {
+    id: SubscriptionPlan.STANDARD,
+    name: 'Standard',
+    tagline: 'For growing mandals who want more',
+    priceInr: 799,
+    priceNote: 'For whole Ganpati Utsav 2026',
+    highlighted: true,
+    collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD],
+    features: [
+      { label: 'Unlimited Digital Receipts', description: 'Generate and share unlimited digital receipts' },
+      { label: 'Internal Donation Collection' },
+      { label: 'Donation Management & Expense Tracking' },
+      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
+      { label: 'UPI ID on Every Receipt', description: 'Donors pay you directly — fast & hassle-free' },
+      { label: `Up to ${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD]} Collectors` },
+      { label: 'Advanced Reports & Analytics', description: 'Data-driven insights for better decisions' },
+      { label: 'Custom Branded Receipt Design', description: 'Pick a premium design that matches your mandal' },
+    ],
+  },
+  {
+    id: SubscriptionPlan.PREMIUM,
+    name: 'Premium',
+    tagline: 'For mandals who want the complete festival experience',
+    priceInr: 1499,
+    priceNote: 'For whole Ganpati Utsav 2026',
+    collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
+    features: [
+      { label: 'Unlimited Digital Receipts' },
+      { label: 'Internal Donation Collection' },
+      { label: 'Donation Management & Expense Tracking' },
+      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
+      { label: 'UPI ID on Every Receipt' },
+      { label: `Up to ${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM]} Collectors` },
+      { label: 'Advanced Reports & Analytics' },
+      { label: 'Custom Branded Receipt Design' },
+      { label: 'Dedicated Web Page for Your Mandal', description: "History, festival program, dress code, bhandara & visarjan info — your mandal's own page", comingSoon: true },
+    ],
+  },
+];
 
 export enum CollectionType {
   DONATION = 'DONATION',

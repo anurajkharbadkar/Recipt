@@ -26,6 +26,16 @@ enum SubscriptionPlan {
   PREMIUM
 }
 
+// PENDING_PAYMENT: self-serve signup created the org already (so they can
+// start exploring immediately) but payment hasn't been manually confirmed
+// yet — there's no payment gateway wired up, so an admin flips this to
+// ACTIVE once payment for the season is actually received.
+enum SubscriptionStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+}
+
 enum CollectionType {
   DONATION
   INTERNAL
@@ -108,6 +118,7 @@ model Organization {
   upiId             String?
   brandColor        String?
   subscriptionPlan  SubscriptionPlan @default(FREE)
+  subscriptionStatus SubscriptionStatus @default(PENDING_PAYMENT)
   subscriptionExpiry DateTime?
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())

@@ -18,7 +18,7 @@ import {
   VerifyOtpDto,
   RefreshTokenDto,
 } from './dto/auth.dto';
-import { UserRole, SubscriptionPlan } from '@pavti/shared';
+import { UserRole, SubscriptionStatus } from '@pavti/shared';
 
 @Injectable()
 export class AuthService {
@@ -52,7 +52,11 @@ export class AuthService {
         state: dto.state || 'Maharashtra',
         phone: dto.phone,
         email: dto.email,
-        subscriptionPlan: SubscriptionPlan.FREE,
+        subscriptionPlan: dto.subscriptionPlan,
+        // No payment gateway wired up yet — the org gets access immediately
+        // (see the dashboard's pending-payment banner) and an admin flips
+        // this to ACTIVE once the seasonal fee is actually received.
+        subscriptionStatus: SubscriptionStatus.PENDING_PAYMENT,
         users: {
           create: {
             name: dto.adminName,

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCollectorDto, UpdateCollectorDto } from './dto/collector.dto';
+import { MAX_COLLECTORS_BY_PLAN, SubscriptionPlan } from '@pavti/shared';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -32,6 +33,18 @@ export class CollectorsService {
       where: { orgId_phone: { orgId, phone: data.phone } },
     });
     if (existing) throw new ConflictException('A user with this phone already exists in your organization');
+
+    const org = await this.prisma.organization.findUnique({ where: { id: orgId } });
+    const plan = (org?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
+    const limit = MAX_COLLECTORS_BY_PLAN[plan] ?? 5;
+    const currentCount = await this.prisma.user.count({
+      where: { orgId, role: { in: ['COLLECTOR', 'TREASURER'] } },
+    });
+    if (currentCount >= limit) {
+      throw new ForbiddenException(
+        `Your ${plan} plan allows up to ${limit} collectors. Remove an inactive one or upgrade your plan to add more.`,
+      );
+    }
 
     const passwordHash = data.password
       ? await bcrypt.hash(data.password, 12)

@@ -19,6 +19,7 @@ interface Organization {
   logoUrl?: string;
   brandColor?: string;
   subscriptionPlan: string;
+  subscriptionStatus?: string;
 }
 
 interface AuthState {
