@@ -7,12 +7,11 @@ import { collectorsApi, orgsApi, membersApi, campaignsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import {
-  Plus, Phone, MapPin, ToggleLeft, ToggleRight, Shield,
+  Plus, Phone, MapPin, ToggleLeft, ToggleRight,
   Users2, ListPlus, Trash2, UserCog, Wallet,
 } from 'lucide-react';
 import { formatCurrency } from '@pavti/shared';
 import toast from 'react-hot-toast';
-import PermissionsMatrix from '@/components/PermissionsMatrix';
 import InternalCollectionManager from '@/components/internal-collection/InternalCollectionManager';
 
 const ACCESS_MODULES = ['Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings'];
@@ -25,8 +24,6 @@ const ACCESS_MODULES = ['Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Memb
 function StaffTab() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', role: 'COLLECTOR', areaId: '' });
-  const [selectedCollector, setSelectedCollector] = useState<any>(null);
-  const [permissions, setPermissions] = useState<any>({});
   const { language } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -47,16 +44,6 @@ function StaffTab() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: any) => collectorsApi.update(id, { isActive }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['collectors'] }),
-  });
-
-  const permissionsMutation = useMutation({
-    mutationFn: ({ id, permissionsOverride }: any) => collectorsApi.update(id, { permissionsOverride }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collectors'] });
-      setSelectedCollector(null);
-      toast.success('Permissions updated!');
-    },
-    onError: () => toast.error('Failed to update permissions'),
   });
 
   return (
@@ -126,7 +113,6 @@ function StaffTab() {
               key={c.id}
               collector={c}
               onToggle={(id: string, active: boolean) => toggleMutation.mutate({ id, isActive: active })}
-              onPermissionsEdit={(col: any) => { setSelectedCollector(col); setPermissions(col.permissionsOverride || {}); }}
             />
           ))}
           {!collectors?.length && (
@@ -136,36 +122,11 @@ function StaffTab() {
           )}
         </div>
       )}
-
-      {selectedCollector && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50 p-4">
-          <div className="glass-card w-full max-w-lg p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-bold text-theme-fg flex items-center gap-2">
-                <Shield size={18} className="text-saffron-400" /> Module Access: {selectedCollector.name}
-              </h3>
-              <button onClick={() => setSelectedCollector(null)} className="text-theme-fg/40 hover:text-theme-fg text-sm">✕ Close</button>
-            </div>
-            <p className="text-xs text-theme-fg/50 mb-4">Configuring explicit module access levels. Unchecking "View" hides sidebar navigation links and restricts API access for that person. These overrides take precedence over the org's role defaults (Settings → Access Management).</p>
-            <PermissionsMatrix modules={ACCESS_MODULES} value={permissions} onChange={setPermissions} />
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setSelectedCollector(null)} className="btn-secondary flex-1">Cancel</button>
-              <button
-                onClick={() => permissionsMutation.mutate({ id: selectedCollector.id, permissionsOverride: permissions })}
-                disabled={permissionsMutation.isPending}
-                className="btn-primary flex-1"
-              >
-                {permissionsMutation.isPending ? 'Saving...' : 'Save Permissions'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function CollectorCard({ collector: c, onToggle, onPermissionsEdit }: any) {
+function CollectorCard({ collector: c, onToggle }: any) {
   const { data: stats } = useQuery({ queryKey: ['collector-stats', c.id], queryFn: () => collectorsApi.getStats(c.id) });
 
   return (
@@ -181,9 +142,6 @@ function CollectorCard({ collector: c, onToggle, onPermissionsEdit }: any) {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button onClick={() => onPermissionsEdit(c)} className="p-1.5 rounded-lg hover:bg-theme-fg/5 text-theme-fg/30 hover:text-saffron-400 transition-colors" title="Permissions">
-            <Shield size={16} />
-          </button>
           <button onClick={() => onToggle(c.id, !c.isActive)} className="text-theme-fg/30 hover:text-saffron-400 transition-colors">
             {c.isActive ? <ToggleRight size={22} className="text-saffron-400" /> : <ToggleLeft size={22} />}
           </button>

@@ -30,7 +30,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
     <div className="min-h-screen p-4 flex flex-col items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-saffron-600/10 rounded-full blur-3xl" />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(var(--fg-rgb) / 0.03) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
       </div>
 
       <div className="relative w-full max-w-sm space-y-4">
@@ -39,22 +39,22 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
           <div className="w-12 h-12 rounded-xl bg-gradient-brand flex items-center justify-center mx-auto mb-3">
             <BookOpen size={22} className="text-white" />
           </div>
-          <h1 className="text-lg font-bold text-white">Receipt Verification</h1>
-          <p className="text-xs text-white/40 font-devanagari">पावती सत्यापन</p>
+          <h1 className="text-lg font-bold text-theme-fg">Receipt Verification</h1>
+          <p className="text-xs text-theme-fg/40 font-devanagari">पावती सत्यापन</p>
         </div>
 
         {isLoading && (
           <div className="glass-card p-8 text-center">
             <div className="animate-spin w-8 h-8 border-2 border-saffron-500 border-t-transparent rounded-full mx-auto mb-3" />
-            <p className="text-white/50 text-sm">Verifying receipt...</p>
+            <p className="text-theme-fg/50 text-sm">Verifying receipt...</p>
           </div>
         )}
 
         {isError && (
           <div className="glass-card p-8 text-center">
             <XCircle size={40} className="text-red-400 mx-auto mb-3" />
-            <h2 className="text-white font-semibold mb-1">Receipt Not Found</h2>
-            <p className="text-white/40 text-sm">This receipt does not exist or has been removed.</p>
+            <h2 className="text-theme-fg font-semibold mb-1">Receipt Not Found</h2>
+            <p className="text-theme-fg/40 text-sm">This receipt does not exist or has been removed.</p>
           </div>
         )}
 
@@ -67,7 +67,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
                   <XCircle size={28} className="text-red-400 shrink-0" />
                   <div>
                     <p className="text-red-400 font-semibold text-sm">This receipt has been VOIDED</p>
-                    <p className="text-white/40 text-xs">This receipt is no longer valid</p>
+                    <p className="text-theme-fg/40 text-xs">This receipt is no longer valid</p>
                   </div>
                 </>
               ) : (
@@ -75,7 +75,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
                   <CheckCircle size={28} className="text-emerald-400 shrink-0" />
                   <div>
                     <p className="text-emerald-400 font-semibold text-sm">✓ Verified Authentic Receipt</p>
-                    <p className="text-white/40 text-xs">This is a genuine digital pavti</p>
+                    <p className="text-theme-fg/40 text-xs">This is a genuine digital pavti</p>
                   </div>
                 </>
               )}
@@ -88,7 +88,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
                   key={opt.code}
                   type="button"
                   onClick={() => setLanguage(opt.code)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${language === opt.code ? 'bg-saffron-600 text-white' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white'}`}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${language === opt.code ? 'bg-saffron-600 text-white' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/10 hover:text-theme-fg'}`}
                 >
                   {opt.label}
                 </button>
@@ -98,7 +98,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
             {/* Receipt Preview */}
             <ReceiptPreview receipt={receipt} language={language} />
 
-            <p className="text-center text-xs text-white/20">Powered by e Pavti Book</p>
+            <p className="text-center text-xs text-theme-fg/20">Powered by e Pavti Book</p>
           </>
         )}
       </div>

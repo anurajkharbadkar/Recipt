@@ -69,7 +69,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-saffron-600/10 rounded-full blur-3xl animate-pulse-soft" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgb(var(--fg-rgb) / 0.03) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
       </div>
 
       <div className="relative w-full max-w-sm">
@@ -78,18 +78,18 @@ export default function LoginPage() {
           <div className="w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center mx-auto mb-4 shadow-glow-saffron">
             <BookOpen size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">e Pavti Book</h1>
-          <p className="text-sm text-white/40 mt-1 font-devanagari">ई पावती बुक</p>
+          <h1 className="text-2xl font-bold text-theme-fg">e Pavti Book</h1>
+          <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">ई पावती बुक</p>
         </div>
 
         <div className="glass-card p-7">
           {/* Mode Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-xl">
+          <div className="flex gap-2 mb-6 p-1 bg-theme-fg/5 border border-theme-fg/5 rounded-xl">
             {(['password', 'otp'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode === m ? 'bg-saffron-600 text-white' : 'text-white/50 hover:text-white'}`}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode === m ? 'bg-saffron-600 text-white' : 'text-theme-fg/50 hover:text-theme-fg'}`}
               >
                 {m === 'password' ? '🔒 Password' : '📱 OTP'}
               </button>
@@ -101,7 +101,7 @@ export default function LoginPage() {
               <div>
                 <label className="form-label">Mobile Number</label>
                 <div className="relative">
-                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
                   <input
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
@@ -116,7 +116,7 @@ export default function LoginPage() {
               <div>
                 <label className="form-label">Password</label>
                 <div className="relative">
-                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
                   <input
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -125,7 +125,7 @@ export default function LoginPage() {
                     type={showPass ? 'text' : 'password'}
                     required
                   />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-fg/30 hover:text-theme-fg/60">
                     {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
@@ -140,7 +140,7 @@ export default function LoginPage() {
                 <label className="form-label">Mobile Number</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
                     <input value={phone} onChange={e => setPhone(e.target.value)} className="form-input pl-9" placeholder="9876543210" type="tel" inputMode="numeric" />
                   </div>
                   <button onClick={handleSendOtp} disabled={loading || otpSent} className="btn-secondary px-4 whitespace-nowrap text-sm">
@@ -172,8 +172,8 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-white/8 text-center">
-            <p className="text-sm text-white/40">
+          <div className="mt-6 pt-6 border-t border-theme-fg/10 text-center">
+            <p className="text-sm text-theme-fg/40">
               New organization?{' '}
               <Link href="/register" className="text-saffron-400 hover:text-saffron-300 font-medium">
                 Register here
@@ -182,8 +182,8 @@ export default function LoginPage() {
           </div>
 
           {/* Demo credentials */}
-          <div className="mt-4 p-3 bg-white/5 rounded-xl text-xs text-white/40">
-            <p className="font-semibold text-white/60 mb-1">Demo Credentials:</p>
+          <div className="mt-4 p-3 bg-theme-fg/5 border border-theme-fg/5 rounded-xl text-xs text-theme-fg/50">
+            <p className="font-semibold text-theme-fg/70 mb-1">Demo Credentials:</p>
             <p>📱 9876543210 | 🔑 Admin@123</p>
           </div>
         </div>
