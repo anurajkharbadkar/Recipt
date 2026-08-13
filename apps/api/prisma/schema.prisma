@@ -240,7 +240,9 @@ model Receipt {
   pdfUrl         String?
   qrCodeData     String?
   whatsappSent   Boolean          @default(false)
+  whatsappError  String?
   smsSent        Boolean          @default(false)
+  smsError       String?
   latitude       Float?
   longitude      Float?
   deviceInfo     String?

@@ -59,6 +59,7 @@ export const authApi = {
 export const orgsApi = {
   getMe: () => apiClient.get('/organizations/me').then(r => r.data),
   update: (data: any) => apiClient.patch('/organizations/me', data).then(r => r.data),
+  getIntegrationsStatus: () => apiClient.get('/organizations/me/integrations-status').then(r => r.data),
   uploadLogo: (file: File) => {
     const form = new FormData();
     form.append('logo', file);

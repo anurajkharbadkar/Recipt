@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { SmsService } from '../sms/sms.service';
 import { UpdateOrganizationDto } from './dto/organization.dto';
 import { UserRole } from '@pavti/shared';
 
@@ -16,7 +18,23 @@ export class OrganizationsService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
+    private whatsapp: WhatsappService,
+    private sms: SmsService,
   ) {}
+
+  /**
+   * Lets Settings show real integration status instead of an admin only
+   * discovering "WhatsApp isn't configured" the first time a donor never
+   * receives their receipt. Booleans only — never echoes back the actual
+   * credential values.
+   */
+  getIntegrationsStatus() {
+    return {
+      whatsapp: this.whatsapp.isConfigured(),
+      sms: this.sms.isConfigured(),
+      storage: this.storage.isR2Configured() ? 'r2' : 'local',
+    };
+  }
 
   async getMe(orgId: string, role?: UserRole) {
     const org = await this.prisma.organization.findUnique({

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import {
@@ -20,12 +20,34 @@ import {
   resolveReceiptSettings,
 } from '@pavti/shared';
 
+function IntegrationRow({ label, ok, okLabel, missingLabel, envHint }: { label: string; ok: boolean; okLabel: string; missingLabel: string; envHint: string }) {
+  return (
+    <div className={`flex items-start gap-3 p-3 rounded-xl border ${ok ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
+      {ok ? (
+        <CheckCircle2 size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+      ) : (
+        <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+      )}
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-theme-fg">{label}</p>
+        <p className="text-xs text-theme-fg/50 mt-0.5">{ok ? okLabel : missingLabel}</p>
+        {!ok && <p className="text-[11px] text-theme-fg/35 mt-1 font-mono">{envHint}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { language, organization, setOrganization, user } = useAuthStore();
   const queryClient = useQueryClient();
 
   const { data: org } = useQuery({ queryKey: ['org'], queryFn: orgsApi.getMe });
   const { data: areas } = useQuery({ queryKey: ['areas'], queryFn: orgsApi.getAreas });
+  const { data: integrations } = useQuery({
+    queryKey: ['integrations-status'],
+    queryFn: orgsApi.getIntegrationsStatus,
+    enabled: user?.role === 'ORG_ADMIN' || user?.role === 'SUPER_ADMIN',
+  });
 
   const [form, setForm] = useState<any>({});
   const [newArea, setNewArea] = useState('');
@@ -275,6 +297,44 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Integrations status — ORG_ADMIN only */}
+      {integrations && (
+        <div className="glass-card p-6 sm:p-8">
+          <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
+            <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
+              <Plug size={18} />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-theme-fg">Integrations</h3>
+              <p className="text-xs text-theme-fg/50">Delivery & storage — set these up on the server (Railway env vars), not here.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <IntegrationRow
+              label="WhatsApp Delivery"
+              ok={integrations.whatsapp}
+              okLabel="Receipts are delivered to donors via WhatsApp."
+              missingLabel="Not configured — donors won't receive receipts on WhatsApp."
+              envHint="WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID"
+            />
+            <IntegrationRow
+              label="SMS / OTP"
+              ok={integrations.sms}
+              okLabel="SMS receipts and OTP login are active."
+              missingLabel="Not configured — OTP login and SMS receipts won't send."
+              envHint="MSG91_API_KEY"
+            />
+            <IntegrationRow
+              label="File Storage"
+              ok={integrations.storage === 'r2'}
+              okLabel="Uploads are stored on Cloudflare R2 — persist across deploys."
+              missingLabel="Using local disk — files are lost on the next deploy/restart."
+              envHint="R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY"
+            />
+          </div>
+        </div>
+      )}
 
       {/* 3. Bank Details */}
       <div className="glass-card p-6 sm:p-8">

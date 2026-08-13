@@ -34,6 +34,14 @@ export class OrganizationsController {
     return this.service.update(orgId, dto);
   }
 
+  @Get('me/integrations-status')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+  @ApiOperation({ summary: 'Whether WhatsApp/SMS/R2 storage are configured (booleans only, no credentials)' })
+  getIntegrationsStatus() {
+    return this.service.getIntegrationsStatus();
+  }
+
   @Post('me/logo')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN)

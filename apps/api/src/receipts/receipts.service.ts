@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
@@ -15,6 +16,8 @@ import * as QRCode from 'qrcode';
 
 @Injectable()
 export class ReceiptsService {
+  private readonly logger = new Logger(ReceiptsService.name);
+
   constructor(
     private prisma: PrismaService,
     private pdfService: PdfService,
@@ -88,7 +91,7 @@ export class ReceiptsService {
     });
 
     // Generate PDF asynchronously
-    this.generateAndStorePdf(receipt).catch(console.error);
+    this.generateAndStorePdf(receipt).catch((err) => this.logger.error(`PDF generation failed for receipt ${receiptId}: ${err.message}`));
 
     // Send WhatsApp if donor phone provided
     if (dto.sendWhatsapp !== false && dto.donorPhone) {
@@ -102,13 +105,8 @@ export class ReceiptsService {
           category: dto.category,
           receiptTemplateSettings: (campaign.organization as any)?.receiptTemplateSettings,
         })
-        .then(() => {
-          this.prisma.receipt.update({
-            where: { id: receiptId },
-            data: { whatsappSent: true },
-          });
-        })
-        .catch(console.error);
+        .then((result) => this.recordWhatsappResult(receiptId, result))
+        .catch((err) => this.logger.error(`WhatsApp send crashed for receipt ${receiptId}: ${err.message}`));
     }
 
     // Send SMS if requested
@@ -120,13 +118,8 @@ export class ReceiptsService {
           receiptNumber,
           organizationName: campaign.organization.name,
         })
-        .then(() => {
-          this.prisma.receipt.update({
-            where: { id: receiptId },
-            data: { smsSent: true },
-          });
-        })
-        .catch(console.error);
+        .then((result) => this.recordSmsResult(receiptId, result))
+        .catch((err) => this.logger.error(`SMS send crashed for receipt ${receiptId}: ${err.message}`));
     }
 
     // Audit log
@@ -295,7 +288,7 @@ export class ReceiptsService {
 
     // The previously-generated PDF (if any) now shows stale data — regenerate
     // it the same fire-and-forget way receipt creation does.
-    this.generateAndStorePdf(updated).catch(console.error);
+    this.generateAndStorePdf(updated).catch((err) => this.logger.error(`PDF regeneration failed for receipt ${id}: ${err.message}`));
 
     return updated;
   }
@@ -367,26 +360,63 @@ export class ReceiptsService {
 
   async resend(id: string, orgId: string) {
     const receipt = await this.findOne(id, orgId);
+    if (!receipt.donorPhone) {
+      throw new BadRequestException('This receipt has no donor phone number to resend to');
+    }
 
-    if (receipt.donorPhone) {
-      const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/receipt/${id}`;
-      await this.whatsappService.sendReceiptNotification(receipt.donorPhone, {
-        donorName: receipt.donorName,
-        amount: receipt.amount,
-        receiptNumber: receipt.receiptNumber,
-        organizationName: receipt.campaign.organization.name,
-        receiptUrl: verifyUrl,
-        category: receipt.category,
-        receiptTemplateSettings: (receipt.campaign?.organization as any)?.receiptTemplateSettings,
-      });
+    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/receipt/${id}`;
+    // Awaited (unlike the fire-and-forget send at creation time) since this is
+    // an explicit user action — they're clicking "Resend" specifically to find
+    // out whether it worked, so the result has to reach them, not just a log.
+    const result = await this.whatsappService.sendReceiptNotification(receipt.donorPhone, {
+      donorName: receipt.donorName,
+      amount: receipt.amount,
+      receiptNumber: receipt.receiptNumber,
+      organizationName: receipt.campaign.organization.name,
+      receiptUrl: verifyUrl,
+      category: receipt.category,
+      receiptTemplateSettings: (receipt.campaign?.organization as any)?.receiptTemplateSettings,
+    });
+    await this.recordWhatsappResult(id, result);
 
-      await this.prisma.receipt.update({
-        where: { id },
-        data: { whatsappSent: true },
-      });
+    if (result.skipped) {
+      throw new BadRequestException('WhatsApp delivery isn\'t configured yet — ask your admin to set up WHATSAPP_ACCESS_TOKEN.');
+    }
+    if (!result.success) {
+      throw new BadRequestException(`WhatsApp delivery failed: ${result.error}`);
     }
 
     return { message: 'Receipt resent successfully' };
+  }
+
+  /** Persists a WhatsApp send outcome onto the receipt — `skipped` (not
+   *  configured) writes nothing, since there's no attempt to record. */
+  private async recordWhatsappResult(receiptId: string, result: { success: boolean; skipped?: boolean; error?: string }) {
+    if (result.skipped) return;
+    try {
+      await this.prisma.receipt.update({
+        where: { id: receiptId },
+        data: result.success
+          ? { whatsappSent: true, whatsappError: null }
+          : { whatsappSent: false, whatsappError: result.error?.slice(0, 500) },
+      });
+    } catch (err) {
+      this.logger.error(`Failed to record WhatsApp result for receipt ${receiptId}: ${err.message}`);
+    }
+  }
+
+  private async recordSmsResult(receiptId: string, result: { success: boolean; skipped?: boolean; error?: string }) {
+    if (result.skipped) return;
+    try {
+      await this.prisma.receipt.update({
+        where: { id: receiptId },
+        data: result.success
+          ? { smsSent: true, smsError: null }
+          : { smsSent: false, smsError: result.error?.slice(0, 500) },
+      });
+    } catch (err) {
+      this.logger.error(`Failed to record SMS result for receipt ${receiptId}: ${err.message}`);
+    }
   }
 
   async exportCsv(orgId: string, campaignId?: string): Promise<string> {
@@ -462,7 +492,7 @@ export class ReceiptsService {
         data: { pdfUrl },
       });
     } catch (error) {
-      console.error('PDF generation failed:', error);
+      this.logger.error(`PDF generation failed for receipt ${receipt.id}: ${error.message}`);
     }
   }
 }

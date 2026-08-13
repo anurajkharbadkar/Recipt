@@ -242,6 +242,8 @@ export default function ReceiptsPage() {
                           <span className="badge badge-danger">Voided</span>
                         ) : r.whatsappSent ? (
                           <span className="badge badge-success">Sent</span>
+                        ) : r.whatsappError ? (
+                          <span className="badge badge-danger" title={r.whatsappError}>⚠ Failed</span>
                         ) : (
                           <span className="badge badge-neutral">Not sent</span>
                         )}

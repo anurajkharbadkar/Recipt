@@ -35,8 +35,11 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
 
   const resendMutation = useMutation({
     mutationFn: () => receiptsApi.resend(params.id),
-    onSuccess: () => toast.success('Receipt resent via WhatsApp!'),
-    onError: () => toast.error('Failed to resend'),
+    onSuccess: () => {
+      toast.success('Receipt resent via WhatsApp!');
+      queryClient.invalidateQueries({ queryKey: ['receipt', params.id] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to resend'),
   });
 
   const voidMutation = useMutation({
@@ -157,15 +160,23 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
             { label: 'Campaign', value: receipt.campaign?.name },
             { label: 'Collector', value: receipt.collector?.name },
             { label: 'Area', value: receipt.area?.name || '—' },
-            { label: 'WhatsApp', value: receipt.whatsappSent ? '✅ Sent' : '❌ Not sent' },
-            { label: 'SMS', value: receipt.smsSent ? '✅ Sent' : '❌ Not sent' },
+            {
+              label: 'WhatsApp',
+              value: receipt.whatsappSent ? '✅ Sent' : receipt.whatsappError ? '⚠️ Failed' : '❌ Not sent',
+              title: receipt.whatsappError,
+            },
+            {
+              label: 'SMS',
+              value: receipt.smsSent ? '✅ Sent' : receipt.smsError ? '⚠️ Failed' : '❌ Not sent',
+              title: receipt.smsError,
+            },
             { label: 'Amount', value: formatCurrency(receipt.amount) },
             { label: 'Type', value: receipt.collectionType || 'DONATION' },
             { label: 'Status', value: receipt.status || 'PAID' },
-          ].map(({ label, value }) => (
+          ].map(({ label, value, title }) => (
             <div key={label}>
               <p className="text-xs text-theme-fg/30">{label}</p>
-              <p className="text-theme-fg/80 font-medium">{value}</p>
+              <p className="text-theme-fg/80 font-medium" title={title}>{value}</p>
             </div>
           ))}
         </div>

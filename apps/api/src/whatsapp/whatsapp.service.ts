@@ -14,13 +14,27 @@ export interface ReceiptNotificationData {
   receiptTemplateSettings?: any;
 }
 
+/** `skipped` = WHATSAPP_ACCESS_TOKEN/PHONE_NUMBER_ID isn't configured (dev/local
+ *  or the org hasn't set it up) — distinct from an actual delivery failure so
+ *  callers (and the UI) can tell "we never tried" apart from "we tried and it
+ *  broke". */
+export interface SendResult {
+  success: boolean;
+  skipped?: boolean;
+  error?: string;
+}
+
 @Injectable()
 export class WhatsappService {
   private readonly logger = new Logger(WhatsappService.name);
 
   constructor(private config: ConfigService) {}
 
-  async sendReceiptNotification(phone: string, data: ReceiptNotificationData): Promise<void> {
+  isConfigured(): boolean {
+    return !!(this.config.get('WHATSAPP_ACCESS_TOKEN') && this.config.get('WHATSAPP_PHONE_NUMBER_ID'));
+  }
+
+  async sendReceiptNotification(phone: string, data: ReceiptNotificationData): Promise<SendResult> {
     const waToken = this.config.get('WHATSAPP_ACCESS_TOKEN');
     const phoneNumberId = this.config.get('WHATSAPP_PHONE_NUMBER_ID');
 
@@ -33,7 +47,7 @@ export class WhatsappService {
       this.logger.log(
         `[DEV] WhatsApp would send to ${formattedPhone}: Receipt ${data.receiptNumber} for ₹${data.amount}`,
       );
-      return;
+      return { success: false, skipped: true };
     }
 
     try {
@@ -57,10 +71,20 @@ export class WhatsappService {
         },
       );
       this.logger.log(`WhatsApp sent to ${formattedPhone}`);
+      return { success: true };
     } catch (error) {
-      this.logger.error(`WhatsApp send failed: ${error.message}`);
-      // Don't throw — delivery failure shouldn't block receipt creation
+      const message = this.describeError(error);
+      this.logger.error(`WhatsApp send failed: ${message}`);
+      // Don't throw — delivery failure shouldn't block receipt creation; the
+      // caller persists this message on the receipt instead (see
+      // ReceiptsService) so it's visible in the UI rather than only in logs.
+      return { success: false, error: message };
     }
+  }
+
+  private describeError(error: any): string {
+    // WhatsApp Cloud API errors come back as { error: { message, code, ... } }
+    return error?.response?.data?.error?.message || error?.message || 'Unknown error';
   }
 
   public buildReceiptMessage(data: ReceiptNotificationData): string {

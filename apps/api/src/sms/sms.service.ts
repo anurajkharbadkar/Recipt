@@ -2,19 +2,31 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+/** `skipped` = MSG91_API_KEY isn't configured — distinct from an actual
+ *  delivery failure, same reasoning as WhatsappService.SendResult. */
+export interface SendResult {
+  success: boolean;
+  skipped?: boolean;
+  error?: string;
+}
+
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
   constructor(private config: ConfigService) {}
 
-  async sendOtp(phone: string, otp: string): Promise<void> {
+  isConfigured(): boolean {
+    return !!this.config.get('MSG91_API_KEY');
+  }
+
+  async sendOtp(phone: string, otp: string): Promise<SendResult> {
     const apiKey = this.config.get('MSG91_API_KEY');
     const senderId = this.config.get('MSG91_SENDER_ID', 'PAVTIB');
 
     if (!apiKey) {
       this.logger.log(`[DEV] OTP for ${phone}: ${otp}`);
-      return;
+      return { success: false, skipped: true };
     }
 
     try {
@@ -33,8 +45,11 @@ export class SmsService {
         },
       );
       this.logger.log(`OTP sent to ${phone}`);
+      return { success: true };
     } catch (error) {
-      this.logger.error(`OTP send failed: ${error.message}`);
+      const message = this.describeError(error);
+      this.logger.error(`OTP send failed: ${message}`);
+      return { success: false, error: message };
     }
   }
 
@@ -46,12 +61,12 @@ export class SmsService {
       receiptNumber: string;
       organizationName: string;
     },
-  ): Promise<void> {
+  ): Promise<SendResult> {
     const apiKey = this.config.get('MSG91_API_KEY');
 
     if (!apiKey) {
       this.logger.log(`[DEV] SMS to ${phone}: Receipt ${data.receiptNumber}`);
-      return;
+      return { success: false, skipped: true };
     }
 
     const message = `Donation of Rs.${data.amount} to ${data.organizationName} received. Receipt: ${data.receiptNumber}. Thank you, ${data.donorName}!`;
@@ -70,8 +85,15 @@ export class SmsService {
           },
         },
       );
+      return { success: true };
     } catch (error) {
-      this.logger.error(`SMS send failed: ${error.message}`);
+      const message2 = this.describeError(error);
+      this.logger.error(`SMS send failed: ${message2}`);
+      return { success: false, error: message2 };
     }
+  }
+
+  private describeError(error: any): string {
+    return error?.response?.data?.message || error?.message || 'Unknown error';
   }
 }

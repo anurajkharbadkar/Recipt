@@ -12,6 +12,18 @@ export class StorageService {
     this.localUploadDir = join(process.cwd(), 'uploads');
   }
 
+  /** False means uploads are landing on local disk — fine for dev, but on a
+   *  container platform (Railway et al.) that disk is wiped on every deploy
+   *  or restart, so anything stored there (receipt PDFs, logos) disappears. */
+  isR2Configured(): boolean {
+    return !!(
+      this.config.get('R2_BUCKET_NAME')
+      && this.config.get('R2_ACCOUNT_ID')
+      && this.config.get('R2_ACCESS_KEY_ID')
+      && this.config.get('R2_SECRET_ACCESS_KEY')
+    );
+  }
+
   async uploadFile(key: string, data: Buffer, contentType: string): Promise<string> {
     const bucket = this.config.get('R2_BUCKET_NAME');
     const accountId = this.config.get('R2_ACCOUNT_ID');
