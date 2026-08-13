@@ -4,43 +4,38 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
+import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import {
-  Home, Plus, Users, Megaphone,
+  Home, Plus, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
   IndianRupee, BookOpen, Sun, Moon, UserSquare2
 } from 'lucide-react';
 import clsx from 'clsx';
 
+// 'module' drives the permission check (see useModuleAccessResolver) and can
+// differ from the href's own path — /members is the merged Staff & Collectors
+// + Registered Members + Internal Collection screen, so it's visible to
+// anyone who can view either underlying module, not just 'Members'.
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड' },
-  { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', highlight: true },
-  { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या' },
-  { href: '/collectors', label: 'Collectors', icon: Users, labelMr: 'संग्राहक' },
-  { href: '/campaigns', label: 'Campaigns', icon: Megaphone, labelMr: 'मोहीम' },
-  { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद' },
-  { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च' },
-  { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल' },
-  { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स' },
+  { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड', module: 'Dashboard' },
+  { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', highlight: true, module: 'Receipts' },
+  { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या', module: 'Receipts' },
+  { href: '/campaigns', label: 'Campaigns', icon: Megaphone, labelMr: 'मोहीम', module: 'Campaigns' },
+  { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद', module: 'Members', altModule: 'Collectors' },
+  { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', module: 'Expenses' },
+  { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', module: 'Reports' },
+  { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स', module: 'Settings' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, organization, logout, language } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const canView = useModuleAccessResolver();
 
-  const isAllowed = (href: string) => {
-    if (!user) return false;
-    if (user.role === 'SUPER_ADMIN' || user.role === 'ORG_ADMIN') return true;
-
-    if (user.role === 'COLLECTOR') {
-      return ['/dashboard', '/receipts/new', '/receipts'].includes(href);
-    }
-    if (user.role === 'TREASURER') {
-      return !['/settings', '/collectors'].includes(href);
-    }
-    return true;
-  };
+  const isAllowed = (item: (typeof navItems)[number]) =>
+    canView(item.module) || (item.altModule ? canView(item.altModule) : false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
@@ -112,7 +107,7 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          if (!isAllowed(item.href)) return null;
+          if (!isAllowed(item)) return null;
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/receipts/new');
           return (
             <Link

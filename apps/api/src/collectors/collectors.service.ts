@@ -77,7 +77,12 @@ export class CollectorsService {
     const where: any = { collectorId: id, isVoided: false };
     if (campaignId) where.campaignId = campaignId;
 
-    const [totalResult, todayResult, recentReceipts] = await Promise.all([
+    // Split by collectionType: a collector's "normal" donation total and
+    // their Internal Collection (member fee) total are different things —
+    // internal receipts are often bulk-declared by an admin/treasurer with
+    // this person only as the record's nominal collectorId, so folding both
+    // into one number misrepresents what they actually went out and collected.
+    const [totalResult, todayResult, donationResult, internalResult, recentReceipts] = await Promise.all([
       this.prisma.receipt.aggregate({
         where,
         _sum: { amount: true },
@@ -90,6 +95,16 @@ export class CollectorsService {
             gte: new Date(new Date().setHours(0, 0, 0, 0)),
           },
         },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.receipt.aggregate({
+        where: { ...where, collectionType: 'DONATION' },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.receipt.aggregate({
+        where: { ...where, collectionType: 'INTERNAL' },
         _sum: { amount: true },
         _count: true,
       }),
@@ -106,6 +121,10 @@ export class CollectorsService {
       totalReceipts: totalResult._count,
       todayAmount: todayResult._sum.amount || 0,
       todayReceipts: todayResult._count,
+      donationAmount: donationResult._sum.amount || 0,
+      donationCount: donationResult._count,
+      internalAmount: internalResult._sum.amount || 0,
+      internalCount: internalResult._count,
       recentReceipts,
     };
   }

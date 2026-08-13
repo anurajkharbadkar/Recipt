@@ -4,22 +4,16 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { inferRouteModule } from '@pavti/shared';
+import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import toast from 'react-hot-toast';
-
-function resolveCanView(module: string | null, role: string): boolean {
-  if (!module || module === 'Dashboard') return true;
-  if (role === 'SUPER_ADMIN' || role === 'ORG_ADMIN') return true;
-  if (role === 'COLLECTOR') return module === 'Receipts';
-  if (role === 'TREASURER') return !['Settings', 'Collectors'].includes(module);
-  return true;
-}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
+  const canView = useModuleAccessResolver();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -30,12 +24,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     const module = inferRouteModule(pathname);
-    const allowed = resolveCanView(module, user.role);
+    // /members is the merged Staff&Collectors + Registered Members + Internal
+    // Collection screen — its tabs are gated individually by the page itself,
+    // so the route guard only needs to let someone in who can see at least
+    // one of the two underlying modules, not both.
+    const allowed = module === 'Members' ? (canView('Members') || canView('Collectors')) : canView(module);
     if (!allowed) {
       toast.error("You don't have access to this page");
       router.push('/dashboard');
     }
-  }, [pathname, user, isAuthenticated, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, user, isAuthenticated]);
 
   if (!isAuthenticated) return null;
 
