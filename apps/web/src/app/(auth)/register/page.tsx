@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, formatCurrency } from '@pavti/shared';
@@ -10,7 +9,7 @@ import toast from 'react-hot-toast';
 import { BookOpen, ArrowRight, ArrowLeft, Check, Star } from 'lucide-react';
 import Link from 'next/link';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
@@ -163,5 +162,13 @@ export default function RegisterPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-theme-fg/40 text-sm">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }
