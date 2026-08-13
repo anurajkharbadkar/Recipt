@@ -5,36 +5,7 @@
 @tailwind utilities;
 
 :root {
-  /* Default: Dark Theme */
-  --bg-color: #060f18;
-  --text-color: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --navy-800: #0d1e2c;
-  --navy-700: #142d3d;
-  --text-muted: rgba(255, 255, 255, 0.55);
-  --text-placeholder: rgba(255, 255, 255, 0.35);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-
-  /* RGB triplet (no #, no rgb()) so Tailwind's `<alpha-value>` placeholder can
-   * apply opacity modifiers, e.g. `text-theme-fg/60` — see tailwind.config.js
-   * `theme.fg`. This is what replaced the many hardcoded `text-white/NN` /
-   * `bg-white/NN` utility classes that ignored the theme entirely and went
-   * invisible (white-on-white) once Light mode's card background turned solid
-   * white — the literal white utilities never GOT the memo when `.light` was
-   * toggled, since only CSS-variable-backed classes react to it.
-   */
-  --fg-rgb: 255 255 255;
-
-  /* Org-configurable UI accent — set on :root at runtime by BrandColorProvider
-   * from Organization.brandColor. Every "brand" surface below derives its
-   * tints/shades from this ONE value via color-mix() instead of a hardcoded
-   * hex, so changing it updates the whole UI immediately with no rebuild. */
-  --primary-brand-color: #C85000;
-}
-
-.light {
-  /* Light Theme */
+  /* Default: Light Theme */
   --bg-color: #f8fafc;
   --text-color: #0f172a;
   --card-bg: #ffffff;
@@ -45,6 +16,40 @@
   --text-placeholder: #94a3b8;
   --border-subtle: #f1f5f9;
   --fg-rgb: 15 23 42;
+
+  /* Org-configurable UI accent — set on :root at runtime by BrandColorProvider
+   * from Organization.brandColor. Every "brand" surface below derives its
+   * tints/shades from this ONE value via color-mix() instead of a hardcoded
+   * hex, so changing it updates the whole UI immediately with no rebuild. */
+  --primary-brand-color: #C85000;
+}
+
+.light {
+  /* Explicit Light Theme class */
+  --bg-color: #f8fafc;
+  --text-color: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --navy-800: #f1f5f9;
+  --navy-700: #e2e8f0;
+  --text-muted: #475569;
+  --text-placeholder: #94a3b8;
+  --border-subtle: #f1f5f9;
+  --fg-rgb: 15 23 42;
+}
+
+.dark {
+  /* Dark Theme */
+  --bg-color: #060f18;
+  --text-color: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --navy-800: #0d1e2c;
+  --navy-700: #142d3d;
+  --text-muted: rgba(255, 255, 255, 0.55);
+  --text-placeholder: rgba(255, 255, 255, 0.35);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --fg-rgb: 255 255 255;
 }
 
 @layer base {

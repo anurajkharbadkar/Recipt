@@ -2,7 +2,7 @@
   "name": "@pavti/api",
   "version": "1.0.0",
   "private": true,
-  "description": "Digital Pavti Book - NestJS API",
+  "description": "e Pavti Book - NestJS API",
   "scripts": {
     "prebuild": "prisma generate",
     "build": "nest build",

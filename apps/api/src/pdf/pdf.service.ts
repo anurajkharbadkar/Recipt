@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as puppeteer from 'puppeteer';
-import { amountToWords, resolveReceiptTheme, formatReceiptDateTime } from '@pavti/shared';
+import { amountToWords, resolveReceiptTheme, resolveReceiptSettings, formatReceiptDateTime } from '@pavti/shared';
 
 /** How long to wait for the receipt/voucher page (incl. Google Fonts) before giving up. */
 const RENDER_TIMEOUT_MS = 15000;
@@ -290,14 +290,16 @@ export class PdfService implements OnModuleDestroy {
     const campaign = receipt.campaign;
     const fontFamily = "'Noto Sans Devanagari', 'Inter', sans-serif";
 
-    const templateSettings = org?.receiptTemplateSettings as any;
-    const requestedThemeId = templateSettings?.theme || 'DEFAULT';
-    const theme = resolveReceiptTheme(requestedThemeId);
-    if (theme.id !== requestedThemeId) {
-      this.logger.warn(
-        `Org ${org?.id || 'unknown'} has unknown/legacy receipt theme "${requestedThemeId}" — falling back to ${theme.id}`,
-      );
-    }
+    const settings = resolveReceiptSettings(org?.receiptTemplateSettings);
+    const theme = resolveReceiptTheme(settings.theme);
+    const language = settings.language || 'mr';
+
+    const labels = {
+      en: { receipt: 'RECEIPT', no: 'No.', donor: 'Donor Name', address: 'Address', amount: 'Amount', words: 'Amount in Words', category: 'Category', mode: 'Payment Mode', collector: 'Collector', area: 'Area', notes: 'Notes', sign: 'Authorized Signature', scan: 'Scan to verify' },
+      hi: { receipt: 'रसीद', no: 'क्र.', donor: 'दानकर्ता', address: 'पता', amount: 'राशि', words: 'शब्दों में', category: 'श्रेणी', mode: 'भुगतान विधि', collector: 'संग्रहकर्ता', area: 'क्षेत्र', notes: 'टिप्पणी', sign: 'अधिकृत हस्ताक्षर', scan: 'सत्यापन हेतु स्कैन करें' },
+      mr: { receipt: 'पावती', no: 'क्र.', donor: 'देणगीदार', address: 'पत्ता', amount: 'रक्कम', words: 'अक्षरी', category: 'प्रकार', mode: 'देय पद्धत', collector: 'संग्राहक', area: 'क्षेत्र', notes: 'टीप', sign: 'अधिकृत स्वाक्षरी', scan: 'सत्यापनासाठी स्कॅन करा' },
+    };
+    const l = labels[language] || labels.mr;
 
     const border = `${theme.borderWidth}px ${theme.borderStyle} ${theme.primaryColor}`;
     const amountBorder = `${theme.amountBorderWidth}px ${theme.amountBorderStyle} ${theme.amountBorderColor}`;
@@ -332,10 +334,22 @@ export class PdfService implements OnModuleDestroy {
     background: ${theme.gradient};
     color: white;
     padding: 16px 20px;
+    position: relative;
+  }
+  .header-tagline {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    opacity: 0.95;
+  }
+  .header-main {
     display: flex;
     align-items: center;
     gap: 12px;
-    position: relative;
   }
   .header-logo {
     width: 48px;
@@ -381,6 +395,15 @@ export class PdfService implements OnModuleDestroy {
   .amount-words { font-size: 11px; color: #666; margin-top: 4px; font-style: italic; }
   .upi-line { font-size: 11px; color: #444; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #ddd; }
   .divider { border: none; border-top: 1px dashed #ddd; margin: 10px 0; }
+  .footer-note-bar {
+    padding: 8px 20px;
+    text-align: center;
+    font-size: 11px;
+    color: #444;
+    font-weight: 600;
+    background: #fffbf5;
+    border-top: 1px dashed #ddd;
+  }
   .receipt-footer {
     padding: 12px 20px;
     display: flex;
@@ -421,29 +444,32 @@ export class PdfService implements OnModuleDestroy {
 <div class="receipt">
   ${bannerHtml}
   <div class="receipt-header">
-    ${org?.logoUrl ? `<img src="${this.esc(org.logoUrl)}" class="header-logo" />` : ''}
-    <div class="header-content">
-      <div class="org-name">${this.esc(org?.name) || 'Organization'}</div>
-      ${org?.nameMarathi ? `<div class="org-name-local">${this.esc(org.nameMarathi)}</div>` : ''}
-      ${campaign?.name ? `<div class="campaign-name">🎉 ${this.esc(campaign.name)}</div>` : ''}
+    ${settings.headerTagline ? `<div class="header-tagline">${this.esc(settings.headerTagline)}</div>` : ''}
+    <div class="header-main">
+      ${org?.logoUrl ? `<img src="${this.esc(org.logoUrl)}" class="header-logo" />` : ''}
+      <div class="header-content">
+        <div class="org-name">${this.esc(org?.name) || 'Organization'}</div>
+        ${org?.nameMarathi ? `<div class="org-name-local">${this.esc(org.nameMarathi)}</div>` : ''}
+        ${campaign?.name ? `<div class="campaign-name">🎉 ${this.esc(campaign.name)}</div>` : ''}
+      </div>
     </div>
   </div>
 
   <div class="receipt-badge">
     <div>
-      <div class="receipt-no">${isInternal ? 'अंतर्गत पावती / Internal Receipt' : 'पावती / Receipt'} #${this.esc(receipt.receiptNumber)}</div>
+      <div class="receipt-no">${isInternal ? (language === 'mr' ? 'अंतर्गत पावती' : language === 'hi' ? 'आंतरिक रसीद' : 'Internal Receipt') : (settings.receiptTitle || l.receipt)} #${this.esc(receipt.receiptNumber)}</div>
     </div>
     <div class="receipt-date">📅 ${formatReceiptDateTime(receipt.createdAt)}</div>
   </div>
 
   <div class="receipt-body">
     <div class="field">
-      <div class="field-label">नाव / Name</div>
-      <div class="field-value">${this.esc(receipt.donorName)}</div>
+      <div class="field-label">${l.donor}</div>
+      <div class="field-value">${settings.donorPrefix ? `<span style="font-weight:400;color:#666;margin-right:4px;">${this.esc(settings.donorPrefix)}</span>` : ''}${this.esc(receipt.donorName)}</div>
     </div>
     ${receipt.donorAddress ? `
     <div class="field">
-      <div class="field-label">पत्ता / Address</div>
+      <div class="field-label">${l.address}</div>
       <div class="field-value">${this.esc(receipt.donorAddress)}</div>
     </div>` : ''}
 
@@ -457,38 +483,43 @@ export class PdfService implements OnModuleDestroy {
       <span class="badge">📂 ${this.esc(receipt.category)}</span>
       <span class="payment-mode">💳 ${this.esc(receipt.paymentMode)}</span>
       ${isUnpaid ? (
-        `<span class="status-badge status-unpaid">थकबाकी / UNPAID</span>`
+        `<span class="status-badge status-unpaid">${language === 'mr' ? 'थकबाकी' : language === 'hi' ? 'बकाया' : 'UNPAID'}</span>`
       ) : (
-        `<span class="status-badge status-paid">प्राप्त / PAID</span>`
+        `<span class="status-badge status-paid">${language === 'mr' ? 'प्राप्त' : language === 'hi' ? 'प्राप्त' : 'PAID'}</span>`
       )}
     </div>
 
     <hr class="divider" />
 
     <div class="field">
-      <div class="field-label">संग्राहक / Collector</div>
+      <div class="field-label">${l.collector}</div>
       <div class="field-value">${this.esc(receipt.collector?.name)}</div>
     </div>
     ${receipt.area ? `
     <div class="field">
-      <div class="field-label">क्षेत्र / Area</div>
+      <div class="field-label">${l.area}</div>
       <div class="field-value">${this.esc(receipt.area.name)}</div>
     </div>` : ''}
     ${receipt.notes ? `
     <div class="field">
-      <div class="field-label">टीप / Notes</div>
+      <div class="field-label">${l.notes}</div>
       <div class="field-value">${this.esc(receipt.notes)}</div>
     </div>` : ''}
   </div>
 
+  ${settings.footerNote ? `
+  <div class="footer-note-bar">
+    ${this.esc(settings.footerNote)}
+  </div>` : ''}
+
   <div class="receipt-footer">
     <div class="signature-area">
       <div class="signature-line"></div>
-      <div class="signature-label">अधिकृत स्वाक्षरी / Authorized Signature</div>
+      <div class="signature-label">${l.sign}</div>
     </div>
     <div class="qr-area">
       ${receipt.qrCodeData ? `<img src="${receipt.qrCodeData}" width="70" height="70" />` : ''}
-      <div class="qr-label">Scan to verify</div>
+      <div class="qr-label">${l.scan}</div>
     </div>
   </div>
 

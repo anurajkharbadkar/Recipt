@@ -9,7 +9,7 @@ import { receiptsApi, campaignsApi, orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { DonationCategory, PaymentMode, CollectionType, ReceiptStatus } from '@pavti/shared';
+import { DonationCategory, PaymentMode, CollectionType, ReceiptStatus, formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
 import {
   User, Phone, MapPin, IndianRupee, Tag, CreditCard, FileText,
   MapPinned, MessageCircle, ArrowLeft, CheckCircle, Printer, Share2
@@ -40,7 +40,7 @@ const STEPS = ['Campaign & Donor', 'Amount & Details', 'Review & Send'];
 export default function NewReceiptPage() {
   const [step, setStep] = useState(0);
   const [createdReceipt, setCreatedReceipt] = useState<any>(null);
-  const { activeCampaignId, language } = useAuthStore();
+  const { activeCampaignId, language, organization } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -116,10 +116,22 @@ export default function NewReceiptPage() {
   const handleShare = () => {
     if (!createdReceipt?.donorPhone) return;
     const url = `${window.location.origin}/receipt/${createdReceipt.id}`;
-    const msg = encodeURIComponent(
-      `🙏 नमस्कार ${createdReceipt.donorName}!\n\nआपली पावती: ${createdReceipt.receiptNumber}\nरक्कम: ₹${createdReceipt.amount}\n\nपावती पाहा: ${url}`
+    const org = organization as any;
+    const settings = resolveReceiptSettings(org?.receiptTemplateSettings);
+    const msgText = formatShareMessage(
+      settings.shareMessage,
+      {
+        donorName: createdReceipt.donorName,
+        amount: createdReceipt.amount,
+        receiptNumber: createdReceipt.receiptNumber,
+        organizationName: org?.name || 'संस्था',
+        receiptUrl: url,
+        date: new Date().toLocaleDateString('en-IN'),
+        category: createdReceipt.category,
+      },
+      settings.language,
     );
-    window.open(`https://wa.me/91${createdReceipt.donorPhone.replace(/\D/g, '')}?text=${msg}`);
+    window.open(`https://wa.me/91${createdReceipt.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
   };
 
   if (step === 3 && createdReceipt) {

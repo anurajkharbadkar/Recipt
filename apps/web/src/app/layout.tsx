@@ -20,22 +20,22 @@ const noto = Noto_Sans_Devanagari({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Digital Pavti Book — डिजिटल पावती बुक',
-    template: '%s | Digital Pavti Book',
+    default: 'e Pavti Book — ई पावती बुक',
+    template: '%s | e Pavti Book',
   },
   description:
     'Digital receipt management platform for Ganesh Mandals, Durga Puja Committees, Temple Trusts and all Indian community organizations. Generate, share and track donations digitally.',
-  keywords: ['digital pavti', 'donation receipt', 'ganesh mandal', 'temple trust', 'pavti book', 'digital receipt india'],
-  authors: [{ name: 'Digital Pavti Book' }],
-  creator: 'Digital Pavti Book',
+  keywords: ['e pavti book', 'digital pavti', 'donation receipt', 'ganesh mandal', 'temple trust', 'pavti book', 'digital receipt india'],
+  authors: [{ name: 'e Pavti Book' }],
+  creator: 'e Pavti Book',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Pavti Book' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'e Pavti Book' },
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    title: 'Digital Pavti Book — डिजिटल पावती बुक',
+    title: 'e Pavti Book — ई पावती बुक',
     description: 'Digitize your donation receipts. Built for Indian community organizations.',
-    siteName: 'Digital Pavti Book',
+    siteName: 'e Pavti Book',
   },
 };
 

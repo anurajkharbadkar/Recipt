@@ -138,9 +138,3 @@ export const internalCollectionsApi = {
   declare: (data: any) => apiClient.post('/internal-collections/declare', data).then(r => r.data),
   roster: (campaignId: string) => apiClient.get('/internal-collections/roster', { params: { campaignId } }).then(r => r.data),
 };
-
-// Permissions (Access Management — role defaults)
-export const permissionsApi = {
-  getRoleDefaults: () => apiClient.get('/permissions/roles').then(r => r.data),
-  updateRoleDefaults: (matrix: any[]) => apiClient.put('/permissions/roles', matrix).then(r => r.data),
-};

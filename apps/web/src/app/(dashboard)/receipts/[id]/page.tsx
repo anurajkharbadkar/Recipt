@@ -7,7 +7,7 @@ import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import { ArrowLeft, Share2, Printer, XCircle, RefreshCw, Download } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { formatCurrency } from '@pavti/shared';
+import { formatCurrency, formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
 import { format } from 'date-fns';
 import { useState } from 'react';
 
@@ -20,7 +20,7 @@ const LANGUAGE_OPTIONS: { code: 'en' | 'hi' | 'mr'; label: string }[] = [
 export default function ReceiptDetailPage({ params }: { params: { id: string } }) {
   const [voidMode, setVoidMode] = useState(false);
   const [voidReason, setVoidReason] = useState('');
-  const { language, user } = useAuthStore();
+  const { language, user, organization } = useAuthStore();
   // Independent of the dashboard's own language — lets staff preview/print/share
   // this one receipt in whichever language the donor needs, without switching
   // the language the rest of the portal is shown in.
@@ -62,8 +62,22 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
   const handleShare = () => {
     if (!receipt?.donorPhone) { toast.error('No phone number on this receipt'); return; }
     const url = `${window.location.origin}/receipt/${params.id}`;
-    const msg = encodeURIComponent(`पावती ${receipt.receiptNumber}: ₹${receipt.amount}\nपाहा: ${url}`);
-    window.open(`https://wa.me/91${receipt.donorPhone.replace(/\D/g, '')}?text=${msg}`);
+    const org = (receipt.campaign?.organization || organization) as any;
+    const settings = resolveReceiptSettings(org?.receiptTemplateSettings, receiptLanguage);
+    const msgText = formatShareMessage(
+      settings.shareMessage,
+      {
+        donorName: receipt.donorName,
+        amount: receipt.amount,
+        receiptNumber: receipt.receiptNumber,
+        organizationName: org?.name || 'संस्था',
+        receiptUrl: url,
+        date: new Date(receipt.createdAt).toLocaleDateString('en-IN'),
+        category: receipt.category,
+      },
+      settings.language,
+    );
+    window.open(`https://wa.me/91${receipt.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
   };
 
   const handlePrint = () => {

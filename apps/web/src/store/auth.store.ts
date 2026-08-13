@@ -9,7 +9,6 @@ interface User {
   role: string;
   orgId: string;
   areaId?: string;
-  permissionsOverride?: any;
 }
 
 interface Organization {

@@ -50,7 +50,7 @@ async function bootstrap() {
   // Swagger Documentation
   if (configService.get('NODE_ENV') !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Digital Pavti Book API')
+      .setTitle('e Pavti Book API')
       .setDescription('Production API for Digital Receipt Book for Indian Community Organizations')
       .setVersion('1.0')
       .addBearerAuth()
@@ -68,7 +68,7 @@ async function bootstrap() {
 
   const port = configService.get<number>('PORT', 3001);
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Digital Pavti Book API running on http://localhost:${port}/api/v1`);
+  console.log(`🚀 e Pavti Book API running on http://localhost:${port}/api/v1`);
   console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
 }
 bootstrap();

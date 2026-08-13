@@ -1,13 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
 
-interface ReceiptNotificationData {
+export interface ReceiptNotificationData {
   donorName: string;
   amount: number;
   receiptNumber: string;
   organizationName: string;
   receiptUrl: string;
+  date?: string;
+  category?: string;
+  receiptTemplateSettings?: any;
 }
 
 @Injectable()
@@ -59,18 +63,21 @@ export class WhatsappService {
     }
   }
 
-  private buildReceiptMessage(data: ReceiptNotificationData): string {
-    return `🙏 नमस्कार ${data.donorName} जी!
-
-आपले ${data.organizationName} ला ₹${data.amount.toLocaleString('en-IN')} चे योगदान प्राप्त झाले.
-
-📋 पावती क्र. / Receipt No: ${data.receiptNumber}
-
-🔗 डिजिटल पावती पाहण्यासाठी / View Digital Receipt:
-${data.receiptUrl}
-
-आपल्या सहकार्याबद्दल खूप आभारी आहोत! 🙏
-धन्यवाद | Thank You`;
+  public buildReceiptMessage(data: ReceiptNotificationData): string {
+    const settings = resolveReceiptSettings(data.receiptTemplateSettings);
+    return formatShareMessage(
+      settings.shareMessage,
+      {
+        donorName: data.donorName,
+        amount: data.amount,
+        receiptNumber: data.receiptNumber,
+        organizationName: data.organizationName,
+        receiptUrl: data.receiptUrl,
+        date: data.date,
+        category: data.category,
+      },
+      settings.language,
+    );
   }
 
   buildWhatsappDeepLink(phone: string, data: ReceiptNotificationData): string {

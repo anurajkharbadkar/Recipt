@@ -103,8 +103,351 @@ export enum ReceiptTheme {
   ELEGANT_TRUST = 'ELEGANT_TRUST',
 }
 
+export interface ReceiptLanguageLines {
+  headerTagline?: string;
+  receiptTitle?: string;
+  donorPrefix?: string;
+  footerNote?: string;
+  shareMessage?: string;
+}
+
 export interface ReceiptTemplateSettings {
-  theme: ReceiptTheme | string;
+  theme?: ReceiptTheme | string;
+  language?: 'mr' | 'hi' | 'en';
+  /** Respective customized lines stored per language */
+  languages?: {
+    mr?: ReceiptLanguageLines;
+    hi?: ReceiptLanguageLines;
+    en?: ReceiptLanguageLines;
+  };
+  headerTagline?: string;
+  receiptTitle?: string;
+  donorPrefix?: string;
+  footerNote?: string;
+  shareMessage?: string;
+}
+
+export const DEFAULT_SHARE_MESSAGE_TEMPLATES: Record<'mr' | 'hi' | 'en', string> = {
+  mr: `🙏 नमस्कार {donorName} जी!
+
+आपले {organizationName} ला ₹{amount} चे योगदान प्राप्त झाले आहे.
+
+📋 पावती क्र.: {receiptNumber}
+📅 दिनांक: {date}
+
+🔗 डिजिटल पावती पाहण्यासाठी खालील लिंकवर क्लिक करा:
+{receiptUrl}
+
+आपल्या सहकार्याबद्दल मनःपूर्वक धन्यवाद! 🙏
+- {organizationName}`,
+
+  hi: `🙏 नमस्कार {donorName} जी!
+
+{organizationName} को आपका ₹{amount} का सहयोग प्राप्त हुआ है।
+
+📋 रसीद क्र.: {receiptNumber}
+📅 दिनांक: {date}
+
+🔗 डिजिटल रसीद देखने के लिए नीचे दिए लिंक पर क्लिक करें:
+{receiptUrl}
+
+आपके अमूल्य सहयोग के लिए हार्दिक धन्यवाद! 🙏
+- {organizationName}`,
+
+  en: `🙏 Dear {donorName},
+
+Thank you for your generous contribution of ₹{amount} to {organizationName}.
+
+📋 Receipt No: {receiptNumber}
+📅 Date: {date}
+
+🔗 Click the link below to view your official digital receipt:
+{receiptUrl}
+
+Thank you for your valuable support! 🙏
+- {organizationName}`,
+};
+
+export const SHARE_MESSAGE_PRESETS: Record<'mr' | 'hi' | 'en', { label: string; template: string }[]> = {
+  mr: [
+    {
+      label: 'मानक संदेश (Standard)',
+      template: DEFAULT_SHARE_MESSAGE_TEMPLATES.mr,
+    },
+    {
+      label: 'संक्षिप्त / छोटा संदेश (Short & Quick)',
+      template: `🙏 नमस्कार {donorName} जी, {organizationName} ला ₹{amount} ची पावती (क्र. {receiptNumber}) तयार झाली आहे. पावती पाहण्यासाठी: {receiptUrl} धन्यवाद! 🙏`,
+    },
+    {
+      label: 'कृतज्ञता व आशीर्वाद (Devotional & Blessing)',
+      template: `🚩 || श्री गणेशाय नमः || 🚩
+
+सस्नेह नमस्कार {donorName} जी!
+{organizationName} च्या कार्यात आपले ₹{amount} चे अमूल्य योगदान लाभले.
+
+📋 पावती क्र.: {receiptNumber}
+🔗 डिजिटल पावती: {receiptUrl}
+
+बाप्पा आपल्या संसारास सुख, समृद्धी आणि उत्तम आरोग्य देवो हीच प्रार्थना! 🙏`,
+    },
+  ],
+  hi: [
+    {
+      label: 'मानक संदेश (Standard)',
+      template: DEFAULT_SHARE_MESSAGE_TEMPLATES.hi,
+    },
+    {
+      label: 'संक्षिप्त संदेश (Short)',
+      template: `🙏 नमस्कार {donorName} जी, {organizationName} की ओर से ₹{amount} की रसीद (क्र. {receiptNumber}) जारी की गई है। देखने के लिए: {receiptUrl} धन्यवाद! 🙏`,
+    },
+    {
+      label: 'आशीर्वाद एवं आभार (Devotional)',
+      template: `🚩 || श्री गणेशाय नमः || 🚩
+
+सादर प्रणाम {donorName} जी!
+{organizationName} के कार्य में आपका ₹{amount} का अमूल्य दान प्राप्त हुआ।
+
+📋 रसीद क्र.: {receiptNumber}
+🔗 डिजिटल रसीद: {receiptUrl}
+
+ईश्वर आप पर सदैव कृपा बनाए रखें! 🙏`,
+    },
+  ],
+  en: [
+    {
+      label: 'Standard Formal',
+      template: DEFAULT_SHARE_MESSAGE_TEMPLATES.en,
+    },
+    {
+      label: 'Short & Direct',
+      template: `🙏 Dear {donorName}, receipt #{receiptNumber} for ₹{amount} from {organizationName} is ready. View here: {receiptUrl}. Thank you! 🙏`,
+    },
+    {
+      label: 'Tax & Exemption Note',
+      template: `🙏 Dear {donorName},
+
+We acknowledge receipt of ₹{amount} towards {organizationName}.
+
+📋 Receipt No: {receiptNumber}
+🔗 Download/View Receipt: {receiptUrl}
+
+Thank you for your generous support! 🙏`,
+    },
+  ],
+};
+
+export interface ShareMessageContext {
+  donorName?: string;
+  amount?: number | string;
+  receiptNumber?: string;
+  organizationName?: string;
+  receiptUrl?: string;
+  date?: string;
+  category?: string;
+}
+
+export function formatShareMessage(
+  template: string | undefined,
+  ctx: ShareMessageContext,
+  lang: 'mr' | 'hi' | 'en' = 'mr',
+): string {
+  const tpl = template || DEFAULT_SHARE_MESSAGE_TEMPLATES[lang] || DEFAULT_SHARE_MESSAGE_TEMPLATES.mr;
+  const formattedAmount = typeof ctx.amount === 'number'
+    ? ctx.amount.toLocaleString('en-IN')
+    : (ctx.amount || '0');
+
+  return tpl
+    .replace(/\{donorName\}/g, ctx.donorName || (lang === 'en' ? 'Donor' : lang === 'hi' ? 'दानकर्ता' : 'देणगीदार'))
+    .replace(/\{amount\}/g, formattedAmount)
+    .replace(/\{receiptNumber\}/g, ctx.receiptNumber || '')
+    .replace(/\{organizationName\}/g, ctx.organizationName || (lang === 'en' ? 'Organization' : lang === 'hi' ? 'संस्था' : 'मंडळ'))
+    .replace(/\{receiptUrl\}/g, ctx.receiptUrl || '')
+    .replace(/\{date\}/g, ctx.date || new Date().toLocaleDateString('en-IN'))
+    .replace(/\{category\}/g, ctx.category || '');
+}
+
+export const LANGUAGE_DEFAULT_LINES: Record<'mr' | 'hi' | 'en', Required<ReceiptLanguageLines>> = {
+  mr: {
+    headerTagline: '|| श्री गणेशाय नमः ||',
+    receiptTitle: 'देणगी पावती',
+    donorPrefix: 'श्री / सौ / मे.',
+    footerNote: 'आपल्या सहकार्याबद्दल मनःपूर्वक धन्यवाद! 🙏',
+    shareMessage: DEFAULT_SHARE_MESSAGE_TEMPLATES.mr,
+  },
+  hi: {
+    headerTagline: '|| श्री गणेशाय नमः ||',
+    receiptTitle: 'दान रसीद',
+    donorPrefix: 'श्री / श्रीमती / मे.',
+    footerNote: 'आपके सहयोग के लिए हार्दिक धन्यवाद! 🙏',
+    shareMessage: DEFAULT_SHARE_MESSAGE_TEMPLATES.hi,
+  },
+  en: {
+    headerTagline: '|| In the Name of God ||',
+    receiptTitle: 'Donation Receipt',
+    donorPrefix: 'Shri / Smt / M/s',
+    footerNote: 'Thank you for your generous contribution! 🙏',
+    shareMessage: DEFAULT_SHARE_MESSAGE_TEMPLATES.en,
+  },
+};
+
+export const DEFAULT_RECEIPT_SETTINGS: ReceiptTemplateSettings = {
+  theme: 'DEFAULT',
+  language: 'mr',
+  languages: {
+    mr: { ...LANGUAGE_DEFAULT_LINES.mr },
+    hi: { ...LANGUAGE_DEFAULT_LINES.hi },
+    en: { ...LANGUAGE_DEFAULT_LINES.en },
+  },
+  headerTagline: LANGUAGE_DEFAULT_LINES.mr.headerTagline,
+  receiptTitle: LANGUAGE_DEFAULT_LINES.mr.receiptTitle,
+  donorPrefix: LANGUAGE_DEFAULT_LINES.mr.donorPrefix,
+  footerNote: LANGUAGE_DEFAULT_LINES.mr.footerNote,
+  shareMessage: LANGUAGE_DEFAULT_LINES.mr.shareMessage,
+};
+
+export const PAVTI_HEADER_TAGLINE_PRESETS: Record<'mr' | 'hi' | 'en', { id: string; label: string; value: string }[]> = {
+  mr: [
+    { id: 'ganesh', label: 'श्री गणेश', value: '|| श्री गणेशाय नमः ||' },
+    { id: 'shivaji', label: 'जय शिवराय', value: '|| जय भवानी जय शिवाजी ||' },
+    { id: 'shiva', label: 'ॐ नमः शिवाय', value: '|| ॐ नमः शिवाय ||' },
+    { id: 'durga', label: 'जय माता दी', value: '|| ॐ श्री दुर्गायै नमः ||' },
+    { id: 'swami', label: 'श्री स्वामी समर्थ', value: '|| श्री स्वामी समर्थ ||' },
+    { id: 'satya', label: 'सत्यमेव जयते', value: '|| सत्यमेव जयते ||' },
+    { id: 'sarvadharma', label: 'सर्वधर्म समभाव', value: '|| सर्वधर्म समभाव ||' },
+    { id: 'bismillah', label: 'Bismillah', value: '|| Bismillah-ir-Rahman-ir-Rahim ||' },
+    { id: 'none', label: 'काही नाही (None)', value: '' },
+  ],
+  hi: [
+    { id: 'ganesh', label: 'श्री गणेश', value: '|| श्री गणेशाय नमः ||' },
+    { id: 'shiva', label: 'ॐ नमः शिवाय', value: '|| ॐ नमः शिवाय ||' },
+    { id: 'durga', label: 'जय माता दी', value: '|| जय माता दी ||' },
+    { id: 'ram', label: 'जय श्री राम', value: '|| जय श्री राम ||' },
+    { id: 'satya', label: 'सत्यमेव जयते', value: '|| सत्यमेव जयते ||' },
+    { id: 'sarvadharma', label: 'सर्वधर्म समभाव', value: '|| सर्वधर्म समभाव ||' },
+    { id: 'bismillah', label: 'Bismillah', value: '|| Bismillah-ir-Rahman-ir-Rahim ||' },
+    { id: 'none', label: 'कोई नहीं (None)', value: '' },
+  ],
+  en: [
+    { id: 'god', label: 'God Bless', value: '|| In the Name of God ||' },
+    { id: 'divine', label: 'Divine Blessings', value: '|| With Divine Blessings ||' },
+    { id: 'satya', label: 'Truth Prevails', value: '|| Truth Always Triumphs ||' },
+    { id: 'om', label: 'Om Shanti', value: '|| Om Shanti ||' },
+    { id: 'none', label: 'None', value: '' },
+  ],
+};
+
+export const PAVTI_TITLE_PRESETS: Record<'mr' | 'hi' | 'en', { label: string; value: string }[]> = {
+  mr: [
+    { label: 'देणगी पावती', value: 'देणगी पावती' },
+    { label: 'वर्गणी पावती', value: 'वर्गणी पावती' },
+    { label: 'अधिकृत देणगी पावती', value: 'अधिकृत देणगी पावती' },
+    { label: 'पावती', value: 'पावती' },
+  ],
+  hi: [
+    { label: 'दान रसीद', value: 'दान रसीद' },
+    { label: 'चंदा रसीद', value: 'चंदा रसीद' },
+    { label: 'अधिकृत दान रसीद', value: 'अधिकृत दान रसीद' },
+    { label: 'रसीद', value: 'रसीद' },
+  ],
+  en: [
+    { label: 'Donation Receipt', value: 'Donation Receipt' },
+    { label: 'Subscription Receipt', value: 'Subscription Receipt' },
+    { label: 'Official Receipt', value: 'Official Receipt' },
+    { label: 'Receipt', value: 'Receipt' },
+  ],
+};
+
+export const PAVTI_DONOR_PREFIX_PRESETS: Record<'mr' | 'hi' | 'en', { label: string; value: string }[]> = {
+  mr: [
+    { label: 'श्री / सौ / मे.', value: 'श्री / सौ / मे.' },
+    { label: 'श्री / श्रीमती', value: 'श्री / श्रीमती' },
+    { label: 'मा. श्री / सौ', value: 'मा. श्री / सौ' },
+    { label: 'काही नाही (None)', value: '' },
+  ],
+  hi: [
+    { label: 'श्री / श्रीमती / मे.', value: 'श्री / श्रीमती / मे.' },
+    { label: 'श्री / श्रीमती', value: 'श्री / श्रीमती' },
+    { label: 'माननीय', value: 'माननीय' },
+    { label: 'None', value: '' },
+  ],
+  en: [
+    { label: 'Shri / Smt / M/s', value: 'Shri / Smt / M/s' },
+    { label: 'Mr / Mrs / Ms', value: 'Mr / Mrs / Ms' },
+    { label: 'Respected', value: 'Respected' },
+    { label: 'None', value: '' },
+  ],
+};
+
+export const PAVTI_FOOTER_NOTE_PRESETS: Record<'mr' | 'hi' | 'en', { label: string; value: string }[]> = {
+  mr: [
+    { label: 'सहकार्याबद्दल धन्यवाद', value: 'आपल्या सहकार्याबद्दल मनःपूर्वक धन्यवाद! 🙏' },
+    { label: 'मंडळ कार्य सहकार्य', value: 'मंडळाच्या कार्यात सहकार्य केल्याबद्दल धन्यवाद!' },
+    { label: 'संगणकीय पावती सूचना', value: 'ही संगणकीय पावती असल्याने स्वाक्षरीची आवश्यकता नाही.' },
+    { label: 'काही नाही (None)', value: '' },
+  ],
+  hi: [
+    { label: 'सहयोग हेतु धन्यवाद', value: 'आपके सहयोग के लिए हार्दिक धन्यवाद! 🙏' },
+    { label: 'मंडल कार्य सहयोग', value: 'मंडल के सामाजिक कार्य में सहयोग हेतु धन्यवाद!' },
+    { label: 'कंप्यूटरीकृत रसीद', value: 'यह कंप्यूटरीकृत रसीद है, हस्ताक्षर की आवश्यकता नहीं है।' },
+    { label: 'None', value: '' },
+  ],
+  en: [
+    { label: 'Thank You Message', value: 'Thank you for your generous contribution! 🙏' },
+    { label: 'Community Support', value: 'Thank you for supporting our community initiatives!' },
+    { label: 'Computer Generated', value: 'Computer generated receipt, signature not required.' },
+    { label: '80G Tax Exemption', value: 'Donations are eligible for tax exemption under 80G.' },
+    { label: 'None', value: '' },
+  ],
+};
+
+export function resolveReceiptSettings(
+  settings?: any,
+  targetLangOverride?: 'mr' | 'hi' | 'en',
+): Required<ReceiptTemplateSettings> & { lines: Required<ReceiptLanguageLines> } {
+  const lang: 'mr' | 'hi' | 'en' = targetLangOverride || ((settings?.language === 'hi' || settings?.language === 'en' || settings?.language === 'mr') ? settings.language : 'mr');
+  const defaults = LANGUAGE_DEFAULT_LINES[lang];
+  const langSpecific = settings?.languages?.[lang] || {};
+
+  const headerTagline = langSpecific.headerTagline !== undefined
+    ? langSpecific.headerTagline
+    : (settings?.headerTagline !== undefined && (settings?.language === lang || !settings?.languages) ? settings.headerTagline : defaults.headerTagline);
+
+  const receiptTitle = langSpecific.receiptTitle ||
+    ((settings?.receiptTitle && (settings?.language === lang || !settings?.languages)) ? settings.receiptTitle : defaults.receiptTitle);
+
+  const donorPrefix = langSpecific.donorPrefix !== undefined
+    ? langSpecific.donorPrefix
+    : (settings?.donorPrefix !== undefined && (settings?.language === lang || !settings?.languages) ? settings.donorPrefix : defaults.donorPrefix);
+
+  const footerNote = langSpecific.footerNote !== undefined
+    ? langSpecific.footerNote
+    : (settings?.footerNote !== undefined && (settings?.language === lang || !settings?.languages) ? settings.footerNote : defaults.footerNote);
+
+  const shareMessage = langSpecific.shareMessage !== undefined
+    ? langSpecific.shareMessage
+    : (settings?.shareMessage !== undefined && (settings?.language === lang || !settings?.languages) ? settings.shareMessage : defaults.shareMessage);
+
+  return {
+    theme: settings?.theme || 'DEFAULT',
+    language: lang,
+    languages: settings?.languages || {
+      mr: { ...LANGUAGE_DEFAULT_LINES.mr },
+      hi: { ...LANGUAGE_DEFAULT_LINES.hi },
+      en: { ...LANGUAGE_DEFAULT_LINES.en },
+    },
+    headerTagline,
+    receiptTitle,
+    donorPrefix,
+    footerNote,
+    shareMessage,
+    lines: {
+      headerTagline,
+      receiptTitle,
+      donorPrefix,
+      footerNote,
+      shareMessage,
+    },
+  };
 }
 
 // ─── Receipt Theme Style Registry ──────────────────────────────────────────────

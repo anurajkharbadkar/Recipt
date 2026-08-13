@@ -1,6 +1,6 @@
-# Production Deployment Guide — Digital Pavti Book (डिजिटल पावती बुक)
+# Production Deployment Guide — e Pavti Book (ई पावती बुक)
 
-This guide provides step-by-step instructions to deploy the **Digital Pavti Book** platform to production, making it accessible on the internet for community members and organization administrators.
+This guide provides step-by-step instructions to deploy the **e Pavti Book** platform to production, making it accessible on the internet for community members and organization administrators.
 
 ---
 

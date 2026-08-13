@@ -1,4 +1,4 @@
-# Digital Pavti Book — डिजिटल पावती बुक
+# e Pavti Book — ई पावती बुक
 
 > Production-grade digital receipt management platform for Indian religious & community organizations.
 

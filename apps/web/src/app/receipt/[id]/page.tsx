@@ -98,7 +98,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
             {/* Receipt Preview */}
             <ReceiptPreview receipt={receipt} language={language} />
 
-            <p className="text-center text-xs text-white/20">Powered by Digital Pavti Book</p>
+            <p className="text-center text-xs text-white/20">Powered by e Pavti Book</p>
           </>
         )}
       </div>

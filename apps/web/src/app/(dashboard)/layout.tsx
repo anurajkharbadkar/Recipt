@@ -2,26 +2,15 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
-import { permissionsApi } from '@/lib/api';
 import { inferRouteModule } from '@pavti/shared';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import toast from 'react-hot-toast';
 
-function resolveCanView(module: string | null, role: string, overrides: any, roleDefaults: any[] | undefined): boolean {
+function resolveCanView(module: string | null, role: string): boolean {
   if (!module || module === 'Dashboard') return true;
   if (role === 'SUPER_ADMIN' || role === 'ORG_ADMIN') return true;
-
-  if (overrides && overrides[module]?.canView !== undefined) {
-    return !!overrides[module].canView;
-  }
-
-  const row = roleDefaults?.find((r) => r.role === role && r.module === module);
-  if (row) return !!row.canView;
-
-  // Fallback for the brief window before role defaults have loaded / been seeded
   if (role === 'COLLECTOR') return module === 'Receipts';
   if (role === 'TREASURER') return !['Settings', 'Collectors'].includes(module);
   return true;
@@ -32,13 +21,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
 
-  const { data: roleDefaults, isLoading: loadingPerms } = useQuery({
-    queryKey: ['role-defaults'],
-    queryFn: permissionsApi.getRoleDefaults,
-    enabled: isAuthenticated,
-    staleTime: 60_000,
-  });
-
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
@@ -46,15 +28,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isAuthenticated, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || !user || loadingPerms) return;
+    if (!isAuthenticated || !user) return;
     const module = inferRouteModule(pathname);
-    const allowed = resolveCanView(module, user.role, user.permissionsOverride, roleDefaults);
+    const allowed = resolveCanView(module, user.role);
     if (!allowed) {
       toast.error("You don't have access to this page");
       router.push('/dashboard');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, user, roleDefaults, isAuthenticated, loadingPerms]);
+  }, [pathname, user, isAuthenticated, router]);
 
   if (!isAuthenticated) return null;
 

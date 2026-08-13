@@ -99,6 +99,8 @@ export class ReceiptsService {
           receiptNumber,
           organizationName: campaign.organization.name,
           receiptUrl: verifyUrl,
+          category: dto.category,
+          receiptTemplateSettings: (campaign.organization as any)?.receiptTemplateSettings,
         })
         .then(() => {
           this.prisma.receipt.update({
@@ -374,6 +376,8 @@ export class ReceiptsService {
         receiptNumber: receipt.receiptNumber,
         organizationName: receipt.campaign.organization.name,
         receiptUrl: verifyUrl,
+        category: receipt.category,
+        receiptTemplateSettings: (receipt.campaign?.organization as any)?.receiptTemplateSettings,
       });
 
       await this.prisma.receipt.update({

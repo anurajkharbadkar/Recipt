@@ -6,7 +6,7 @@ import { receiptsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
 import { Plus, Search, Download, Filter, Eye, Share2, XCircle, Users, ChevronDown, ChevronUp, Zap } from 'lucide-react';
-import { formatCurrency } from '@pavti/shared';
+import { formatCurrency, formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -19,7 +19,7 @@ export default function ReceiptsPage() {
   const [status, setStatus] = useState<string>('');
   const [showDonors, setShowDonors] = useState(false);
   const [donorFilter, setDonorFilter] = useState('');
-  const { activeCampaignId, language } = useAuthStore();
+  const { activeCampaignId, language, user, organization } = useAuthStore();
   const queryClient = useQueryClient();
 
   const { data: repeatDonors } = useQuery({
@@ -29,23 +29,25 @@ export default function ReceiptsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['receipts', search, dateFrom, dateTo, page, activeCampaignId, collectionType, status],
-    queryFn: () => receiptsApi.list({
-      search: search || undefined,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      campaignId: activeCampaignId || undefined,
-      collectionType: collectionType || undefined,
-      status: status || undefined,
-      page,
-      limit: 20,
-    }),
+    queryKey: ['receipts', page, search, dateFrom, dateTo, activeCampaignId, collectionType, status],
+    queryFn: () =>
+      receiptsApi.list({
+        page,
+        limit: 20,
+        search: search || undefined,
+        campaignId: activeCampaignId || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        collectionType: collectionType || undefined,
+        status: status || undefined,
+      }),
   });
 
   const exportMutation = useMutation({
     mutationFn: () => receiptsApi.exportCsv(activeCampaignId || undefined),
-    onSuccess: (blob) => {
-      const url = URL.createObjectURL(blob);
+    onSuccess: (csvData) => {
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `receipts-${format(new Date(), 'yyyy-MM-dd')}.csv`;
@@ -57,8 +59,22 @@ export default function ReceiptsPage() {
   const handleShare = (r: any) => {
     if (!r.donorPhone) return;
     const url = `${window.location.origin}/receipt/${r.id}`;
-    const msg = encodeURIComponent(`Receipt ${r.receiptNumber}: ₹${r.amount}\nView: ${url}`);
-    window.open(`https://wa.me/91${r.donorPhone.replace(/\D/g, '')}?text=${msg}`);
+    const org = organization as any;
+    const settings = resolveReceiptSettings(org?.receiptTemplateSettings);
+    const msgText = formatShareMessage(
+      settings.shareMessage,
+      {
+        donorName: r.donorName,
+        amount: r.amount,
+        receiptNumber: r.receiptNumber,
+        organizationName: org?.name || 'संस्था',
+        receiptUrl: url,
+        date: new Date(r.createdAt).toLocaleDateString('en-IN'),
+        category: r.category,
+      },
+      settings.language,
+    );
+    window.open(`https://wa.me/91${r.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
   };
 
   return (

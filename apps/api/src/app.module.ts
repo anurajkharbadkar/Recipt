@@ -15,7 +15,6 @@ import { PdfModule } from './pdf/pdf.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { SmsModule } from './sms/sms.module';
 import { StorageModule } from './storage/storage.module';
-import { PermissionsModule } from './permissions/permissions.module';
 import { MembersModule } from './members/members.module';
 import { InternalCollectionsModule } from './internal-collections/internal-collections.module';
 
@@ -44,7 +43,6 @@ import { InternalCollectionsModule } from './internal-collections/internal-colle
     WhatsappModule,
     SmsModule,
     StorageModule,
-    PermissionsModule,
     MembersModule,
     InternalCollectionsModule,
   ],

@@ -27,26 +27,11 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, organization, logout, language } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   const isAllowed = (href: string) => {
     if (!user) return false;
-    if (user.role === 'SUPER_ADMIN') return true;
-
-    const overrides = user.permissionsOverride as any;
-    let moduleName = '';
-    if (href.startsWith('/dashboard')) moduleName = 'Dashboard';
-    else if (href.startsWith('/receipts')) moduleName = 'Receipts';
-    else if (href.startsWith('/collectors')) moduleName = 'Collectors';
-    else if (href.startsWith('/campaigns')) moduleName = 'Campaigns';
-    else if (href.startsWith('/members')) moduleName = 'Members';
-    else if (href.startsWith('/expenses')) moduleName = 'Expenses';
-    else if (href.startsWith('/reports')) moduleName = 'Reports';
-    else if (href.startsWith('/settings')) moduleName = 'Settings';
-
-    if (moduleName && overrides && overrides[moduleName] !== undefined) {
-      return !!overrides[moduleName].canView;
-    }
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ORG_ADMIN') return true;
 
     if (user.role === 'COLLECTOR') {
       return ['/dashboard', '/receipts/new', '/receipts'].includes(href);
@@ -59,23 +44,27 @@ export default function Sidebar() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
-    const currentTheme = savedTheme || 'dark';
+    const currentTheme = savedTheme || 'light';
     setTheme(currentTheme);
-    if (currentTheme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
+    if (currentTheme === 'dark') {
+      document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-    if (newTheme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
     }
   };
 
@@ -93,8 +82,8 @@ export default function Sidebar() {
             <BookOpen size={20} className="text-white" />
           </div>
           <div>
-            <div className="font-bold text-sm">Pavti Book</div>
-            <div className="text-[10px] text-saffron-400 font-devanagari">डिजिटल पावती बुक</div>
+            <div className="font-bold text-sm">e Pavti Book</div>
+            <div className="text-[10px] text-saffron-400 font-devanagari">ई पावती बुक</div>
           </div>
         </div>
       </div>
