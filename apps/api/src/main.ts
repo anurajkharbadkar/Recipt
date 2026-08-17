@@ -56,23 +56,21 @@ async function bootstrap() {
   );
 
   // Swagger Documentation
-  if (configService.get('NODE_ENV') !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('e Pavti Book API')
-      .setDescription('Production API for Digital Receipt Book for Indian Community Organizations')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .addTag('auth', 'Authentication endpoints')
-      .addTag('organizations', 'Organization management')
-      .addTag('campaigns', 'Campaign management')
-      .addTag('receipts', 'Receipt / Pavti management')
-      .addTag('collectors', 'Collector management')
-      .addTag('expenses', 'Expense tracking')
-      .addTag('reports', 'Analytics and reporting')
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
-  }
+  const config = new DocumentBuilder()
+    .setTitle('e Pavti Book API')
+    .setDescription('Production API for Digital Receipt Book for Indian Community Organizations')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', 'Authentication endpoints')
+    .addTag('organizations', 'Organization management')
+    .addTag('campaigns', 'Campaign management')
+    .addTag('receipts', 'Receipt / Pavti management')
+    .addTag('collectors', 'Collector management')
+    .addTag('expenses', 'Expense tracking')
+    .addTag('reports', 'Analytics and reporting')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = configService.get<number>('PORT', 3001);
   await app.listen(port, '0.0.0.0');
