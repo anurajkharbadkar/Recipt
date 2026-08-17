@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsEnum, Min } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsNotEmpty, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ExpenseCategory, PaymentMode } from '@pavti/shared';
@@ -8,9 +8,14 @@ export class CreateExpenseDto {
   @IsString()
   campaignId: string;
 
-  @ApiProperty({ enum: ExpenseCategory })
-  @IsEnum(ExpenseCategory)
-  category: ExpenseCategory;
+  // Not a strict @IsEnum anymore — org.category can be one of the curated
+  // ExpenseCategory presets OR a CustomCategory label the org added inline.
+  // Same trust level as `description`/`paidTo` below: validated as non-empty
+  // text, not checked against a fixed set.
+  @ApiProperty({ example: ExpenseCategory.DECORATION, description: 'A preset ExpenseCategory value or a custom category label' })
+  @IsString()
+  @IsNotEmpty()
+  category: string;
 
   @ApiProperty({ example: 2500 })
   @IsNumber()

@@ -10,7 +10,7 @@ import {
   Tooltip, PieChart, Pie, Cell, Legend, AreaChart, Area, Line, ComposedChart
 } from 'recharts';
 
-const COLORS = ['#ff6600', '#ffb300', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c', '#1abc9c', '#f39c12'];
+const COLORS = ['#D2A46D', '#71471D', '#147214', '#3498db', '#9b59b6', '#e74c3c', '#AF8C62', '#995C21'];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
@@ -92,15 +92,15 @@ export default function ReportsPage() {
           <AreaChart data={dailyChartData}>
             <defs>
               <linearGradient id="dailyGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ff6600" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#ff6600" stopOpacity={0} />
+                <stop offset="5%" stopColor="#D2A46D" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#D2A46D" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
             <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="amount" stroke="#ff6600" strokeWidth={2} fill="url(#dailyGrad)" />
+            <Area type="monotone" dataKey="amount" stroke="#D2A46D" strokeWidth={2} fill="url(#dailyGrad)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -155,7 +155,7 @@ export default function ReportsPage() {
               <XAxis dataKey="collectorName" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="totalAmount" fill="#ff6600" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="totalAmount" fill="#D2A46D" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

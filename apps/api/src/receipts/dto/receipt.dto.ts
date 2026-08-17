@@ -1,5 +1,5 @@
 import {
-  IsString, IsNumber, IsOptional, IsEnum, Min, IsBoolean, IsLatitude, IsLongitude
+  IsString, IsNumber, IsOptional, IsEnum, IsNotEmpty, Min, IsBoolean, IsLatitude, IsLongitude
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -30,10 +30,12 @@ export class CreateReceiptDto {
   @Type(() => Number)
   amount: number;
 
-  @ApiPropertyOptional({ enum: DonationCategory, default: DonationCategory.GENERAL })
+  // See expense.dto.ts's category comment — same relaxation, preset or custom label.
+  @ApiPropertyOptional({ example: DonationCategory.GENERAL, default: DonationCategory.GENERAL, description: 'A preset DonationCategory value or a custom category label' })
   @IsOptional()
-  @IsEnum(DonationCategory)
-  category?: DonationCategory;
+  @IsString()
+  @IsNotEmpty()
+  category?: string;
 
   @ApiPropertyOptional({ enum: PaymentMode, default: PaymentMode.CASH })
   @IsOptional()
@@ -192,10 +194,11 @@ export class UpdateReceiptDto {
   @Type(() => Number)
   amount?: number;
 
-  @ApiPropertyOptional({ enum: DonationCategory })
+  @ApiPropertyOptional({ example: DonationCategory.GENERAL, description: 'A preset DonationCategory value or a custom category label' })
   @IsOptional()
-  @IsEnum(DonationCategory)
-  category?: DonationCategory;
+  @IsString()
+  @IsNotEmpty()
+  category?: string;
 
   @ApiPropertyOptional({ enum: PaymentMode })
   @IsOptional()

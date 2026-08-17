@@ -21,7 +21,7 @@
    * from Organization.brandColor. Every "brand" surface below derives its
    * tints/shades from this ONE value via color-mix() instead of a hardcoded
    * hex, so changing it updates the whole UI immediately with no rebuild. */
-  --primary-brand-color: #C85000;
+  --primary-brand-color: #592E09;
 }
 
 .light {

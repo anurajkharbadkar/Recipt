@@ -37,13 +37,17 @@ export class CollectorsService {
     const org = await this.prisma.organization.findUnique({ where: { id: orgId } });
     const plan = (org?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
     const limit = MAX_COLLECTORS_BY_PLAN[plan] ?? 5;
-    const currentCount = await this.prisma.user.count({
-      where: { orgId, role: { in: ['COLLECTOR', 'TREASURER'] } },
-    });
-    if (currentCount >= limit) {
-      throw new ForbiddenException(
-        `Your ${plan} plan allows up to ${limit} collectors. Remove an inactive one or upgrade your plan to add more.`,
-      );
+    // -1 = unlimited (e.g. PREMIUM) — skip the count query entirely rather
+    // than comparing against a negative number.
+    if (limit !== -1) {
+      const currentCount = await this.prisma.user.count({
+        where: { orgId, role: { in: ['COLLECTOR', 'TREASURER'] } },
+      });
+      if (currentCount >= limit) {
+        throw new ForbiddenException(
+          `Your ${plan} plan allows up to ${limit} collectors. Remove an inactive one or upgrade your plan to add more.`,
+        );
+      }
     }
 
     const passwordHash = data.password

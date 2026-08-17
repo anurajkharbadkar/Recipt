@@ -5,7 +5,7 @@ import { reportsApi, receiptsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
 import {
-  TrendingUp, Receipt, Users, Wallet, ArrowUpRight, Plus, FileText, IndianRupee
+  TrendingUp, Receipt, Users, Users2, Wallet, ArrowUpRight, Plus, FileText, IndianRupee
 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area
@@ -13,13 +13,13 @@ import {
 import { formatCurrency } from '@pavti/shared';
 import { format } from 'date-fns';
 
-function StatCard({ title, value, icon: Icon, change, color }: any) {
+function StatCard({ title, value, icon: Icon, change, color, hero }: any) {
   return (
-    <div className="stat-card animate-slide-up">
+    <div className={`stat-card animate-slide-up ${hero ? 'sm:p-6' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs text-theme-fg/45 font-medium uppercase tracking-wider mb-1">{title}</p>
-          <p className="text-2xl font-bold text-theme-fg">{value}</p>
+          <p className={`text-theme-fg/45 font-medium uppercase tracking-wider mb-1 ${hero ? 'text-xs' : 'text-[11px]'}`}>{title}</p>
+          <p className={`font-bold text-theme-fg ${hero ? 'text-3xl' : 'text-xl'}`}>{value}</p>
           {change !== undefined && (
             <div className="flex items-center gap-1 mt-1">
               <ArrowUpRight size={12} className="text-emerald-400" />
@@ -27,11 +27,25 @@ function StatCard({ title, value, icon: Icon, change, color }: any) {
             </div>
           )}
         </div>
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
-          <Icon size={22} />
+        <div className={`rounded-xl flex items-center justify-center ${color} ${hero ? 'w-14 h-14' : 'w-10 h-10'}`}>
+          <Icon size={hero ? 26 : 18} />
         </div>
       </div>
     </div>
+  );
+}
+
+// Large, thumb-friendly tap targets — most of this portal's users are on a
+// phone in the field, not a desktop, so the primary create-actions live here
+// at the top of the Dashboard rather than buried in nav-only entry points.
+function QuickAction({ href, icon: Icon, label, color }: any) {
+  return (
+    <Link href={href} className="glass-card-hover p-4 flex flex-col items-center gap-2 text-center active:scale-95 transition-transform">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>
+        <Icon size={20} />
+      </div>
+      <span className="text-xs font-semibold text-theme-fg">{label}</span>
+    </Link>
   );
 }
 
@@ -71,16 +85,21 @@ export default function DashboardPage() {
   });
 
   const labels = {
-    en: { total: 'Total Collections', today: "Today's Collections", receipts: 'Total Receipts', todayR: "Today's Receipts", expenses: 'Total Expenses', balance: 'Net Balance', collectors: 'Active Collectors', pending: 'Pending Approvals' },
-    hi: { total: 'कुल संग्रह', today: 'आज का संग्रह', receipts: 'कुल रसीदें', todayR: 'आज की रसीदें', expenses: 'कुल व्यय', balance: 'शुद्ध शेष', collectors: 'सक्रिय संग्राहक', pending: 'लंबित अनुमोदन' },
-    mr: { total: 'एकूण संग्रह', today: 'आजचा संग्रह', receipts: 'एकूण पावत्या', todayR: 'आजच्या पावत्या', expenses: 'एकूण खर्च', balance: 'निव्वळ शिल्लक', collectors: 'सक्रिय संग्राहक', pending: 'प्रलंबित मंजुरी' },
+    en: { total: 'Total Collections', today: "Today's Collections", receipts: 'Total Receipts', todayR: "Today's Receipts", expenses: 'Total Expenses', balance: 'Net Balance', collectors: 'Active Collectors', pending: 'Expenses Awaiting Approval', newReceipt: 'New Receipt', addExpense: 'Add Expense', memberContribution: 'Member Contribution' },
+    hi: { total: 'कुल संग्रह', today: 'आज का संग्रह', receipts: 'कुल रसीदें', todayR: 'आज की रसीदें', expenses: 'कुल व्यय', balance: 'शुद्ध शेष', collectors: 'सक्रिय संग्राहक', pending: 'स्वीकृति हेतु लंबित व्यय', newReceipt: 'नई रसीद', addExpense: 'व्यय जोड़ें', memberContribution: 'सदस्य योगदान' },
+    mr: { total: 'एकूण संग्रह', today: 'आजचा संग्रह', receipts: 'एकूण पावत्या', todayR: 'आजच्या पावत्या', expenses: 'एकूण खर्च', balance: 'निव्वळ शिल्लक', collectors: 'सक्रिय संग्राहक', pending: 'मंजुरीच्या प्रतीक्षेतील खर्च', newReceipt: 'नवीन पावती', addExpense: 'खर्च जोडा', memberContribution: 'सभासद वर्गणी' },
   };
   const l = labels[language] || labels.en;
 
   if (summaryLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[...Array(8)].map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-32 rounded-2xl" />)}
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}
+        </div>
       </div>
     );
   }
@@ -95,29 +114,35 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-theme-fg">
-            {language === 'mr' ? 'डॅशबोर्ड' : language === 'hi' ? 'डैशबोर्ड' : 'Dashboard'}
-          </h1>
-          <p className="text-sm text-theme-fg/40 mt-0.5">
-            {language === 'mr' ? `नमस्कार, ${user?.name}!` : `Welcome back, ${user?.name}!`}
-          </p>
-        </div>
-        <Link href="/receipts/new" className="btn-primary text-sm">
-          <Plus size={16} />
-          {language === 'mr' ? 'नवीन पावती' : language === 'hi' ? 'नई रसीद' : 'New Receipt'}
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold text-theme-fg">
+          {language === 'mr' ? 'डॅशबोर्ड' : language === 'hi' ? 'डैशबोर्ड' : 'Dashboard'}
+        </h1>
+        <p className="text-sm text-theme-fg/40 mt-0.5">
+          {language === 'mr' ? `नमस्कार, ${user?.name}!` : `Welcome back, ${user?.name}!`}
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} color="bg-saffron-600/15 text-saffron-400" />
+      {/* Quick Actions — the things people actually come here to do, one tap
+          away, before any of the reporting below. */}
+      <div className="grid grid-cols-3 gap-3">
+        <QuickAction href="/receipts/new" icon={Plus} label={l.newReceipt} color="bg-saffron-600/15 text-saffron-400" />
+        <QuickAction href="/expenses?new=1" icon={IndianRupee} label={l.addExpense} color="bg-red-500/15 text-red-400" />
+        <QuickAction href="/members?tab=internal" icon={Users2} label={l.memberContribution} color="bg-blue-500/15 text-blue-400" />
+      </div>
+
+      {/* Hero stats — the three numbers a treasurer actually cares about first */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard hero title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} color="bg-saffron-600/15 text-saffron-400" />
+        <StatCard hero title={l.expenses} value={formatCurrency(stats.totalExpenses || 0)} icon={IndianRupee} color="bg-red-500/15 text-red-400" />
+        <StatCard hero title={l.balance} value={formatCurrency(stats.netBalance || 0)} icon={Wallet} color={`${(stats.netBalance || 0) >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`} />
+      </div>
+
+      {/* Supporting counts — smaller, secondary tier */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard title={l.today} value={formatCurrency(stats.todayCollections || 0)} icon={Wallet} color="bg-emerald-500/15 text-emerald-400" />
         <StatCard title={l.receipts} value={(stats.totalReceipts || 0).toLocaleString('en-IN')} icon={Receipt} color="bg-blue-500/15 text-blue-400" />
         <StatCard title={l.todayR} value={(stats.todayReceipts || 0).toLocaleString('en-IN')} icon={FileText} color="bg-purple-500/15 text-purple-400" />
-        <StatCard title={l.expenses} value={formatCurrency(stats.totalExpenses || 0)} icon={IndianRupee} color="bg-red-500/15 text-red-400" />
-        <StatCard title={l.balance} value={formatCurrency(stats.netBalance || 0)} icon={Wallet} color={`${(stats.netBalance || 0) >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`} />
         <StatCard title={l.collectors} value={stats.activeCollectors || 0} icon={Users} color="bg-amber-500/15 text-amber-400" />
         <StatCard title={l.pending} value={stats.pendingExpenses || 0} icon={FileText} color="bg-orange-500/15 text-orange-400" />
       </div>
@@ -133,15 +158,15 @@ export default function DashboardPage() {
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ff6600" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ff6600" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#D2A46D" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#D2A46D" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
               <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="amount" stroke="#ff6600" strokeWidth={2} fill="url(#colorAmount)" />
+              <Area type="monotone" dataKey="amount" stroke="#D2A46D" strokeWidth={2} fill="url(#colorAmount)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

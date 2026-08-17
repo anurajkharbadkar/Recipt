@@ -18,17 +18,25 @@ async function bootstrap() {
   app.use(helmet());
 
   // CORS
-  const corsOrigin = configService.get('CORS_ORIGIN', 'http://localhost:3000');
+  const corsOrigin = configService.get('CORS_ORIGIN', '*');
   const allowedOrigins = corsOrigin.includes(',')
     ? corsOrigin.split(',').map((o: string) => o.trim())
     : [corsOrigin, 'http://localhost:3000', 'http://localhost:3010'];
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) {
+      if (
+        !origin ||
+        corsOrigin === '*' ||
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(origin) ||
+        /\.vercel\.app$/.test(origin) ||
+        /^https?:\/\/localhost(:\d+)?$/.test(origin)
+      ) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        // Fallback allow for web client
+        callback(null, true);
       }
     },
     credentials: true,

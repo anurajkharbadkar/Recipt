@@ -2,7 +2,7 @@
 
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '@/store/auth.store';
-import { resolveReceiptTheme, resolveReceiptSettings, formatReceiptDateTime } from '@pavti/shared';
+import { resolveReceiptTheme, resolveReceiptSettings, formatReceiptDateTime, SOCIAL_PLATFORMS } from '@pavti/shared';
 
 interface ReceiptPreviewProps {
   receipt: any;
@@ -203,6 +203,23 @@ export default function ReceiptPreview({ receipt, printMode = false, language: l
           <p className="text-[9px] text-gray-400 mt-0.5">{l.scan}</p>
         </div>
       </div>
+
+      {/* Social Links — only the platforms the org actually filled in (Settings > Social Media Links) */}
+      {org?.socialLinks && SOCIAL_PLATFORMS.some((p) => org.socialLinks[p.key]) && (
+        <div className="px-4 sm:px-5 py-2 bg-orange-50/20 border-t border-dashed border-orange-200 flex justify-center gap-3 flex-wrap">
+          {SOCIAL_PLATFORMS.filter((p) => org.socialLinks[p.key]).map((p) => (
+            <a
+              key={p.key}
+              href={org.socialLinks[p.key]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <span>{p.emoji}</span> {p.label}
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* Stamps */}
       {receipt.isVoided ? (

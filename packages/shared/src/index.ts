@@ -36,11 +36,14 @@ export const MAX_ACTIVE_CAMPAIGNS_BY_PLAN: Record<SubscriptionPlan, number> = {
 
 // How many staff accounts (COLLECTOR/TREASURER — not the ORG_ADMIN account
 // itself) an org may add, by plan. Enforced in CollectorsService.create.
+// -1 = unlimited (same sentinel SUBSCRIPTION_PLANS already uses for
+// maxUsers/maxReceipts) — PREMIUM was previously capped at 10, which
+// contradicted the plan being sold/intended as unlimited collectors.
 export const MAX_COLLECTORS_BY_PLAN: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.FREE]: 5,
   [SubscriptionPlan.BASIC]: 5,
   [SubscriptionPlan.STANDARD]: 10,
-  [SubscriptionPlan.PREMIUM]: 10,
+  [SubscriptionPlan.PREMIUM]: -1,
 };
 
 // ─── Pricing (public plan catalog) ─────────────────────────────────────────
@@ -341,6 +344,8 @@ export interface ShareMessageContext {
   receiptUrl?: string;
   date?: string;
   category?: string;
+  /** Pre-formatted via formatSocialLinksText — inserted verbatim, no further processing. */
+  socialLinksText?: string;
 }
 
 export function formatShareMessage(
@@ -360,7 +365,37 @@ export function formatShareMessage(
     .replace(/\{organizationName\}/g, ctx.organizationName || (lang === 'en' ? 'Organization' : lang === 'hi' ? 'संस्था' : 'मंडळ'))
     .replace(/\{receiptUrl\}/g, ctx.receiptUrl || '')
     .replace(/\{date\}/g, ctx.date || new Date().toLocaleDateString('en-IN'))
-    .replace(/\{category\}/g, ctx.category || '');
+    .replace(/\{category\}/g, ctx.category || '')
+    .replace(/\{socialLinks\}/g, ctx.socialLinksText || '');
+}
+
+// ─── Social Links ─────────────────────────────────────────────────────────────
+// Single source of truth for which platforms are supported and how they're
+// labeled/iconed, consumed by Settings (input fields), ReceiptPreview.tsx
+// (screen + public verify page), pdf.service.ts (PDF), and the WhatsApp
+// share-message {socialLinks} tag — same "one definition" pattern as
+// RECEIPT_THEMES.
+export interface OrganizationSocialLinks {
+  instagram?: string;
+  facebook?: string;
+  youtube?: string;
+  website?: string;
+}
+
+export const SOCIAL_PLATFORMS: { key: keyof OrganizationSocialLinks; label: string; emoji: string }[] = [
+  { key: 'instagram', label: 'Instagram', emoji: '📷' },
+  { key: 'facebook', label: 'Facebook', emoji: '📘' },
+  { key: 'youtube', label: 'YouTube', emoji: '▶️' },
+  { key: 'website', label: 'Website', emoji: '🌐' },
+];
+
+/** Compact "📷 url | 📘 url" line for contexts (like the WhatsApp share text) that need plain text rather than clickable icons. */
+export function formatSocialLinksText(links?: OrganizationSocialLinks | null): string {
+  if (!links) return '';
+  return SOCIAL_PLATFORMS
+    .filter((p) => links[p.key])
+    .map((p) => `${p.emoji} ${links[p.key]}`)
+    .join('  |  ');
 }
 
 export const LANGUAGE_DEFAULT_LINES: Record<'mr' | 'hi' | 'en', Required<ReceiptLanguageLines>> = {
@@ -573,10 +608,10 @@ export interface ReceiptThemeStyle {
 
 export const RECEIPT_THEMES: ReceiptThemeStyle[] = [
   {
-    id: 'DEFAULT', label: 'Default Saffron', emoji: '🟠',
-    primaryColor: '#C85000', gradient: 'linear-gradient(135deg, #C85000 0%, #FF8C00 100%)',
+    id: 'DEFAULT', label: 'Default Heritage Chocolate & Gold', emoji: '📜',
+    primaryColor: '#592E09', gradient: 'linear-gradient(135deg, #592E09 0%, #71471D 50%, #D2A46D 100%)',
     borderWidth: 3, borderStyle: 'solid',
-    amountBg: '#fff8f0', amountBorderColor: '#ffccaa', amountBorderWidth: 2, amountBorderStyle: 'solid',
+    amountBg: '#FCF3E4', amountBorderColor: '#D2A46D', amountBorderWidth: 2, amountBorderStyle: 'solid',
   },
   {
     id: 'GANESHOTSAV', label: 'Ganeshotsav Special', emoji: '🪔',
@@ -817,6 +852,53 @@ export const PAYMENT_MODE_LABELS: Record<PaymentMode, Record<Language, string>> 
   [PaymentMode.CHEQUE]: { en: 'Cheque', hi: 'चेक', mr: 'धनादेश' },
   [PaymentMode.BANK_TRANSFER]: { en: 'Bank Transfer', hi: 'बैंक स्थानांतरण', mr: 'बँक हस्तांतरण' },
   [PaymentMode.ONLINE]: { en: 'Online', hi: 'ऑनलाइन', mr: 'ऑनलाइन' },
+};
+
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, Record<Language, string>> = {
+  [ExpenseCategory.DECORATION]: { en: 'Decoration', hi: 'सजावट', mr: 'सजावट' },
+  [ExpenseCategory.SOUND_SYSTEM]: { en: 'Sound System', hi: 'ध्वनि प्रणाली', mr: 'ध्वनी यंत्रणा' },
+  [ExpenseCategory.FOOD]: { en: 'Food', hi: 'भोजन', mr: 'भोजन' },
+  [ExpenseCategory.FIREWORKS]: { en: 'Fireworks', hi: 'आतिशबाजी', mr: 'फटाके' },
+  [ExpenseCategory.VENUE]: { en: 'Venue', hi: 'स्थल', mr: 'जागा / स्थळ' },
+  [ExpenseCategory.PRINTING]: { en: 'Printing', hi: 'छपाई', mr: 'छपाई' },
+  [ExpenseCategory.TRANSPORT]: { en: 'Transport', hi: 'परिवहन', mr: 'वाहतूक' },
+  [ExpenseCategory.MISC]: { en: 'Miscellaneous', hi: 'विविध', mr: 'इतर' },
+  [ExpenseCategory.DJ_SOUND]: { en: 'DJ / Sound', hi: 'डीजे / ध्वनि', mr: 'डीजे / ध्वनी' },
+  [ExpenseCategory.LIGHTING]: { en: 'Lighting', hi: 'प्रकाश व्यवस्था', mr: 'प्रकाश व्यवस्था' },
+  [ExpenseCategory.SECURITY]: { en: 'Security', hi: 'सुरक्षा', mr: 'सुरक्षा' },
+  [ExpenseCategory.STAGE]: { en: 'Stage', hi: 'मंच', mr: 'मंच' },
+  [ExpenseCategory.ELECTRICITY]: { en: 'Electricity', hi: 'बिजली', mr: 'वीज' },
+  [ExpenseCategory.PERMISSIONS]: { en: 'Permissions & Licenses', hi: 'अनुमतियाँ', mr: 'परवानग्या' },
+};
+
+export const RECEIPT_STATUS_LABELS: Record<ReceiptStatus, Record<Language, string>> = {
+  [ReceiptStatus.PAID]: { en: 'Paid', hi: 'भुगतान हुआ', mr: 'भरणा झाला' },
+  [ReceiptStatus.PENDING]: { en: 'Pending', hi: 'लंबित', mr: 'प्रलंबित' },
+  [ReceiptStatus.CANCELLED]: { en: 'Cancelled', hi: 'रद्द', mr: 'रद्द' },
+};
+
+// "Member Contribution" (not "Internal Collection") is the user-facing label for
+// INTERNAL — it's mandal/committee-member subscription money, not a donation from
+// an outside donor. Keeping the enum value INTERNAL avoids a DB migration; only
+// the displayed copy changes.
+export const COLLECTION_TYPE_LABELS: Record<CollectionType, Record<Language, string>> = {
+  [CollectionType.DONATION]: { en: 'Donation', hi: 'दान', mr: 'देणगी' },
+  [CollectionType.INTERNAL]: { en: 'Member Contribution', hi: 'सदस्य योगदान', mr: 'सभासद वर्गणी' },
+};
+
+export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, Record<Language, string>> = {
+  [CampaignStatus.DRAFT]: { en: 'Draft', hi: 'मसौदा', mr: 'मसुदा' },
+  [CampaignStatus.ACTIVE]: { en: 'Active', hi: 'सक्रिय', mr: 'सक्रिय' },
+  [CampaignStatus.PAUSED]: { en: 'Paused', hi: 'रोका गया', mr: 'थांबवले' },
+  [CampaignStatus.COMPLETED]: { en: 'Completed', hi: 'पूर्ण', mr: 'पूर्ण' },
+};
+
+export const USER_ROLE_LABELS: Record<UserRole, Record<Language, string>> = {
+  [UserRole.SUPER_ADMIN]: { en: 'Super Admin', hi: 'सुपर एडमिन', mr: 'सुपर अ‍ॅडमिन' },
+  [UserRole.ORG_ADMIN]: { en: 'Admin', hi: 'एडमिन', mr: 'प्रशासक' },
+  [UserRole.TREASURER]: { en: 'Treasurer', hi: 'कोषाध्यक्ष', mr: 'खजिनदार' },
+  [UserRole.COLLECTOR]: { en: 'Collector', hi: 'संग्राहक', mr: 'संग्राहक' },
+  [UserRole.VIEWER]: { en: 'Viewer', hi: 'दर्शक', mr: 'निरीक्षक' },
 };
 
 export const SUBSCRIPTION_PLANS = {

@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as puppeteer from 'puppeteer';
-import { amountToWords, resolveReceiptTheme, resolveReceiptSettings, formatReceiptDateTime } from '@pavti/shared';
+import { amountToWords, resolveReceiptTheme, resolveReceiptSettings, formatReceiptDateTime, SOCIAL_PLATFORMS } from '@pavti/shared';
 
 /** How long to wait for the receipt/voucher page (incl. Google Fonts) before giving up. */
 const RENDER_TIMEOUT_MS = 15000;
@@ -98,8 +98,8 @@ export class PdfService implements OnModuleDestroy {
     const campaign = expense.campaign;
     const fontFamily = "'Noto Sans Devanagari', 'Inter', sans-serif";
     const voucherNumber = `VCH-${this.esc(campaign?.receiptPrefix || 'EXP')}-${String(expense.id).slice(0, 8).toUpperCase()}`;
-    const primaryColor = '#C85000';
-    const gradient = 'linear-gradient(135deg, #C85000 0%, #FF8C00 100%)';
+    const primaryColor = org?.brandColor || '#592E09';
+    const gradient = 'linear-gradient(135deg, #592E09 0%, #71471D 50%, #D2A46D 100%)';
 
     return `
 <!DOCTYPE html>
@@ -417,6 +417,8 @@ export class PdfService implements OnModuleDestroy {
   .signature-label { font-size: 10px; color: #666; }
   .qr-area { text-align: center; }
   .qr-label { font-size: 9px; color: #888; margin-top: 4px; }
+  .social-row { padding: 6px 20px; text-align: center; font-size: 10px; color: #666; border-top: 1px dashed #ddd; background: #fffdfa; }
+  .social-row span { margin: 0 6px; }
   .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
   .payment-mode { display: inline-block; background: #e3f2fd; color: #1565c0; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
   .status-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
@@ -522,6 +524,11 @@ export class PdfService implements OnModuleDestroy {
       <div class="qr-label">${l.scan}</div>
     </div>
   </div>
+
+  ${org?.socialLinks && SOCIAL_PLATFORMS.some((p) => org.socialLinks[p.key]) ? `
+  <div class="social-row">
+    ${SOCIAL_PLATFORMS.filter((p) => org.socialLinks[p.key]).map((p) => `<span>${p.emoji} ${this.esc(org.socialLinks[p.key])}</span>`).join('')}
+  </div>` : ''}
 
   ${receipt.isVoided ? (
     `<div class="stamp-overlay" style="border-color: #d32f2f; color: #d32f2f; opacity: 0.65;">VOID</div>`

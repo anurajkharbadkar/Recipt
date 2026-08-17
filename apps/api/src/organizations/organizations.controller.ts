@@ -1,9 +1,10 @@
 import {
   Controller, Get, Patch, Post, Body, UseGuards,
-  UseInterceptors, UploadedFile, Param, Delete
+  UseInterceptors, UploadedFile, Param, Delete, Query
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { CategoryKind } from '@prisma/client';
 import { OrganizationsService } from './organizations.service';
 import { UpdateOrganizationDto } from './dto/organization.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
@@ -65,7 +66,10 @@ export class OrganizationsController {
 
   @Post('areas')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ORG_ADMIN)
+  // Matches POST /receipts' role set (not ORG_ADMIN-only like it used to be)
+  // — a collector filling out a receipt needs to be able to add a new ward
+  // inline without hitting a 403, or the inline-add UX can't reach them.
+  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
   @ApiOperation({ summary: 'Create a collection area' })
   createArea(@CurrentUser('orgId') orgId: string, @Body() data: any) {
     return this.service.createArea(orgId, data);
@@ -77,5 +81,34 @@ export class OrganizationsController {
   @ApiOperation({ summary: 'Delete a collection area' })
   deleteArea(@Param('id') id: string, @CurrentUser('orgId') orgId: string) {
     return this.service.deleteArea(id, orgId);
+  }
+
+  @Get('categories')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
+  @ApiOperation({ summary: 'List an org\'s custom (non-preset) categories for a given kind' })
+  getCategories(@CurrentUser('orgId') orgId: string, @Query('kind') kind: CategoryKind) {
+    return this.service.getCategories(orgId, kind);
+  }
+
+  @Post('categories')
+  @UseGuards(RolesGuard)
+  // Union of who can create a receipt (COLLECTOR included, kind=DONATION)
+  // and who can create an expense (TREASURER/ORG_ADMIN only, kind=EXPENSE).
+  // A COLLECTOR could technically POST kind=EXPENSE here, but it's a no-op
+  // for them in practice — ExpensesController's own POST /expenses gate
+  // still blocks them from ever using an expense category.
+  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
+  @ApiOperation({ summary: 'Add a custom category (kind: EXPENSE or DONATION)' })
+  createCategory(@CurrentUser('orgId') orgId: string, @Body() data: { kind: CategoryKind; label: string }) {
+    return this.service.createCategory(orgId, data.kind, data.label);
+  }
+
+  @Delete('categories/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN)
+  @ApiOperation({ summary: 'Delete a custom category' })
+  deleteCategory(@Param('id') id: string, @CurrentUser('orgId') orgId: string) {
+    return this.service.deleteCategory(id, orgId);
   }
 }

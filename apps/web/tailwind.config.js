@@ -6,16 +6,16 @@ module.exports = {
       colors: {
         // Brand Colors
         saffron: {
-          50:  '#fff8f0',
-          100: '#ffe8cc',
-          200: '#ffcc99',
-          300: '#ffaa66',
-          400: '#ff8833',
-          500: '#ff6600',
-          600: '#e05500',
-          700: '#c84400',
-          800: '#a03300',
-          900: '#7a2200',
+          50:  '#FCF3E4',
+          100: '#EFD2AE',
+          200: '#D6B691',
+          300: '#AF8C62',
+          400: '#D2A46D',
+          500: '#995C21',
+          600: '#71471D',
+          700: '#592E09',
+          800: '#422105',
+          900: '#29190B',
         },
         navy: {
           50:  '#e8ecf0',
@@ -51,7 +51,7 @@ module.exports = {
         devanagari: ['var(--font-noto)', 'Noto Sans Devanagari', 'sans-serif'],
       },
       backgroundImage: {
-        'gradient-brand': 'linear-gradient(135deg, #C85000 0%, #FF8C00 50%, #FFB300 100%)',
+        'gradient-brand': 'linear-gradient(135deg, #592E09 0%, #71471D 50%, #D2A46D 100%)',
         'gradient-navy': 'linear-gradient(135deg, #0d1e2c 0%, #142d3d 100%)',
         'gradient-card': 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
       },
@@ -68,8 +68,8 @@ module.exports = {
         pulseSoft: { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } },
       },
       boxShadow: {
-        'glow-saffron': '0 0 20px rgba(255, 102, 0, 0.3)',
-        'glow-gold': '0 0 20px rgba(255, 179, 0, 0.3)',
+        'glow-saffron': '0 0 20px rgba(89, 46, 9, 0.35)',
+        'glow-gold': '0 0 20px rgba(210, 164, 109, 0.35)',
         card: '0 4px 24px rgba(0,0,0,0.25)',
         'card-hover': '0 8px 32px rgba(0,0,0,0.35)',
       },

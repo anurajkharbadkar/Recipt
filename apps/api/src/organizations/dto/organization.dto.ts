@@ -85,6 +85,11 @@ export class UpdateOrganizationDto {
   @IsObject()
   receiptTemplateSettings?: Record<string, unknown>;
 
+  @ApiPropertyOptional({ description: 'Social links shown on the pavti, e.g. { instagram: "https://instagram.com/mandal" }' })
+  @IsOptional()
+  @IsObject()
+  socialLinks?: Record<string, unknown>;
+
   @ApiPropertyOptional({ example: '#C85000', description: 'Org-wide UI accent color, applied as a CSS custom property' })
   @IsOptional()
   @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'brandColor must be a 6-digit hex color, e.g. #C85000' })

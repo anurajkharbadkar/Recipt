@@ -1,18 +1,15 @@
 'use client';
 
 import { useAuthStore } from '@/store/auth.store';
-import { Globe, Bell } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { campaignsApi } from '@/lib/api';
 
-const languageLabels = {
-  en: '🇬🇧 EN',
-  hi: '🇮🇳 HI',
-  mr: '🏳️ MR',
-};
+const campaignLabel = { en: 'Festival / Drive:', hi: 'अभियान:', mr: 'मोहीम:' };
+const noCampaignLabel = { en: 'No active festival/drive', hi: 'कोई सक्रिय अभियान नहीं', mr: 'सक्रिय मोहीम नाही' };
 
 export default function TopBar() {
-  const { language, setLanguage, activeCampaignId, setActiveCampaign } = useAuthStore();
+  const { language, activeCampaignId, setActiveCampaign } = useAuthStore();
+  const l = { campaign: campaignLabel[language] || campaignLabel.en, noCampaign: noCampaignLabel[language] || noCampaignLabel.en };
 
   const { data: campaigns } = useQuery({
     queryKey: ['campaigns'],
@@ -27,7 +24,7 @@ export default function TopBar() {
       <div className="flex items-center gap-3 ml-10 md:ml-0">
         {activeCampaigns.length > 0 ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-theme-fg/40 hidden sm:block">Campaign:</span>
+            <span className="text-xs text-theme-fg/40 hidden sm:block">{l.campaign}</span>
             <select
               value={activeCampaignId || ''}
               onChange={(e) => setActiveCampaign(e.target.value)}
@@ -39,38 +36,10 @@ export default function TopBar() {
             </select>
           </div>
         ) : (
-          <span className="text-xs text-theme-fg/30">No active campaign</span>
+          <span className="text-xs text-theme-fg/30">{l.noCampaign}</span>
         )}
       </div>
 
-      {/* Right controls */}
-      <div className="flex items-center gap-2">
-        {/* Language Switcher */}
-        <div className="relative group">
-          <button className="btn-ghost text-xs gap-1.5 py-1.5 px-3">
-            <Globe size={14} />
-            <span>{languageLabels[language]}</span>
-          </button>
-          <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
-            <div className="glass-card p-1.5 flex flex-col min-w-[100px]">
-              {(Object.entries(languageLabels) as [string, string][]).map(([code, label]) => (
-                <button
-                  key={code}
-                  onClick={() => setLanguage(code as any)}
-                  className={`px-3 py-1.5 text-xs rounded-lg text-left transition-colors ${language === code ? 'bg-saffron-600/20 text-saffron-400' : 'text-theme-fg/70 hover:bg-theme-fg/5'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <button className="btn-ghost p-2 relative">
-          <Bell size={16} />
-        </button>
-      </div>
     </header>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import {
@@ -16,11 +16,94 @@ import {
   DEFAULT_SHARE_MESSAGE_TEMPLATES,
   SHARE_MESSAGE_PRESETS,
   LANGUAGE_DEFAULT_LINES,
+  SOCIAL_PLATFORMS,
   formatShareMessage,
+  formatSocialLinksText,
   resolveReceiptSettings,
 } from '@pavti/shared';
 
-function IntegrationRow({ label, ok, okLabel, missingLabel, envHint }: { label: string; ok: boolean; okLabel: string; missingLabel: string; envHint: string }) {
+// `missingLabel` is the jargon-free copy every org admin sees. `envHint` (the
+// raw Railway variable names) only renders for SUPER_ADMIN — an org admin has
+// no way to act on "WHATSAPP_ACCESS_TOKEN"; that's operator-facing info.
+const settingsLabels = {
+  en: {
+    integrationsTitle: 'Integrations', integrationsDesc: 'Status of delivery & storage services connected to your account.',
+    whatsappDelivery: 'WhatsApp Delivery', whatsappOk: 'Receipts are delivered to donors via WhatsApp.',
+    whatsappMissing: "WhatsApp delivery isn't set up yet — contact support to enable it.",
+    smsOtp: 'SMS / OTP', smsOk: 'SMS receipts and OTP login are active.',
+    smsMissing: "SMS/OTP isn't set up yet — contact support to enable it.",
+    fileStorage: 'File Storage', storageOk: 'Logos and receipt PDFs are stored permanently.',
+    storageMissing: "File uploads (logo, receipt PDFs) aren't saved permanently yet — contact support to fix this.",
+    orgInfoTitle: 'Organization Information', orgInfoDesc: 'Details displayed on receipt headers, WhatsApp messages, and official reports.',
+    logoTitle: 'Organization Logo / Emblem', logoDesc: 'Upload a PNG or JPG logo. Ideal size is square (e.g. 512x512px).',
+    chooseFile: 'Choose File', uploading: 'Uploading...',
+    brandTitle: 'Brand & Appearance', brandDesc: 'This color drives buttons, the active nav highlight and focus rings across the whole portal — pick once, it updates everywhere.',
+    resetColor: 'Reset to default color',
+    bankTitle: 'Bank Details', bankDesc: 'Bank account and UPI details for organization collections.',
+    saveSettings: 'Save Settings', saving: 'Saving Settings...',
+    areasTitle: 'Collection Areas', areasPlaceholder: 'Ward A, Market Area, etc.', addArea: 'Add Area', noAreas: 'No collection areas defined',
+    areaCount: (c: number, r: number) => `${c} collectors · ${r} receipts`,
+    portalLangTitle: 'Portal Language', portalLangDesc: "The language you see the app's menus, buttons, and pages in — this device only. (Separate from the printed receipt's language, set below under Receipt Design.)",
+    categoriesTitle: 'Categories', categoriesDesc: 'Custom categories your team added from the Expense/Receipt forms. The built-in preset categories always stay available and aren’t listed here.',
+    expenseCategoriesLabel: 'Expense Categories', donationCategoriesLabel: 'Donation Categories', addCategory: 'Add', noCategories: 'No custom categories yet',
+    socialTitle: 'Social Media Links', socialDesc: 'Shown on the printed pavti and available as a tag in the WhatsApp message below.',
+    instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', website: 'Website',
+  },
+  hi: {
+    integrationsTitle: 'एकीकरण', integrationsDesc: 'आपके खाते से जुड़ी डिलीवरी व स्टोरेज सेवाओं की स्थिति।',
+    whatsappDelivery: 'व्हाट्सएप डिलीवरी', whatsappOk: 'रसीदें व्हाट्सएप के माध्यम से दानकर्ताओं को भेजी जाती हैं।',
+    whatsappMissing: 'व्हाट्सएप डिलीवरी अभी सेट नहीं है — सक्रिय करने के लिए सहायता से संपर्क करें।',
+    smsOtp: 'SMS / OTP', smsOk: 'SMS रसीदें और OTP लॉगिन सक्रिय हैं।',
+    smsMissing: 'SMS/OTP अभी सेट नहीं है — सक्रिय करने के लिए सहायता से संपर्क करें।',
+    fileStorage: 'फ़ाइल संग्रहण', storageOk: 'लोगो और रसीद PDF स्थायी रूप से सहेजे जाते हैं।',
+    storageMissing: 'फ़ाइल अपलोड (लोगो, रसीद PDF) अभी स्थायी रूप से सहेजे नहीं जाते — ठीक करने के लिए सहायता से संपर्क करें।',
+    orgInfoTitle: 'संस्था की जानकारी', orgInfoDesc: 'रसीद हेडर, व्हाट्सएप संदेश और आधिकारिक रिपोर्ट पर दिखाई जाने वाली जानकारी।',
+    logoTitle: 'संस्था लोगो / प्रतीक', logoDesc: 'PNG या JPG लोगो अपलोड करें। आदर्श आकार वर्गाकार है (जैसे 512x512px)।',
+    chooseFile: 'फ़ाइल चुनें', uploading: 'अपलोड हो रहा है...',
+    brandTitle: 'ब्रांड व स्वरूप', brandDesc: 'यह रंग पूरे पोर्टल में बटन, सक्रिय नेव हाइलाइट और फोकस रिंग तय करता है — एक बार चुनें, हर जगह लागू होगा।',
+    resetColor: 'डिफ़ॉल्ट रंग पर वापस जाएं',
+    bankTitle: 'बैंक विवरण', bankDesc: 'संस्था के संग्रह हेतु बैंक खाता व UPI विवरण।',
+    saveSettings: 'सेटिंग्स सहेजें', saving: 'सहेजा जा रहा है...',
+    areasTitle: 'संग्रह क्षेत्र', areasPlaceholder: 'वार्ड A, बाजार क्षेत्र, आदि।', addArea: 'क्षेत्र जोड़ें', noAreas: 'कोई संग्रह क्षेत्र परिभाषित नहीं',
+    areaCount: (c: number, r: number) => `${c} संग्रहकर्ता · ${r} रसीदें`,
+    portalLangTitle: 'पोर्टल भाषा', portalLangDesc: 'ऐप के मेनू, बटन और पेज जिस भाषा में दिखेंगे — केवल इस डिवाइस पर। (नीचे रसीद डिज़ाइन में सेट होने वाली रसीद की भाषा से अलग।)',
+    categoriesTitle: 'श्रेणियां', categoriesDesc: 'आपकी टीम ने खर्च/रसीद फॉर्म से जोड़ी गई कस्टम श्रेणियां। बिल्ट-इन श्रेणियां हमेशा उपलब्ध रहती हैं, यहां सूचीबद्ध नहीं हैं।',
+    expenseCategoriesLabel: 'व्यय श्रेणियां', donationCategoriesLabel: 'दान श्रेणियां', addCategory: 'जोड़ें', noCategories: 'अभी तक कोई कस्टम श्रेणी नहीं',
+    socialTitle: 'सोशल मीडिया लिंक', socialDesc: 'प्रिंटेड पावती पर दिखेंगे और नीचे व्हाट्सएप संदेश में टैग के रूप में उपलब्ध हैं।',
+    instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
+  },
+  mr: {
+    integrationsTitle: 'इंटिग्रेशन्स', integrationsDesc: 'आपल्या खात्याशी जोडलेल्या डिलिव्हरी व स्टोरेज सेवांची स्थिती.',
+    whatsappDelivery: 'व्हॉट्सअॅप डिलिव्हरी', whatsappOk: 'पावत्या व्हॉट्सअॅपद्वारे देणगीदारांना पाठवल्या जातात.',
+    whatsappMissing: 'व्हॉट्सअॅप डिलिव्हरी अद्याप सेट केलेली नाही — सुरू करण्यासाठी सपोर्टशी संपर्क साधा.',
+    smsOtp: 'SMS / OTP', smsOk: 'SMS पावत्या व OTP लॉगिन सक्रिय आहे.',
+    smsMissing: 'SMS/OTP अद्याप सेट केलेले नाही — सुरू करण्यासाठी सपोर्टशी संपर्क साधा.',
+    fileStorage: 'फाइल स्टोरेज', storageOk: 'लोगो व पावती PDF कायमस्वरूपी साठवले जातात.',
+    storageMissing: 'फाइल अपलोड (लोगो, पावती PDF) अद्याप कायमस्वरूपी साठवले जात नाहीत — दुरुस्तीसाठी सपोर्टशी संपर्क साधा.',
+    orgInfoTitle: 'संस्थेची माहिती', orgInfoDesc: 'पावती हेडर, व्हॉट्सअॅप मेसेज व अधिकृत अहवालांवर दिसणारी माहिती.',
+    logoTitle: 'संस्थेचा लोगो / चिन्ह', logoDesc: 'PNG किंवा JPG लोगो अपलोड करा. योग्य आकार चौकोनी आहे (उदा. 512x512px).',
+    chooseFile: 'फाइल निवडा', uploading: 'अपलोड होत आहे...',
+    brandTitle: 'ब्रँड व स्वरूप', brandDesc: 'हा रंग संपूर्ण पोर्टलमधील बटणे, सक्रिय नेव्ह हायलाइट व फोकस रिंग ठरवतो — एकदा निवडा, सर्वत्र लागू होईल.',
+    resetColor: 'मूळ रंगावर परत जा',
+    bankTitle: 'बँक तपशील', bankDesc: 'संस्थेच्या संकलनासाठी बँक खाते व UPI तपशील.',
+    saveSettings: 'सेटिंग्स जतन करा', saving: 'जतन होत आहे...',
+    areasTitle: 'संकलन क्षेत्रे', areasPlaceholder: 'वॉर्ड A, मार्केट परिसर, इ.', addArea: 'क्षेत्र जोडा', noAreas: 'कोणतेही संकलन क्षेत्र नाही',
+    areaCount: (c: number, r: number) => `${c} संग्राहक · ${r} पावत्या`,
+    portalLangTitle: 'पोर्टल भाषा', portalLangDesc: 'अ‍ॅपचे मेनू, बटणे व पाने कोणत्या भाषेत दिसतील — फक्त या डिव्हाइसवर. (खाली पावती डिझाइनमध्ये सेट होणाऱ्या पावतीच्या भाषेपेक्षा वेगळी.)',
+    categoriesTitle: 'श्रेणी', categoriesDesc: 'तुमच्या टीमने खर्च/पावती फॉर्ममधून जोडलेल्या कस्टम श्रेणी. मूळ (प्रीसेट) श्रेणी नेहमी उपलब्ध असतात, त्या इथे दाखवलेल्या नाहीत.',
+    expenseCategoriesLabel: 'खर्च श्रेणी', donationCategoriesLabel: 'देणगी श्रेणी', addCategory: 'जोडा', noCategories: 'अद्याप कोणतीही कस्टम श्रेणी नाही',
+    socialTitle: 'सोशल मीडिया लिंक्स', socialDesc: 'छापील पावतीवर दिसतील आणि खालील व्हॉट्सअॅप मेसेजमध्ये टॅग म्हणून उपलब्ध असतील.',
+    instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
+  },
+};
+
+const PORTAL_LANGUAGES: { code: 'en' | 'hi' | 'mr'; label: string; flag: string }[] = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'hi', label: 'हिंदी', flag: '🇮🇳' },
+  { code: 'mr', label: 'मराठी', flag: '🏳️' },
+];
+
+function IntegrationRow({ label, ok, okLabel, missingLabel, envHint, showTechnical }: { label: string; ok: boolean; okLabel: string; missingLabel: string; envHint: string; showTechnical: boolean }) {
   return (
     <div className={`flex items-start gap-3 p-3 rounded-xl border ${ok ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
       {ok ? (
@@ -31,18 +114,21 @@ function IntegrationRow({ label, ok, okLabel, missingLabel, envHint }: { label: 
       <div className="min-w-0">
         <p className="text-sm font-medium text-theme-fg">{label}</p>
         <p className="text-xs text-theme-fg/50 mt-0.5">{ok ? okLabel : missingLabel}</p>
-        {!ok && <p className="text-[11px] text-theme-fg/35 mt-1 font-mono">{envHint}</p>}
+        {!ok && showTechnical && <p className="text-[11px] text-theme-fg/35 mt-1 font-mono">{envHint}</p>}
       </div>
     </div>
   );
 }
 
 export default function SettingsPage() {
-  const { language, organization, setOrganization, user } = useAuthStore();
+  const { language, setLanguage, organization, setOrganization, user } = useAuthStore();
   const queryClient = useQueryClient();
+  const sl = settingsLabels[language] || settingsLabels.en;
 
   const { data: org } = useQuery({ queryKey: ['org'], queryFn: orgsApi.getMe });
   const { data: areas } = useQuery({ queryKey: ['areas'], queryFn: orgsApi.getAreas });
+  const { data: expenseCategories } = useQuery({ queryKey: ['categories', 'EXPENSE'], queryFn: () => orgsApi.getCategories('EXPENSE') });
+  const { data: donationCategories } = useQuery({ queryKey: ['categories', 'DONATION'], queryFn: () => orgsApi.getCategories('DONATION') });
   const { data: integrations } = useQuery({
     queryKey: ['integrations-status'],
     queryFn: orgsApi.getIntegrationsStatus,
@@ -51,6 +137,7 @@ export default function SettingsPage() {
 
   const [form, setForm] = useState<any>({});
   const [newArea, setNewArea] = useState('');
+  const [newCategory, setNewCategory] = useState({ EXPENSE: '', DONATION: '' });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [previewMode, setPreviewMode] = useState<'PAVTI' | 'WHATSAPP'>('PAVTI');
@@ -73,8 +160,9 @@ export default function SettingsPage() {
         bankIfsc: org.bankIfsc || '',
         bankBranch: org.bankBranch || '',
         upiId: org.upiId || '',
-        brandColor: org.brandColor || '#C85000',
+        brandColor: org.brandColor || '#592E09',
         receiptTemplateSettings: resolveReceiptSettings(org.receiptTemplateSettings),
+        socialLinks: org.socialLinks || {},
       });
     }
   }, [org]);
@@ -99,12 +187,18 @@ export default function SettingsPage() {
         nameMarathi: form.nameMarathi || org?.nameMarathi,
         logoUrl: logoPreview || org?.logoUrl,
         receiptTemplateSettings: form.receiptTemplateSettings,
+        socialLinks: form.socialLinks,
       },
     },
   };
 
   const updateMutation = useMutation({
-    mutationFn: () => orgsApi.update(form),
+    // `form` includes `phone` (bound to the disabled/read-only phone input
+    // below, for display only) but UpdateOrganizationDto deliberately forbids
+    // it — and the global ValidationPipe's forbidNonWhitelisted rejects the
+    // *entire* request over that one extra field. Strip it before sending;
+    // `undefined` keys are dropped by JSON.stringify so this isn't sent at all.
+    mutationFn: () => orgsApi.update({ ...form, phone: undefined }),
     onSuccess: (updated) => {
       setOrganization(updated);
       queryClient.invalidateQueries({ queryKey: ['org'] });
@@ -150,6 +244,24 @@ export default function SettingsPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['areas'] }); toast.success('Area deleted'); },
   });
 
+  const createCategoryMutation = useMutation({
+    mutationFn: ({ kind, label }: { kind: 'EXPENSE' | 'DONATION'; label: string }) => orgsApi.createCategory(kind, label),
+    onSuccess: (_data, { kind }) => {
+      queryClient.invalidateQueries({ queryKey: ['categories', kind] });
+      setNewCategory((p) => ({ ...p, [kind]: '' }));
+      toast.success('Category added!');
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: string) => orgsApi.deleteCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', 'EXPENSE'] });
+      queryClient.invalidateQueries({ queryKey: ['categories', 'DONATION'] });
+      toast.success('Category deleted');
+    },
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
       {/* Header */}
@@ -168,8 +280,39 @@ export default function SettingsPage() {
           className="btn-primary self-start sm:self-auto px-5 py-2.5 shadow-glow-saffron"
         >
           <Save size={16} />
-          {updateMutation.isPending ? 'Saving Settings...' : 'Save Settings'}
+          {updateMutation.isPending ? sl.saving : sl.saveSettings}
         </button>
+      </div>
+
+      {/* Portal Language — a personal, this-device preference (stored locally),
+          not part of the organization profile saved by the button above. Kept
+          separate from the Receipt Design language picker further down, which
+          controls what donors see printed on the pavti, not what staff see in
+          the app. */}
+      <div className="glass-card p-6 sm:p-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.portalLangTitle}</h3>
+            <p className="text-xs text-theme-fg/50 mt-0.5 max-w-lg">{sl.portalLangDesc}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 max-w-md">
+          {PORTAL_LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => setLanguage(l.code)}
+              className={`p-3 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-1 ${
+                language === l.code
+                  ? 'border-saffron-400 bg-saffron-500/10 shadow-md ring-2 ring-saffron-400/20'
+                  : 'border-theme-fg/10 hover:border-theme-fg/30 bg-theme-fg/[0.02]'
+              }`}
+            >
+              <span className="text-lg">{l.flag}</span>
+              <span className="text-sm font-semibold text-theme-fg">{l.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 1. Organization Info */}
@@ -179,8 +322,8 @@ export default function SettingsPage() {
             <Building2 size={18} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-theme-fg">Organization Information</h3>
-            <p className="text-xs text-theme-fg/50">Details displayed on receipt headers, WhatsApp messages, and official reports.</p>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.orgInfoTitle}</h3>
+            <p className="text-xs text-theme-fg/50">{sl.orgInfoDesc}</p>
           </div>
         </div>
 
@@ -198,8 +341,8 @@ export default function SettingsPage() {
             </div>
           )}
           <div className="flex-1 text-center sm:text-left space-y-1.5">
-            <p className="text-sm font-semibold text-theme-fg">Organization Logo / Emblem</p>
-            <p className="text-xs text-theme-fg/50">Upload a PNG or JPG logo. Ideal size is square (e.g. 512x512px).</p>
+            <p className="text-sm font-semibold text-theme-fg">{sl.logoTitle}</p>
+            <p className="text-xs text-theme-fg/50">{sl.logoDesc}</p>
             <div className="flex justify-center sm:justify-start gap-2 pt-1">
               <input
                 type="file"
@@ -212,7 +355,7 @@ export default function SettingsPage() {
                 htmlFor="logo-upload"
                 className="btn-secondary py-1.5 px-4 rounded-xl text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                {uploadingLogo ? 'Uploading...' : 'Choose File'}
+                {uploadingLogo ? sl.uploading : sl.chooseFile}
               </label>
             </div>
           </div>
@@ -265,16 +408,14 @@ export default function SettingsPage() {
             <Palette size={18} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-theme-fg">Brand & Appearance</h3>
-            <p className="text-xs text-theme-fg/50">
-              This color drives buttons, the active nav highlight and focus rings across the whole portal — pick once, it updates everywhere.
-            </p>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.brandTitle}</h3>
+            <p className="text-xs text-theme-fg/50">{sl.brandDesc}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 mt-4 p-4 rounded-2xl bg-theme-fg/[0.02] border border-theme-fg/10">
           <input
             type="color"
-            value={form.brandColor || '#C85000'}
+            value={form.brandColor || '#592E09'}
             onChange={(e) => {
               const color = e.target.value;
               setForm((p: any) => ({ ...p, brandColor: color }));
@@ -283,16 +424,16 @@ export default function SettingsPage() {
             className="w-14 h-14 rounded-2xl cursor-pointer bg-transparent border-2 border-theme-fg/20 p-1"
           />
           <div>
-            <p className="text-sm font-semibold text-theme-fg font-mono">{form.brandColor || '#C85000'}</p>
+            <p className="text-sm font-semibold text-theme-fg font-mono">{form.brandColor || '#592E09'}</p>
             <button
               type="button"
               onClick={() => {
-                setForm((p: any) => ({ ...p, brandColor: '#C85000' }));
-                document.documentElement.style.setProperty('--primary-brand-color', '#C85000');
+                setForm((p: any) => ({ ...p, brandColor: '#592E09' }));
+                document.documentElement.style.setProperty('--primary-brand-color', '#592E09');
               }}
               className="text-xs text-saffron-400 hover:underline mt-1 font-medium"
             >
-              Reset to default saffron
+              {sl.resetColor}
             </button>
           </div>
         </div>
@@ -306,31 +447,34 @@ export default function SettingsPage() {
               <Plug size={18} />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-theme-fg">Integrations</h3>
-              <p className="text-xs text-theme-fg/50">Delivery & storage — set these up on the server (Railway env vars), not here.</p>
+              <h3 className="text-base font-semibold text-theme-fg">{sl.integrationsTitle}</h3>
+              <p className="text-xs text-theme-fg/50">{sl.integrationsDesc}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <IntegrationRow
-              label="WhatsApp Delivery"
+              label={sl.whatsappDelivery}
               ok={integrations.whatsapp}
-              okLabel="Receipts are delivered to donors via WhatsApp."
-              missingLabel="Not configured — donors won't receive receipts on WhatsApp."
+              okLabel={sl.whatsappOk}
+              missingLabel={sl.whatsappMissing}
               envHint="WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID"
+              showTechnical={user?.role === 'SUPER_ADMIN'}
             />
             <IntegrationRow
-              label="SMS / OTP"
+              label={sl.smsOtp}
               ok={integrations.sms}
-              okLabel="SMS receipts and OTP login are active."
-              missingLabel="Not configured — OTP login and SMS receipts won't send."
+              okLabel={sl.smsOk}
+              missingLabel={sl.smsMissing}
               envHint="MSG91_API_KEY"
+              showTechnical={user?.role === 'SUPER_ADMIN'}
             />
             <IntegrationRow
-              label="File Storage"
+              label={sl.fileStorage}
               ok={integrations.storage === 'r2'}
-              okLabel="Uploads are stored on Cloudflare R2 — persist across deploys."
-              missingLabel="Using local disk — files are lost on the next deploy/restart."
+              okLabel={sl.storageOk}
+              missingLabel={sl.storageMissing}
               envHint="R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY"
+              showTechnical={user?.role === 'SUPER_ADMIN'}
             />
           </div>
         </div>
@@ -343,8 +487,8 @@ export default function SettingsPage() {
             <Landmark size={18} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-theme-fg">Bank Details</h3>
-            <p className="text-xs text-theme-fg/50">Bank account and UPI details for organization collections.</p>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.bankTitle}</h3>
+            <p className="text-xs text-theme-fg/50">{sl.bankDesc}</p>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -726,6 +870,7 @@ export default function SettingsPage() {
                           { tag: '{organizationName}', label: 'संस्थेचे नाव' },
                           { tag: '{receiptUrl}', label: 'पावती लिंक' },
                           { tag: '{date}', label: 'दिनांक' },
+                          { tag: '{socialLinks}', label: 'सोशल लिंक्स' },
                         ].map(item => (
                           <button
                             key={item.tag}
@@ -832,6 +977,7 @@ export default function SettingsPage() {
                               receiptUrl: 'https://pavti.app/receipt/demo-id',
                               date: new Date().toLocaleDateString('en-IN'),
                               category: 'GENERAL',
+                              socialLinksText: formatSocialLinksText(form.socialLinks),
                             },
                             currentPavtiLang,
                           );
@@ -858,7 +1004,7 @@ export default function SettingsPage() {
           className="btn-primary px-8 py-3 text-sm font-bold shadow-glow-saffron"
         >
           <Save size={18} />
-          {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+          {updateMutation.isPending ? sl.saving : sl.saveSettings}
         </button>
       </div>
 
@@ -869,7 +1015,7 @@ export default function SettingsPage() {
             <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
               <MapPin size={18} />
             </div>
-            Collection Areas
+            {sl.areasTitle}
           </h3>
         </div>
         <div className="flex gap-2 mb-4">
@@ -877,14 +1023,14 @@ export default function SettingsPage() {
             value={newArea}
             onChange={e => setNewArea(e.target.value)}
             className="form-input flex-1"
-            placeholder="Ward A, Market Area, etc."
+            placeholder={sl.areasPlaceholder}
           />
           <button
             onClick={() => newArea && createAreaMutation.mutate(newArea)}
             disabled={!newArea || createAreaMutation.isPending}
             className="btn-primary px-5"
           >
-            <Plus size={16} /> Add Area
+            <Plus size={16} /> {sl.addArea}
           </button>
         </div>
         <div className="space-y-2">
@@ -892,7 +1038,7 @@ export default function SettingsPage() {
             <div key={a.id} className="flex items-center justify-between p-3.5 bg-theme-fg/5 rounded-xl border border-theme-fg/5">
               <div>
                 <p className="text-sm font-semibold text-theme-fg">{a.name}</p>
-                {a._count && <p className="text-xs text-theme-fg/40 mt-0.5">{a._count.collectors} collectors · {a._count.receipts} receipts</p>}
+                {a._count && <p className="text-xs text-theme-fg/40 mt-0.5">{sl.areaCount(a._count.collectors, a._count.receipts)}</p>}
               </div>
               <button
                 onClick={() => deleteAreaMutation.mutate(a.id)}
@@ -903,7 +1049,86 @@ export default function SettingsPage() {
               </button>
             </div>
           ))}
-          {!areas?.length && <p className="text-xs text-theme-fg/30 text-center py-6">No collection areas defined</p>}
+          {!areas?.length && <p className="text-xs text-theme-fg/30 text-center py-6">{sl.noAreas}</p>}
+        </div>
+      </div>
+
+      {/* 7. Custom Categories */}
+      <div className="glass-card p-6 sm:p-8">
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
+            <Tag size={18} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.categoriesTitle}</h3>
+            <p className="text-xs text-theme-fg/50 mt-0.5">{sl.categoriesDesc}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+          {([
+            { kind: 'DONATION' as const, title: sl.donationCategoriesLabel, list: donationCategories },
+            { kind: 'EXPENSE' as const, title: sl.expenseCategoriesLabel, list: expenseCategories },
+          ]).map(({ kind, title, list }) => (
+            <div key={kind}>
+              <p className="text-xs font-semibold text-theme-fg/70 uppercase tracking-wider mb-2">{title}</p>
+              <div className="flex gap-2 mb-3">
+                <input
+                  value={newCategory[kind]}
+                  onChange={(e) => setNewCategory((p) => ({ ...p, [kind]: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && newCategory[kind].trim()) createCategoryMutation.mutate({ kind, label: newCategory[kind].trim() }); }}
+                  className="form-input flex-1 text-sm"
+                  placeholder={kind === 'EXPENSE' ? 'e.g. Catering' : 'e.g. Stage Decor'}
+                />
+                <button
+                  onClick={() => newCategory[kind].trim() && createCategoryMutation.mutate({ kind, label: newCategory[kind].trim() })}
+                  disabled={!newCategory[kind].trim() || createCategoryMutation.isPending}
+                  className="btn-secondary px-4 text-sm"
+                >
+                  {sl.addCategory}
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {(list || []).map((c: any) => (
+                  <div key={c.id} className="flex items-center justify-between px-3 py-2 bg-theme-fg/5 rounded-lg border border-theme-fg/5">
+                    <span className="text-sm text-theme-fg">{c.label}</span>
+                    <button
+                      onClick={() => deleteCategoryMutation.mutate(c.id)}
+                      className="p-1 rounded-md hover:bg-red-500/10 text-theme-fg/30 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+                {!list?.length && <p className="text-xs text-theme-fg/30 py-2">{sl.noCategories}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 8. Social Media Links */}
+      <div className="glass-card p-6 sm:p-8">
+        <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
+          <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
+            <Globe size={18} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.socialTitle}</h3>
+            <p className="text-xs text-theme-fg/50">{sl.socialDesc}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {SOCIAL_PLATFORMS.map((p) => (
+            <div key={p.key}>
+              <label className="form-label">{p.emoji} {sl[p.key as 'instagram' | 'facebook' | 'youtube' | 'website']}</label>
+              <input
+                value={form.socialLinks?.[p.key] || ''}
+                onChange={(e) => setForm((prev: any) => ({ ...prev, socialLinks: { ...prev.socialLinks, [p.key]: e.target.value } }))}
+                className="form-input"
+                placeholder={`https://${p.key}.com/...`}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

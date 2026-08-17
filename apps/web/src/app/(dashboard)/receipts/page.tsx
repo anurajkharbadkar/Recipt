@@ -6,7 +6,11 @@ import { receiptsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
 import { Plus, Search, Download, Filter, Eye, Share2, XCircle, Users, ChevronDown, ChevronUp, Zap } from 'lucide-react';
-import { formatCurrency, formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
+import {
+  formatCurrency, formatShareMessage, formatSocialLinksText, resolveReceiptSettings,
+  RECEIPT_CATEGORIES_LABELS, PAYMENT_MODE_LABELS, RECEIPT_STATUS_LABELS, COLLECTION_TYPE_LABELS,
+  DonationCategory, PaymentMode, ReceiptStatus, CollectionType,
+} from '@pavti/shared';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -71,6 +75,7 @@ export default function ReceiptsPage() {
         receiptUrl: url,
         date: new Date(r.createdAt).toLocaleDateString('en-IN'),
         category: r.category,
+        socialLinksText: formatSocialLinksText(org?.socialLinks),
       },
       settings.language,
     );
@@ -173,19 +178,19 @@ export default function ReceiptsPage() {
           onChange={(e) => { setCollectionType(e.target.value); setPage(1); }}
           className="form-select py-2 text-sm w-auto"
         >
-          <option value="">All Types</option>
-          <option value="DONATION">🤝 Donation</option>
-          <option value="INTERNAL">🏢 Internal Collection</option>
+          <option value="">{language === 'mr' ? 'सर्व प्रकार' : language === 'hi' ? 'सभी प्रकार' : 'All Types'}</option>
+          <option value="DONATION">🤝 {COLLECTION_TYPE_LABELS[CollectionType.DONATION][language]}</option>
+          <option value="INTERNAL">🏢 {COLLECTION_TYPE_LABELS[CollectionType.INTERNAL][language]}</option>
         </select>
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
           className="form-select py-2 text-sm w-auto"
         >
-          <option value="">All Statuses</option>
-          <option value="PAID">🟢 Paid</option>
-          <option value="PENDING">🟡 Pending</option>
-          <option value="CANCELLED">⚫ Cancelled</option>
+          <option value="">{language === 'mr' ? 'सर्व स्थिती' : language === 'hi' ? 'सभी स्थितियां' : 'All Statuses'}</option>
+          <option value="PAID">🟢 {RECEIPT_STATUS_LABELS[ReceiptStatus.PAID][language]}</option>
+          <option value="PENDING">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</option>
+          <option value="CANCELLED">⚫ {RECEIPT_STATUS_LABELS[ReceiptStatus.CANCELLED][language]}</option>
         </select>
       </div>
 
@@ -224,17 +229,17 @@ export default function ReceiptsPage() {
                         {r.donorPhone && <div className="text-xs text-theme-fg/40">{r.donorPhone}</div>}
                       </td>
                       <td className="font-bold text-emerald-400">{formatCurrency(r.amount)}</td>
-                      <td><span className="badge badge-saffron text-xs">{r.category}</span></td>
-                      <td><span className="badge badge-info text-xs">{r.paymentMode}</span></td>
+                      <td><span className="badge badge-saffron text-xs">{RECEIPT_CATEGORIES_LABELS[r.category as DonationCategory]?.[language] || r.category}</span></td>
+                      <td><span className="badge badge-info text-xs">{PAYMENT_MODE_LABELS[r.paymentMode as PaymentMode]?.[language] || r.paymentMode}</span></td>
                       <td className="text-theme-fg/70 text-sm">{r.collector?.name}</td>
                       <td className="text-theme-fg/40 text-xs">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</td>
                       <td>
                         {r.status === 'PENDING' ? (
-                          <span className="badge badge-warning">🟡 Pending</span>
+                          <span className="badge badge-warning">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
                         ) : r.status === 'CANCELLED' ? (
-                          <span className="badge badge-neutral">⚫ Cancelled</span>
+                          <span className="badge badge-neutral">⚫ {RECEIPT_STATUS_LABELS[ReceiptStatus.CANCELLED][language]}</span>
                         ) : (
-                          <span className="badge badge-success">🟢 Paid</span>
+                          <span className="badge badge-success">🟢 {RECEIPT_STATUS_LABELS[ReceiptStatus.PAID][language]}</span>
                         )}
                       </td>
                       <td>

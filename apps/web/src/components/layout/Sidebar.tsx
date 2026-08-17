@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
+import { USER_ROLE_LABELS, UserRole } from '@pavti/shared';
 import {
   Home, Plus, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
@@ -20,7 +21,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड', module: 'Dashboard' },
   { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', highlight: true, module: 'Receipts' },
   { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या', module: 'Receipts' },
-  { href: '/campaigns', label: 'Campaigns', icon: Megaphone, labelMr: 'मोहीम', module: 'Campaigns' },
+  { href: '/campaigns', label: 'Festivals & Drives', icon: Megaphone, labelMr: 'मोहीम', module: 'Campaigns' },
   { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद', module: 'Members', altModule: 'Collectors' },
   { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', module: 'Expenses' },
   { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', module: 'Reports' },
@@ -138,7 +139,7 @@ export default function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold truncate">{user.name}</p>
-              <p className="text-[10px] opacity-60 capitalize">{user.role.toLowerCase().replace('_', ' ')}</p>
+              <p className="text-[10px] opacity-60">{USER_ROLE_LABELS[user.role as UserRole]?.[language] || user.role}</p>
             </div>
           </div>
         )}

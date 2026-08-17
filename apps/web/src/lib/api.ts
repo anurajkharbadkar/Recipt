@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const API_URL = RAW_API_URL.endsWith('/api/v1')
+  ? RAW_API_URL
+  : `${RAW_API_URL.replace(/\/+$/, '')}/api/v1`;
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -68,6 +71,9 @@ export const orgsApi = {
   getAreas: () => apiClient.get('/organizations/areas').then(r => r.data),
   createArea: (data: any) => apiClient.post('/organizations/areas', data).then(r => r.data),
   deleteArea: (id: string) => apiClient.delete(`/organizations/areas/${id}`).then(r => r.data),
+  getCategories: (kind: 'EXPENSE' | 'DONATION') => apiClient.get('/organizations/categories', { params: { kind } }).then(r => r.data),
+  createCategory: (kind: 'EXPENSE' | 'DONATION', label: string) => apiClient.post('/organizations/categories', { kind, label }).then(r => r.data),
+  deleteCategory: (id: string) => apiClient.delete(`/organizations/categories/${id}`).then(r => r.data),
 };
 
 // Campaigns

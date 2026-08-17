@@ -1,21 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { expensesApi, campaignsApi } from '@/lib/api';
+import { expensesApi, campaignsApi, orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Plus, CheckCircle, Trash2, FileDown } from 'lucide-react';
-import { formatCurrency } from '@pavti/shared';
+import { formatCurrency, EXPENSE_CATEGORY_LABELS, PAYMENT_MODE_LABELS, PaymentMode } from '@pavti/shared';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { ExpenseCategory } from '@pavti/shared';
+import { useCommonLabels } from '@/lib/i18n';
+import PickerWithAdd from '@/components/form/PickerWithAdd';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   DECORATION: '🎨', SOUND_SYSTEM: '🎵', FOOD: '🍱', FIREWORKS: '🎆',
   VENUE: '🏟️', PRINTING: '🖨️', TRANSPORT: '🚛', MISC: '📦',
 };
 
-export default function ExpensesPage() {
+const labels = {
+  en: {
+    approved: 'Approved Expenses', pending: 'Pending Approval', logExpense: 'Log Expense',
+    campaign: 'Campaign', selectCampaign: 'Select campaign...', category: 'Category', amount: 'Amount (₹)',
+    date: 'Date', vendor: 'Vendor / Recipient Name', paymentMode: 'Payment Mode', recipientPhone: 'Recipient Phone',
+    gst: 'GST Number (Optional)', description: 'Description', saving: 'Saving...', noExpenses: 'No expenses logged yet',
+  },
+  hi: {
+    approved: 'स्वीकृत व्यय', pending: 'लंबित अनुमोदन', logExpense: 'व्यय नोंदवा',
+    campaign: 'अभियान', selectCampaign: 'अभियान चुनें...', category: 'श्रेणी', amount: 'राशि (₹)',
+    date: 'तारीख', vendor: 'विक्रेता / प्राप्तकर्ता का नाम', paymentMode: 'भुगतान मोड', recipientPhone: 'प्राप्तकर्ता का फोन',
+    gst: 'GST नंबर (वैकल्पिक)', description: 'विवरण', saving: 'सहेजा जा रहा है...', noExpenses: 'अभी तक कोई व्यय नहीं जोड़ा गया',
+  },
+  mr: {
+    approved: 'मंजूर खर्च', pending: 'प्रलंबित मंजुरी', logExpense: 'खर्च नोंदवा',
+    campaign: 'मोहीम', selectCampaign: 'मोहीम निवडा...', category: 'प्रकार', amount: 'रक्कम (₹)',
+    date: 'दिनांक', vendor: 'विक्रेता / प्राप्तकर्त्याचे नाव', paymentMode: 'देय पद्धत', recipientPhone: 'प्राप्तकर्त्याचा फोन',
+    gst: 'GST क्रमांक (पर्यायी)', description: 'तपशील', saving: 'जतन होत आहे...', noExpenses: 'अद्याप कोणताही खर्च नोंदवला नाही',
+  },
+};
+
+function ExpensesPageInner() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     campaignId: '',
@@ -30,12 +54,27 @@ export default function ExpensesPage() {
   });
   const { language, activeCampaignId } = useAuthStore();
   const queryClient = useQueryClient();
+  const l = labels[language] || labels.en;
+  const common = useCommonLabels();
+  const searchParams = useSearchParams();
+
+  // Quick action from the Dashboard ("Add Expense" card) links here with
+  // ?new=1 to jump straight into the form, same pattern as the quick-receipt
+  // flow on receipts/new (?donorPhone=...).
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setForm((p) => ({ ...p, campaignId: p.campaignId || activeCampaignId || '' }));
+      setShowForm(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses', activeCampaignId],
     queryFn: () => expensesApi.list(activeCampaignId || undefined),
   });
   const { data: campaigns } = useQuery({ queryKey: ['campaigns'], queryFn: campaignsApi.list });
+  const { data: customExpenseCategories } = useQuery({ queryKey: ['categories', 'EXPENSE'], queryFn: () => orgsApi.getCategories('EXPENSE') });
 
   const createMutation = useMutation({
     mutationFn: expensesApi.create,
@@ -94,77 +133,87 @@ export default function ExpensesPage() {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
         <div className="stat-card">
-          <p className="form-label">Approved Expenses</p>
+          <p className="form-label">{l.approved}</p>
           <p className="text-xl font-bold text-red-400">{formatCurrency(totalApproved)}</p>
         </div>
         <div className="stat-card">
-          <p className="form-label">Pending Approval</p>
+          <p className="form-label">{l.pending}</p>
           <p className="text-xl font-bold text-amber-400">{formatCurrency(totalPending)}</p>
         </div>
       </div>
 
       {showForm && (
         <div className="glass-card p-6 animate-slide-up">
-          <h3 className="text-sm font-semibold text-theme-fg mb-4">Log Expense</h3>
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">{l.logExpense}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Campaign *</label>
+              <label className="form-label">{l.campaign} *</label>
               <select value={form.campaignId} onChange={e => setForm(p => ({ ...p, campaignId: e.target.value }))} className="form-select">
-                <option value="">Select campaign...</option>
+                <option value="">{l.selectCampaign}</option>
                 {(campaigns || []).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="form-label">Category *</label>
-              <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className="form-select">
-                {Object.values(ExpenseCategory).map(cat => (
-                  <option key={cat} value={cat}>{CATEGORY_EMOJI[cat]} {cat.replace('_', ' ')}</option>
+              <label className="form-label">{l.category} *</label>
+              <PickerWithAdd
+                value={form.category}
+                onChange={(v) => setForm(p => ({ ...p, category: v }))}
+                options={[
+                  ...Object.values(ExpenseCategory).map((cat) => ({ value: cat, label: `${CATEGORY_EMOJI[cat] || '📦'} ${EXPENSE_CATEGORY_LABELS[cat][language]}` })),
+                  ...(customExpenseCategories || []).map((c: any) => ({ value: c.label, label: c.label })),
+                ]}
+                addLabel={language === 'mr' ? '+ नवीन प्रकार जोडा…' : '+ Add new category…'}
+                addPlaceholder={language === 'mr' ? 'उदा. केटरिंग' : 'e.g. Catering'}
+                onAddNew={async (label) => {
+                  const created = await orgsApi.createCategory('EXPENSE', label);
+                  queryClient.invalidateQueries({ queryKey: ['categories', 'EXPENSE'] });
+                  return created.label;
+                }}
+              />
+            </div>
+            <div>
+              <label className="form-label">{l.amount} *</label>
+              <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} className="form-input" placeholder="0" />
+            </div>
+            <div>
+              <label className="form-label">{l.date}</label>
+              <input type="date" value={form.expenseDate} onChange={e => setForm(p => ({ ...p, expenseDate: e.target.value }))} className="form-input" />
+            </div>
+            <div>
+              <label className="form-label">{l.vendor}</label>
+              <input value={form.paidTo} onChange={e => setForm(p => ({ ...p, paidTo: e.target.value }))} className="form-input" placeholder="Mahalaxmi Decorators" />
+            </div>
+            <div>
+              <label className="form-label">{l.paymentMode}</label>
+              <select value={form.paymentMode} onChange={e => setForm(p => ({ ...p, paymentMode: e.target.value }))} className="form-select">
+                {Object.values(PaymentMode).map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode === 'CASH' ? '💵' : mode === 'UPI' ? '📱' : mode === 'CHEQUE' ? '📄' : mode === 'BANK_TRANSFER' ? '🏦' : '💻'} {PAYMENT_MODE_LABELS[mode][language]}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="form-label">Amount (₹) *</label>
-              <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} className="form-input" placeholder="0" />
-            </div>
-            <div>
-              <label className="form-label">Date</label>
-              <input type="date" value={form.expenseDate} onChange={e => setForm(p => ({ ...p, expenseDate: e.target.value }))} className="form-input" />
-            </div>
-            <div>
-              <label className="form-label">Vendor / Recipient Name *</label>
-              <input value={form.paidTo} onChange={e => setForm(p => ({ ...p, paidTo: e.target.value }))} className="form-input" placeholder="Mahalaxmi Decorators" />
-            </div>
-            <div>
-              <label className="form-label">Payment Mode</label>
-              <select value={form.paymentMode} onChange={e => setForm(p => ({ ...p, paymentMode: e.target.value }))} className="form-select">
-                <option value="CASH">💵 Cash</option>
-                <option value="UPI">📱 UPI</option>
-                <option value="CHEQUE">📄 Cheque</option>
-                <option value="BANK_TRANSFER">🏦 Bank Transfer</option>
-                <option value="ONLINE">💻 Online</option>
-              </select>
-            </div>
-            <div>
-              <label className="form-label">Recipient Phone</label>
+              <label className="form-label">{l.recipientPhone}</label>
               <input value={form.beneficiaryPhone} onChange={e => setForm(p => ({ ...p, beneficiaryPhone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" />
             </div>
             <div>
-              <label className="form-label">GST Number (Optional)</label>
+              <label className="form-label">{l.gst}</label>
               <input value={form.gstNumber} onChange={e => setForm(p => ({ ...p, gstNumber: e.target.value.toUpperCase() }))} className="form-input" placeholder="27AAAAA1111A1Z1" />
             </div>
             <div className="sm:col-span-2">
-              <label className="form-label">Description *</label>
+              <label className="form-label">{l.description} *</label>
               <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="form-input" placeholder="Sound system rental for 10 days" />
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <button onClick={() => setShowForm(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="btn-secondary flex-1">{common.cancel}</button>
             <button
               onClick={() => createMutation.mutate(form)}
-              disabled={!form.campaignId || !form.amount || !form.description || !form.paidTo || createMutation.isPending}
+              disabled={!form.campaignId || !form.amount || !form.description || createMutation.isPending}
               className="btn-primary flex-1"
             >
-              {createMutation.isPending ? 'Saving...' : 'Log Expense'}
+              {createMutation.isPending ? l.saving : l.logExpense}
             </button>
           </div>
         </div>
@@ -195,7 +244,7 @@ export default function ExpensesPage() {
                   <tr key={e.id}>
                     <td>
                       <span className="text-lg">{CATEGORY_EMOJI[e.category]}</span>
-                      <span className="ml-2 text-xs text-theme-fg/60">{e.category.replace('_', ' ')}</span>
+                      <span className="ml-2 text-xs text-theme-fg/60">{EXPENSE_CATEGORY_LABELS[e.category as ExpenseCategory]?.[language] || e.category}</span>
                     </td>
                     <td>
                       <div className="font-semibold text-theme-fg/80">{e.paidTo || '—'}</div>
@@ -203,7 +252,7 @@ export default function ExpensesPage() {
                     </td>
                     <td className="text-theme-fg/70 text-sm">{e.description}</td>
                     <td className="font-bold text-red-400">{formatCurrency(e.amount)}</td>
-                    <td><span className="badge badge-info text-[10px]">{e.paymentMode}</span></td>
+                    <td><span className="badge badge-info text-[10px]">{PAYMENT_MODE_LABELS[e.paymentMode as PaymentMode]?.[language] || e.paymentMode}</span></td>
                     <td className="text-theme-fg/40 text-xs">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</td>
                     <td className="text-theme-fg/60 text-sm">{e.addedBy?.name}</td>
                     <td>
@@ -233,7 +282,7 @@ export default function ExpensesPage() {
                   </tr>
                 ))}
                 {!expenses?.length && (
-                  <tr><td colSpan={11} className="text-center text-theme-fg/30 py-8">No expenses logged yet</td></tr>
+                  <tr><td colSpan={11} className="text-center text-theme-fg/30 py-8">{l.noExpenses}</td></tr>
                 )}
               </tbody>
             </table>
@@ -241,5 +290,13 @@ export default function ExpensesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ExpensesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ExpensesPageInner />
+    </Suspense>
   );
 }

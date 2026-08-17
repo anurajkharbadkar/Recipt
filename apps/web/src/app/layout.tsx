@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#C85000',
+  themeColor: '#592E09',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               try {
                 const saved = localStorage.getItem('theme');
-                const theme = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                const theme = saved === 'dark' ? 'dark' : 'light';
                 document.documentElement.classList.add(theme);
               } catch (_) {}
             `,
@@ -74,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '12px',
               },
-              success: { iconTheme: { primary: '#ff6600', secondary: 'white' } },
+              success: { iconTheme: { primary: '#147214', secondary: 'white' } },
             }}
           />
         </Providers>

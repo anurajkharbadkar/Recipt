@@ -9,12 +9,16 @@ import { receiptsApi, campaignsApi, orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { DonationCategory, PaymentMode, CollectionType, ReceiptStatus, formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
+import {
+  DonationCategory, PaymentMode, CollectionType, ReceiptStatus, formatShareMessage, formatSocialLinksText, resolveReceiptSettings,
+  RECEIPT_CATEGORIES_LABELS, PAYMENT_MODE_LABELS, RECEIPT_STATUS_LABELS, COLLECTION_TYPE_LABELS,
+} from '@pavti/shared';
 import {
   User, Phone, MapPin, IndianRupee, Tag, CreditCard, FileText,
   MapPinned, MessageCircle, ArrowLeft, CheckCircle, Printer, Share2
 } from 'lucide-react';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
+import PickerWithAdd from '@/components/form/PickerWithAdd';
 
 const schema = z.object({
   campaignId: z.string().min(1, 'Campaign is required'),
@@ -22,7 +26,10 @@ const schema = z.object({
   donorPhone: z.string().optional(),
   donorAddress: z.string().optional(),
   amount: z.number({ invalid_type_error: 'Enter a valid amount' }).min(1, 'Amount must be at least ₹1'),
-  category: z.nativeEnum(DonationCategory).default(DonationCategory.GENERAL),
+  // Not z.nativeEnum — category can be a preset DonationCategory value or a
+  // custom label added inline via PickerWithAdd (see organizations.service.ts
+  // CustomCategory), same relaxation as the backend DTO.
+  category: z.string().default(DonationCategory.GENERAL),
   paymentMode: z.nativeEnum(PaymentMode).default(PaymentMode.CASH),
   chequeNumber: z.string().optional(),
   notes: z.string().optional(),
@@ -48,6 +55,7 @@ export default function NewReceiptPage() {
   const { data: campaigns } = useQuery({ queryKey: ['campaigns'], queryFn: campaignsApi.list });
   const { data: areas } = useQuery({ queryKey: ['areas'], queryFn: orgsApi.getAreas });
   const { data: existingDonors } = useQuery({ queryKey: ['existing-donors'], queryFn: receiptsApi.donors });
+  const { data: customDonationCategories } = useQuery({ queryKey: ['categories', 'DONATION'], queryFn: () => orgsApi.getCategories('DONATION') });
 
   const [donorSearch, setDonorSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -128,6 +136,7 @@ export default function NewReceiptPage() {
         receiptUrl: url,
         date: new Date().toLocaleDateString('en-IN'),
         category: createdReceipt.category,
+        socialLinksText: formatSocialLinksText(org?.socialLinks),
       },
       settings.language,
     );
@@ -199,14 +208,14 @@ export default function NewReceiptPage() {
                   onClick={() => setValue('collectionType', CollectionType.DONATION)}
                   className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.DONATION ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/8 hover:text-theme-fg'}`}
                 >
-                  🤝 Donation
+                  🤝 {COLLECTION_TYPE_LABELS[CollectionType.DONATION][language]}
                 </button>
                 <button
                   type="button"
                   onClick={() => setValue('collectionType', CollectionType.INTERNAL)}
                   className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.INTERNAL ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/8 hover:text-theme-fg'}`}
                 >
-                  🏢 Internal Collection
+                  🏢 {COLLECTION_TYPE_LABELS[CollectionType.INTERNAL][language]}
                 </button>
               </div>
             </div>
@@ -299,12 +308,19 @@ export default function NewReceiptPage() {
                 <MapPinned size={12} className="inline mr-1" />
                 {language === 'mr' ? 'संग्रह क्षेत्र' : 'Collection Area'}
               </label>
-              <select {...register('areaId')} className="form-select">
-                <option value="">No specific area</option>
-                {(areas || []).map((a: any) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+              <PickerWithAdd
+                value={watch('areaId') || ''}
+                onChange={(v) => setValue('areaId', v)}
+                options={(areas || []).map((a: any) => ({ value: a.id, label: a.name }))}
+                placeholder="No specific area"
+                addLabel={language === 'mr' ? '+ नवीन क्षेत्र जोडा…' : '+ Add new area…'}
+                addPlaceholder={language === 'mr' ? 'उदा. वॉर्ड C' : 'e.g. Ward C'}
+                onAddNew={async (label) => {
+                  const created = await orgsApi.createArea({ name: label });
+                  queryClient.invalidateQueries({ queryKey: ['areas'] });
+                  return created.id;
+                }}
+              />
             </div>
           </div>
         )}
@@ -350,11 +366,21 @@ export default function NewReceiptPage() {
                 <Tag size={12} className="inline mr-1" />
                 {language === 'mr' ? 'देणगी प्रकार' : 'Donation Category'}
               </label>
-              <select {...register('category')} className="form-select">
-                {Object.values(DonationCategory).map((cat) => (
-                  <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
-                ))}
-              </select>
+              <PickerWithAdd
+                value={watch('category') || DonationCategory.GENERAL}
+                onChange={(v) => setValue('category', v)}
+                options={[
+                  ...Object.values(DonationCategory).map((cat) => ({ value: cat, label: RECEIPT_CATEGORIES_LABELS[cat][language] })),
+                  ...(customDonationCategories || []).map((c: any) => ({ value: c.label, label: c.label })),
+                ]}
+                addLabel={language === 'mr' ? '+ नवीन प्रकार जोडा…' : '+ Add new category…'}
+                addPlaceholder={language === 'mr' ? 'उदा. मंडप सजावट' : 'e.g. Stage Decor'}
+                onAddNew={async (label) => {
+                  const created = await orgsApi.createCategory('DONATION', label);
+                  queryClient.invalidateQueries({ queryKey: ['categories', 'DONATION'] });
+                  return created.label;
+                }}
+              />
             </div>
 
             <div>
@@ -367,7 +393,7 @@ export default function NewReceiptPage() {
                   <label key={mode} className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-medium ${watch('paymentMode') === mode ? 'border-saffron-500 bg-saffron-600/15 text-saffron-400' : 'border-theme-fg/10 bg-theme-fg/5 text-theme-fg/60 hover:bg-theme-fg/8'}`}>
                     <input {...register('paymentMode')} type="radio" value={mode} className="hidden" />
                     {mode === 'CASH' ? '💵' : mode === 'UPI' ? '📱' : mode === 'CHEQUE' ? '📄' : mode === 'BANK_TRANSFER' ? '🏦' : '💻'}
-                    {mode}
+                    {PAYMENT_MODE_LABELS[mode][language]}
                   </label>
                 ))}
               </div>
@@ -391,8 +417,8 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">Payment Status</label>
               <select {...register('status')} className="form-select">
-                <option value={ReceiptStatus.PAID}>🟢 PAID / RECEIVED</option>
-                <option value={ReceiptStatus.PENDING}>🟡 PENDING / UNPAID (PLEDGED)</option>
+                <option value={ReceiptStatus.PAID}>🟢 {RECEIPT_STATUS_LABELS[ReceiptStatus.PAID][language]}</option>
+                <option value={ReceiptStatus.PENDING}>🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]} ({language === 'mr' ? 'अद्याप न भरलेले' : language === 'hi' ? 'अभी तक अदा नहीं' : 'not yet paid'})</option>
               </select>
             </div>
 
@@ -429,13 +455,13 @@ export default function NewReceiptPage() {
               <h3 className="text-sm font-semibold text-theme-fg/60 uppercase tracking-wider mb-4">Review Receipt</h3>
               <div className="space-y-3">
                 {[
-                  { label: 'Type', value: getValues('collectionType') },
+                  { label: 'Type', value: COLLECTION_TYPE_LABELS[getValues('collectionType')][language] },
                   { label: 'Donor', value: getValues('donorName') },
                   { label: 'Phone', value: getValues('donorPhone') || '—' },
                   { label: 'Amount', value: `₹${Number(getValues('amount') || 0).toLocaleString('en-IN')}` },
-                  { label: 'Category', value: getValues('category') },
-                  { label: 'Payment', value: getValues('paymentMode') },
-                  { label: 'Status', value: getValues('status') },
+                  { label: 'Category', value: RECEIPT_CATEGORIES_LABELS[getValues('category')][language] },
+                  { label: 'Payment', value: PAYMENT_MODE_LABELS[getValues('paymentMode')][language] },
+                  { label: 'Status', value: RECEIPT_STATUS_LABELS[getValues('status')][language] },
                   { label: 'WhatsApp', value: getValues('sendWhatsapp') && getValues('donorPhone') ? '✅ Will be sent' : '❌ Not sending' },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-center py-2 border-b border-theme-fg/5">

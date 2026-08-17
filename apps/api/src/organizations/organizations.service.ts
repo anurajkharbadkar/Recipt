@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, CategoryKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -83,7 +83,15 @@ export class OrganizationsService {
     });
   }
 
+  // Case-insensitive dedup: collectors adding an area inline from the receipt
+  // form (not just ORG_ADMIN via Settings, now that POST /areas is open to
+  // them too) are typing on a phone keyboard — "ward a" vs "Ward A" shouldn't
+  // silently fork into two areas. Returns the existing row instead of erroring.
   async createArea(orgId: string, data: { name: string; description?: string }) {
+    const existing = await this.prisma.collectorArea.findFirst({
+      where: { orgId, name: { equals: data.name, mode: 'insensitive' } },
+    });
+    if (existing) return existing;
     return this.prisma.collectorArea.create({
       data: { orgId, ...data },
     });
@@ -95,5 +103,35 @@ export class OrganizationsService {
     });
     if (!area) throw new NotFoundException('Area not found');
     return this.prisma.collectorArea.delete({ where: { id: areaId } });
+  }
+
+  // ─── Custom Categories ──────────────────────────────────────────────────
+  // Org-added categories layered on top of the curated presets (see
+  // CategoryKind's schema comment). Mirrors the Area methods above exactly,
+  // including the same case-insensitive dedup rationale.
+
+  async getCategories(orgId: string, kind: CategoryKind) {
+    return this.prisma.customCategory.findMany({
+      where: { orgId, kind },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async createCategory(orgId: string, kind: CategoryKind, label: string) {
+    const existing = await this.prisma.customCategory.findFirst({
+      where: { orgId, kind, label: { equals: label, mode: 'insensitive' } },
+    });
+    if (existing) return existing;
+    return this.prisma.customCategory.create({
+      data: { orgId, kind, label },
+    });
+  }
+
+  async deleteCategory(id: string, orgId: string) {
+    const category = await this.prisma.customCategory.findFirst({
+      where: { id, orgId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+    return this.prisma.customCategory.delete({ where: { id } });
   }
 }

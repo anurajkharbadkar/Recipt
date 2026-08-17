@@ -6,10 +6,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { campaignsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Plus, Play, CheckCircle, Calendar, Target, Receipt } from 'lucide-react';
-import { formatCurrency } from '@pavti/shared';
+import { formatCurrency, CAMPAIGN_STATUS_LABELS, CampaignStatus } from '@pavti/shared';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import { useCommonLabels } from '@/lib/i18n';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'badge-neutral',
@@ -18,11 +19,40 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: 'badge-info',
 };
 
+const labels = {
+  en: {
+    title: 'Festivals & Drives', newCampaign: 'New Drive', createTitle: 'Create Festival / Drive',
+    name: 'Name', marathiName: 'मराठी नाव', year: 'Year', prefix: 'Receipt Prefix', startDate: 'Start Date',
+    endDate: 'End Date', target: 'Target Amount (₹)', description: 'Description',
+    creating: 'Creating...', create: 'Create', empty: 'No festivals or drives yet. Create your first one!',
+    collected: 'Collected', expenses: 'Expenses', balance: 'Balance', targetLabel: 'Target',
+    activate: 'Activate', complete: 'Complete', receipts: 'receipts',
+  },
+  hi: {
+    title: 'अभियान', newCampaign: 'नया अभियान', createTitle: 'अभियान बनाएं',
+    name: 'नाम *', marathiName: 'मराठी नाव', year: 'वर्ष *', prefix: 'रसीद प्रीफिक्स', startDate: 'प्रारंभ तिथि *',
+    endDate: 'समाप्ति तिथि', target: 'लक्ष्य राशि (₹)', description: 'विवरण',
+    creating: 'बन रहा है...', create: 'अभियान बनाएं', empty: 'अभी तक कोई अभियान नहीं। अपना पहला अभियान बनाएं!',
+    collected: 'संग्रहित', expenses: 'व्यय', balance: 'शेष', targetLabel: 'लक्ष्य',
+    activate: 'सक्रिय करें', complete: 'पूर्ण करें', receipts: 'रसीदें',
+  },
+  mr: {
+    title: 'मोहिमा', newCampaign: 'नवीन मोहीम', createTitle: 'मोहीम तयार करा',
+    name: 'नाव *', marathiName: 'मराठी नाव', year: 'वर्ष *', prefix: 'पावती प्रीफिक्स', startDate: 'सुरुवात दिनांक *',
+    endDate: 'शेवट दिनांक', target: 'उद्दिष्ट रक्कम (₹)', description: 'तपशील',
+    creating: 'तयार होत आहे...', create: 'मोहीम तयार करा', empty: 'अद्याप कोणतीही मोहीम नाही. पहिली मोहीम तयार करा!',
+    collected: 'जमा', expenses: 'खर्च', balance: 'शिल्लक', targetLabel: 'उद्दिष्ट',
+    activate: 'सक्रिय करा', complete: 'पूर्ण करा', receipts: 'पावत्या',
+  },
+};
+
 export default function CampaignsPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', nameMarathi: '', year: new Date().getFullYear(), startDate: '', endDate: '', targetAmount: '', receiptPrefix: '', description: '' });
   const { language, setActiveCampaign } = useAuthStore();
   const queryClient = useQueryClient();
+  const l = labels[language] || labels.en;
+  const common = useCommonLabels();
 
   const { data: campaigns, isLoading } = useQuery({ queryKey: ['campaigns'], queryFn: campaignsApi.list });
 
@@ -51,60 +81,58 @@ export default function CampaignsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-theme-fg">
-          {language === 'mr' ? 'मोहिमा' : language === 'hi' ? 'अभियान' : 'Campaigns'}
-        </h1>
+        <h1 className="text-2xl font-bold text-theme-fg">{l.title}</h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
           <Plus size={15} />
-          {language === 'mr' ? 'नवीन मोहीम' : 'New Campaign'}
+          {l.newCampaign}
         </button>
       </div>
 
       {showForm && (
         <div className="glass-card p-6 animate-slide-up">
-          <h3 className="text-sm font-semibold text-theme-fg mb-4">Create Campaign</h3>
+          <h3 className="text-sm font-semibold text-theme-fg mb-4">{l.createTitle}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Campaign Name *</label>
+              <label className="form-label">{l.name} *</label>
               <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Ganesh Utsav 2027" />
             </div>
             <div>
-              <label className="form-label">मराठी नाव</label>
+              <label className="form-label">{l.marathiName}</label>
               <input value={form.nameMarathi} onChange={e => setForm(p => ({ ...p, nameMarathi: e.target.value }))} className="form-input font-devanagari" placeholder="गणेश उत्सव 2027" />
             </div>
             <div>
-              <label className="form-label">Year *</label>
+              <label className="form-label">{l.year} *</label>
               <input type="number" value={form.year} onChange={e => setForm(p => ({ ...p, year: +e.target.value }))} className="form-input" />
             </div>
             <div>
-              <label className="form-label">Receipt Prefix</label>
+              <label className="form-label">{l.prefix}</label>
               <input value={form.receiptPrefix} onChange={e => setForm(p => ({ ...p, receiptPrefix: e.target.value.toUpperCase() }))} className="form-input" placeholder="SGM-2027" />
             </div>
             <div>
-              <label className="form-label">Start Date *</label>
+              <label className="form-label">{l.startDate} *</label>
               <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className="form-input" />
             </div>
             <div>
-              <label className="form-label">End Date</label>
+              <label className="form-label">{l.endDate}</label>
               <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className="form-input" />
             </div>
             <div>
-              <label className="form-label">Target Amount (₹)</label>
+              <label className="form-label">{l.target}</label>
               <input type="number" value={form.targetAmount} onChange={e => setForm(p => ({ ...p, targetAmount: e.target.value }))} className="form-input" placeholder="500000" />
             </div>
             <div>
-              <label className="form-label">Description</label>
+              <label className="form-label">{l.description}</label>
               <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className="form-input" placeholder="10 days annual festival" />
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <button onClick={() => setShowForm(false)} className="btn-secondary flex-1">Cancel</button>
+            <button onClick={() => setShowForm(false)} className="btn-secondary flex-1">{common.cancel}</button>
             <button
               onClick={() => createMutation.mutate(form)}
               disabled={!form.name || !form.startDate || createMutation.isPending}
               className="btn-primary flex-1"
             >
-              {createMutation.isPending ? 'Creating...' : 'Create Campaign'}
+              {createMutation.isPending ? l.creating : l.create}
             </button>
           </div>
         </div>
@@ -115,11 +143,11 @@ export default function CampaignsPage() {
       ) : (
         <div className="space-y-4">
           {(campaigns || []).map((c: any) => (
-            <CampaignCard key={c.id} campaign={c} onActivate={() => activateMutation.mutate(c.id)} onComplete={() => completeMutation.mutate(c.id)} />
+            <CampaignCard key={c.id} campaign={c} language={language} labels={l} onActivate={() => activateMutation.mutate(c.id)} onComplete={() => completeMutation.mutate(c.id)} />
           ))}
           {!campaigns?.length && (
             <div className="glass-card p-12 text-center text-theme-fg/30">
-              No campaigns yet. Create your first campaign!
+              {l.empty}
             </div>
           )}
         </div>
@@ -128,7 +156,7 @@ export default function CampaignsPage() {
   );
 }
 
-function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
+function CampaignCard({ campaign: c, language, labels: l, onActivate, onComplete }: any) {
   const { data: stats } = useQuery({
     queryKey: ['campaign-stats', c.id],
     queryFn: () => campaignsApi.getStats(c.id),
@@ -144,24 +172,24 @@ function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Link href={`/campaigns/${c.id}`} className="font-bold text-theme-fg text-lg hover:text-saffron-400 transition-colors">{c.name}</Link>
-            <span className={`badge text-xs ${STATUS_COLORS[c.status]}`}>{c.status}</span>
+            <span className={`badge text-xs ${STATUS_COLORS[c.status]}`}>{CAMPAIGN_STATUS_LABELS[c.status as CampaignStatus]?.[language] || c.status}</span>
           </div>
           {c.nameMarathi && <p className="text-sm text-theme-fg/40 font-devanagari">{c.nameMarathi}</p>}
           <div className="flex items-center gap-3 mt-1.5 text-xs text-theme-fg/40">
             <span className="flex items-center gap-1"><Calendar size={11} /> {format(new Date(c.startDate), 'dd MMM yyyy')}</span>
             {c.endDate && <span>→ {format(new Date(c.endDate), 'dd MMM yyyy')}</span>}
-            <span className="flex items-center gap-1"><Receipt size={11} /> {c._count?.receipts || 0} receipts</span>
+            <span className="flex items-center gap-1"><Receipt size={11} /> {c._count?.receipts || 0} {l.receipts}</span>
           </div>
         </div>
         <div className="flex gap-2">
           {c.status === 'DRAFT' && (
             <button onClick={onActivate} className="btn-primary text-xs px-3 py-1.5 gap-1">
-              <Play size={12} /> Activate
+              <Play size={12} /> {l.activate}
             </button>
           )}
           {c.status === 'ACTIVE' && (
             <button onClick={onComplete} className="btn-secondary text-xs px-3 py-1.5 gap-1">
-              <CheckCircle size={12} /> Complete
+              <CheckCircle size={12} /> {l.complete}
             </button>
           )}
         </div>
@@ -170,15 +198,15 @@ function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
       {stats && (
         <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="glass-card p-3 text-center">
-            <p className="text-xs text-theme-fg/40">Collected</p>
+            <p className="text-xs text-theme-fg/40">{l.collected}</p>
             <p className="font-bold text-emerald-400 text-sm">{formatCurrency(stats.totalCollected || 0)}</p>
           </div>
           <div className="glass-card p-3 text-center">
-            <p className="text-xs text-theme-fg/40">Expenses</p>
+            <p className="text-xs text-theme-fg/40">{l.expenses}</p>
             <p className="font-bold text-red-400 text-sm">{formatCurrency(stats.totalExpenses || 0)}</p>
           </div>
           <div className="glass-card p-3 text-center">
-            <p className="text-xs text-theme-fg/40">Balance</p>
+            <p className="text-xs text-theme-fg/40">{l.balance}</p>
             <p className={`font-bold text-sm ${(stats.netBalance || 0) >= 0 ? 'text-saffron-400' : 'text-red-400'}`}>{formatCurrency(stats.netBalance || 0)}</p>
           </div>
         </div>
@@ -187,7 +215,7 @@ function CampaignCard({ campaign: c, onActivate, onComplete }: any) {
       {c.targetAmount && (
         <div>
           <div className="flex justify-between text-xs text-theme-fg/40 mb-1.5">
-            <span className="flex items-center gap-1"><Target size={10} /> Target: {formatCurrency(c.targetAmount)}</span>
+            <span className="flex items-center gap-1"><Target size={10} /> {l.targetLabel}: {formatCurrency(c.targetAmount)}</span>
             <span>{progress.toFixed(1)}%</span>
           </div>
           <div className="h-2 bg-theme-fg/8 rounded-full overflow-hidden">

@@ -11,19 +11,24 @@ import PendingPaymentBanner from '@/components/layout/PendingPaymentBanner';
 import toast from 'react-hot-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hasHydrated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const canView = useModuleAccessResolver();
 
   useEffect(() => {
+    // Wait for the persisted session to finish loading from localStorage
+    // before deciding someone's logged out — isAuthenticated reads its
+    // default `false` for a moment on every hard page load/refresh, and
+    // redirecting on that would bounce an already-logged-in user to /login.
+    if (!hasHydrated) return;
     if (!isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!hasHydrated || !isAuthenticated || !user) return;
     const module = inferRouteModule(pathname);
     // /members is the merged Staff&Collectors + Registered Members + Internal
     // Collection screen — its tabs are gated individually by the page itself,
@@ -35,9 +40,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push('/dashboard');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, user, isAuthenticated]);
+  }, [pathname, user, isAuthenticated, hasHydrated]);
 
-  if (!isAuthenticated) return null;
+  if (!hasHydrated || !isAuthenticated) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-navy-900">

@@ -30,6 +30,13 @@ interface AuthState {
   activeCampaignId: string | null;
   language: 'en' | 'hi' | 'mr';
   isAuthenticated: boolean;
+  // Zustand's `persist` rehydrates from localStorage asynchronously — on a
+  // hard page load, isAuthenticated briefly reads its default `false` before
+  // the persisted session loads. Route guards must wait for hasHydrated
+  // before treating `false` as "actually logged out", or every refresh/direct
+  // URL visit bounces a logged-in user to /login (see (dashboard)/layout.tsx).
+  hasHydrated: boolean;
+  setHasHydrated: (v: boolean) => void;
 
   setAuth: (data: {
     user: User;
@@ -54,6 +61,8 @@ export const useAuthStore = create<AuthState>()(
       activeCampaignId: null,
       language: 'mr',
       isAuthenticated: false,
+      hasHydrated: false,
+      setHasHydrated: (v) => set({ hasHydrated: v }),
 
       setAuth: ({ user, organization, accessToken, refreshToken }) =>
         set({ user, organization, accessToken, refreshToken, isAuthenticated: true }),
@@ -85,6 +94,7 @@ export const useAuthStore = create<AuthState>()(
         language: state.language,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
     },
   ),
 );
