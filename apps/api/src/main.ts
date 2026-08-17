@@ -15,7 +15,11 @@ async function bootstrap() {
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   // Security
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // CORS
   const corsOrigin = configService.get('CORS_ORIGIN', '*');
