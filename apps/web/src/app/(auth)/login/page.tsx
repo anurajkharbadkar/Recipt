@@ -28,7 +28,8 @@ export default function LoginPage() {
       toast.success('Welcome back! 🙏');
       router.push('/dashboard');
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Invalid credentials');
+      const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server. Please verify API URL.' : 'Invalid credentials');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -41,8 +42,9 @@ export default function LoginPage() {
       await authApi.sendOtp(phone);
       setOtpSent(true);
       toast.success('OTP sent!');
-    } catch {
-      toast.error('Failed to send OTP');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server.' : 'Failed to send OTP');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -56,8 +58,9 @@ export default function LoginPage() {
       setAuth(data);
       toast.success('Welcome! 🙏');
       router.push('/dashboard');
-    } catch {
-      toast.error('Invalid OTP');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server.' : 'Invalid OTP');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
