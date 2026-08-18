@@ -1,4 +1,4 @@
-import { PrismaClient, CampaignStatus, PaymentMode, DonationCategory, ExpenseCategory } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -156,7 +156,7 @@ async function main() {
         donorAddress: d.address,
         amount: d.amount,
         amountInWords: `${d.amount} Rupees Only`,
-        category: d.category as DonationCategory,
+        category: d.category,
         paymentMode: d.amount >= 5000 ? 'UPI' : 'CASH',
         createdAt: new Date(Date.now() - (donors.length - i) * 2 * 60 * 60 * 1000),
       },
