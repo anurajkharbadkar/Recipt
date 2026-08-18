@@ -5,51 +5,48 @@
 @tailwind utilities;
 
 :root {
-  /* Default: Light Theme */
-  --bg-color: #f8fafc;
-  --text-color: #0f172a;
-  --card-bg: #ffffff;
-  --card-border: #e2e8f0;
-  --navy-800: #f1f5f9;
-  --navy-700: #e2e8f0;
-  --text-muted: #475569;
-  --text-placeholder: #94a3b8;
-  --border-subtle: #f1f5f9;
-  --fg-rgb: 15 23 42;
+  /* Default: Solid Warm Ivory Royal Theme */
+  --bg-color: #FAF7F0;
+  --text-color: #301000;
+  --card-bg: #FFFFFF;
+  --card-border: #EFE6DC;
+  --navy-800: #F7F0E8;
+  --navy-700: #F3E6D5;
+  --text-muted: #603000;
+  --text-placeholder: #AF8C62;
+  --border-subtle: #F3E6D5;
+  --fg-rgb: 48 16 0;
 
-  /* Org-configurable UI accent — set on :root at runtime by BrandColorProvider
-   * from Organization.brandColor. Every "brand" surface below derives its
-   * tints/shades from this ONE value via color-mix() instead of a hardcoded
-   * hex, so changing it updates the whole UI immediately with no rebuild. */
-  --primary-brand-color: #592E09;
+  /* Org-configurable UI accent — default Deep Royal Brown */
+  --primary-brand-color: #502000;
 }
 
 .light {
   /* Explicit Light Theme class */
-  --bg-color: #f8fafc;
-  --text-color: #0f172a;
-  --card-bg: #ffffff;
-  --card-border: #e2e8f0;
-  --navy-800: #f1f5f9;
-  --navy-700: #e2e8f0;
-  --text-muted: #475569;
-  --text-placeholder: #94a3b8;
-  --border-subtle: #f1f5f9;
-  --fg-rgb: 15 23 42;
+  --bg-color: #FAF7F0;
+  --text-color: #301000;
+  --card-bg: #FFFFFF;
+  --card-border: #EFE6DC;
+  --navy-800: #F7F0E8;
+  --navy-700: #F3E6D5;
+  --text-muted: #603000;
+  --text-placeholder: #AF8C62;
+  --border-subtle: #F3E6D5;
+  --fg-rgb: 48 16 0;
 }
 
 .dark {
-  /* Dark Theme */
-  --bg-color: #060f18;
-  --text-color: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --navy-800: #0d1e2c;
-  --navy-700: #142d3d;
-  --text-muted: rgba(255, 255, 255, 0.55);
-  --text-placeholder: rgba(255, 255, 255, 0.35);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --fg-rgb: 255 255 255;
+  /* Dark Obsidian Theme */
+  --bg-color: #120D08;
+  --text-color: #F4F0E0;
+  --card-bg: #1A120B;
+  --card-border: #29190B;
+  --navy-800: #1a120b;
+  --navy-700: #29190B;
+  --text-muted: #D6B691;
+  --text-placeholder: #AF8C62;
+  --border-subtle: #29190B;
+  --fg-rgb: 244 240 224;
 }
 
 @layer base {
@@ -69,29 +66,28 @@
   }
 
   ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+  ::-webkit-scrollbar-track { background: var(--bg-color); }
   ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--primary-brand-color) 40%, transparent); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--primary-brand-color) 60%, transparent); }
 }
 
 @layer components {
-  /* Glass Card */
+  /* Solid Opaque Card */
   .glass-card {
     background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--card-border);
-    border-radius: 1rem;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    border-radius: 1.25rem;
+    box-shadow: 0 4px 20px -2px rgba(80, 32, 0, 0.04), 0 2px 6px -1px rgba(80, 32, 0, 0.02);
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .glass-card-hover {
-    @apply glass-card transition-all duration-300;
+    @apply glass-card transition-all duration-200;
     &:hover {
       background: var(--card-bg);
-      border-color: color-mix(in srgb, var(--primary-brand-color) 30%, transparent);
+      border-color: #E2D7CB;
       transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      box-shadow: 0 8px 24px -2px rgba(80, 32, 0, 0.07);
     }
   }
 
@@ -99,10 +95,10 @@
   .btn-primary {
     @apply flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all duration-200;
     background: linear-gradient(135deg, var(--primary-brand-color) 0%, color-mix(in srgb, var(--primary-brand-color) 65%, white) 100%);
-    box-shadow: 0 4px 15px color-mix(in srgb, var(--primary-brand-color) 40%, transparent);
+    box-shadow: 0 4px 15px -2px color-mix(in srgb, var(--primary-brand-color) 35%, transparent);
     &:hover {
       filter: brightness(1.08);
-      box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-brand-color) 50%, transparent);
+      box-shadow: 0 6px 20px -2px color-mix(in srgb, var(--primary-brand-color) 45%, transparent);
       transform: translateY(-1px);
     }
     &:active { transform: translateY(0); }
@@ -117,10 +113,12 @@
     @apply flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
+    box-shadow: 0 2px 6px rgba(80, 32, 0, 0.02);
     color: var(--text-color);
     &:hover {
       background: var(--navy-800);
-      border-color: var(--navy-700);
+      border-color: #E2D7CB;
+      transform: translateY(-1px);
     }
   }
 
@@ -128,7 +126,7 @@
     @apply flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200;
     color: var(--text-muted);
     &:hover {
-      background: var(--card-bg);
+      background: var(--navy-800);
       color: var(--text-color);
     }
   }
@@ -136,31 +134,30 @@
   /* Form Elements */
   .form-input {
     @apply w-full px-4 py-3 rounded-xl outline-none transition-all duration-200;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
+    background: #FFFFFF;
+    border: 1px solid #E2D7CB;
     color: var(--text-color);
     font-size: 0.95rem;
     &::placeholder { color: var(--text-placeholder); }
     &:focus {
       border-color: var(--primary-brand-color);
-      background: var(--card-bg);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-brand-color) 15%, transparent);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-brand-color) 12%, transparent);
     }
   }
 
   .form-select {
     @apply w-full px-4 py-3 rounded-xl outline-none transition-all duration-200 cursor-pointer;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
+    background: #FFFFFF;
+    border: 1px solid #E2D7CB;
     color: var(--text-color);
     font-size: 0.95rem;
     &:focus {
       border-color: var(--primary-brand-color);
-      background: var(--card-bg);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-brand-color) 15%, transparent);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-brand-color) 12%, transparent);
     }
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='gray' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 16px;
@@ -180,15 +177,7 @@
 
   /* Stat Card */
   .stat-card {
-    @apply glass-card p-5 relative overflow-hidden;
-  }
-
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--primary-brand-color), color-mix(in srgb, var(--primary-brand-color) 60%, white));
+    @apply glass-card p-5 relative overflow-hidden transition-all duration-300;
   }
 
   /* Table */
@@ -222,12 +211,14 @@
   .badge {
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
-  .badge-success { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
-  .badge-warning { background: rgba(255, 179, 0, 0.15); color: #ffb300; }
+  .badge-success { background: rgba(21, 148, 71, 0.15); color: #159447; border: 1px solid rgba(21, 148, 71, 0.3); }
+  .badge-warning { background: rgba(200, 155, 60, 0.18); color: #C89B3C; border: 1px solid rgba(200, 155, 60, 0.35); }
   .badge-danger  { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
-  .badge-info    { background: rgba(52, 152, 219, 0.15); color: #3498db; }
-  .badge-saffron { background: color-mix(in srgb, var(--primary-brand-color) 15%, transparent); color: var(--primary-brand-color); }
-  .badge-neutral { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); }
+  .badge-info    { background: rgba(15, 56, 112, 0.15); color: #0F3870; }
+  .badge-saffron { background: #F0E0C0; color: #502000; border: 1px solid #E8C878; }
+  .badge-gold    { background: #F0D8A0; color: #502000; border: 1px solid #C89B3C; }
+  .badge-royal   { background: rgba(15, 56, 112, 0.12); color: #0F3870; border: 1px solid rgba(15, 56, 112, 0.3); }
+  .badge-neutral { background: rgba(48, 16, 0, 0.08); color: var(--text-muted); }
 
   /* Sidebar Nav Link */
   .nav-link {

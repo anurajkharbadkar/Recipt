@@ -23,34 +23,81 @@ const FEATURES = [
 ];
 
 function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
+  const isBasic = plan.id === 'BASIC';
+  const isStandard = plan.id === 'STANDARD';
+  const isPremium = plan.id === 'PREMIUM';
+
   return (
-    <div className={`relative glass-card p-6 flex flex-col ${plan.highlighted ? 'border-2 border-saffron-500 shadow-glow-saffron' : ''}`}>
-      {plan.highlighted && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge badge-saffron text-[10px] flex items-center gap-1 px-3 py-1">
-          <Star size={10} /> MOST POPULAR
+    <div
+      className={`relative glass-card p-6 flex flex-col transition-all duration-300 ${
+        isStandard
+          ? 'border-2 border-royal-600 bg-gradient-to-b from-white via-white to-royal-50/50 shadow-xl shadow-royal-900/10 lg:-translate-y-2'
+          : isPremium
+          ? 'border-2 border-gold-400 bg-gradient-to-b from-[#21160E] to-[#120D08] text-[#F4F0E0] shadow-xl shadow-black/25'
+          : 'border border-saffron-300/80 bg-white/90 shadow-md hover:border-saffron-500/60'
+      }`}
+    >
+      {isStandard && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-royal text-[10px] flex items-center gap-1 px-3 py-1 font-bold shadow-sm">
+          <Star size={10} className="fill-gold-500 text-gold-500" /> RECOMMENDED
         </span>
       )}
-      <h3 className="text-xl font-bold text-theme-fg mt-2">{plan.name}</h3>
-      <p className="text-xs text-theme-fg/50 mt-1 min-h-[32px]">{plan.tagline}</p>
+      {isPremium && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-gold text-[10px] flex items-center gap-1 px-3 py-1 font-bold shadow-sm">
+          👑 VIP / TEMPLE TRUST
+        </span>
+      )}
+
+      <h3 className={`text-xl font-bold mt-2 ${isPremium ? 'text-gold-300' : isStandard ? 'text-royal-900' : 'text-theme-fg'}`}>
+        {plan.name}
+      </h3>
+      <p className={`text-xs mt-1 min-h-[32px] ${isPremium ? 'text-saffron-100/70' : 'text-theme-fg/50'}`}>
+        {plan.tagline}
+      </p>
+
       <div className="mt-4 mb-1">
-        <span className="text-3xl font-bold text-saffron-400">{formatCurrency(plan.priceInr)}</span>
+        <span className={`text-3xl font-extrabold ${isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-saffron-700'}`}>
+          {formatCurrency(plan.priceInr)}
+        </span>
       </div>
-      <p className="text-[11px] text-theme-fg/40 mb-5">{plan.priceNote}</p>
+      <p className={`text-[11px] mb-5 ${isPremium ? 'text-saffron-200/50' : 'text-theme-fg/40'}`}>
+        {plan.priceNote}
+      </p>
 
       <ul className="space-y-2.5 flex-1 mb-6">
         {plan.features.map((f) => (
           <li key={f.label} className="flex items-start gap-2 text-sm">
-            <Check size={15} className={`shrink-0 mt-0.5 ${f.comingSoon ? 'text-theme-fg/30' : 'text-emerald-400'}`} />
-            <span className={f.comingSoon ? 'text-theme-fg/40' : 'text-theme-fg/85'}>
+            <Check
+              size={15}
+              className={`shrink-0 mt-0.5 ${
+                f.comingSoon
+                  ? isPremium ? 'text-white/20' : 'text-theme-fg/30'
+                  : isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-success-500'
+              }`}
+            />
+            <span className={f.comingSoon ? (isPremium ? 'text-white/40' : 'text-theme-fg/40') : (isPremium ? 'text-white/90' : 'text-theme-fg/85')}>
               {f.label}
               {f.comingSoon && <span className="ml-1.5 badge badge-neutral text-[9px] align-middle">Coming Soon</span>}
-              {f.description && <span className="block text-[11px] text-theme-fg/35 mt-0.5">{f.description}</span>}
+              {f.description && (
+                <span className={`block text-[11px] mt-0.5 ${isPremium ? 'text-saffron-200/50' : 'text-theme-fg/45'}`}>
+                  {f.description}
+                </span>
+              )}
             </span>
           </li>
         ))}
       </ul>
 
-      <Link href={`/register?plan=${plan.id.toLowerCase()}`} className={plan.highlighted ? 'btn-primary w-full' : 'btn-secondary w-full'}>
+      <Link
+        href={`/register?plan=${plan.id.toLowerCase()}`}
+        className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-200 ${
+          isStandard
+            ? 'bg-royal-600 text-white hover:bg-royal-700 shadow-md shadow-royal-600/25'
+            : isPremium
+            ? 'bg-gradient-to-r from-[#C89B3C] to-[#E8C878] text-[#301000] hover:brightness-105 shadow-md shadow-gold-500/20'
+            : 'btn-primary'
+        }`}
+      >
         Get Started <ArrowRight size={15} />
       </Link>
     </div>

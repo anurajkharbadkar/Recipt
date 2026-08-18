@@ -13,38 +13,46 @@ import {
 import { formatCurrency } from '@pavti/shared';
 import { format } from 'date-fns';
 
-function StatCard({ title, value, icon: Icon, change, color, hero }: any) {
+function StatCard({ title, value, icon: Icon, change, hero, variant }: any) {
   return (
-    <div className={`stat-card animate-slide-up ${hero ? 'sm:p-6' : ''}`}>
+    <div className={`glass-card p-5 animate-slide-up ${hero ? 'sm:p-6' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className={`text-theme-fg/45 font-medium uppercase tracking-wider mb-1 ${hero ? 'text-xs' : 'text-[11px]'}`}>{title}</p>
-          <p className={`font-bold text-theme-fg ${hero ? 'text-3xl' : 'text-xl'}`}>{value}</p>
+          <p className={`text-theme-fg/50 font-semibold uppercase tracking-wider mb-1 ${hero ? 'text-xs' : 'text-[11px]'}`}>{title}</p>
+          <p className={`font-bold text-theme-fg ${hero ? 'text-2xl sm:text-3xl' : 'text-xl'}`}>{value}</p>
           {change !== undefined && (
             <div className="flex items-center gap-1 mt-1">
-              <ArrowUpRight size={12} className="text-emerald-400" />
-              <span className="text-xs text-emerald-400">{change}</span>
+              <ArrowUpRight size={12} className="text-success-500" />
+              <span className="text-xs text-success-500 font-semibold">{change}</span>
             </div>
           )}
         </div>
-        <div className={`rounded-xl flex items-center justify-center ${color} ${hero ? 'w-14 h-14' : 'w-10 h-10'}`}>
-          <Icon size={hero ? 26 : 18} />
+        <div
+          className={`rounded-xl flex items-center justify-center shrink-0 ${
+            variant === 'danger'
+              ? 'w-10 h-10 text-red-700 bg-red-100/60 dark:bg-red-950/30'
+              : variant === 'success'
+              ? 'w-10 h-10 text-success-500 bg-emerald-100/60 dark:bg-emerald-950/30'
+              : hero
+              ? 'w-12 h-12 text-saffron-700 bg-saffron-100/70 dark:bg-saffron-900/30'
+              : 'w-9 h-9 text-saffron-700 bg-saffron-100/50 dark:bg-saffron-900/20'
+          }`}
+        >
+          <Icon size={hero ? 22 : 17} />
         </div>
       </div>
     </div>
   );
 }
 
-// Large, thumb-friendly tap targets — most of this portal's users are on a
-// phone in the field, not a desktop, so the primary create-actions live here
-// at the top of the Dashboard rather than buried in nav-only entry points.
-function QuickAction({ href, icon: Icon, label, color }: any) {
+// Large, thumb-friendly tap targets
+function QuickAction({ href, icon: Icon, label }: any) {
   return (
-    <Link href={href} className="glass-card-hover p-4 flex flex-col items-center gap-2 text-center active:scale-95 transition-transform">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${color}`}>
+    <Link href={href} className="glass-card-hover p-4 flex flex-col items-center gap-2 text-center active:scale-95 transition-transform group">
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-saffron-100/80 text-saffron-700 dark:bg-saffron-900/40 dark:text-saffron-300 group-hover:scale-105 transition-transform">
         <Icon size={20} />
       </div>
-      <span className="text-xs font-semibold text-theme-fg">{label}</span>
+      <span className="text-xs font-bold text-theme-fg">{label}</span>
     </Link>
   );
 }
@@ -123,28 +131,27 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Actions — the things people actually come here to do, one tap
-          away, before any of the reporting below. */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-3">
-        <QuickAction href="/receipts/new" icon={Plus} label={l.newReceipt} color="bg-saffron-600/15 text-saffron-400" />
-        <QuickAction href="/expenses?new=1" icon={IndianRupee} label={l.addExpense} color="bg-red-500/15 text-red-400" />
-        <QuickAction href="/members?tab=internal" icon={Users2} label={l.memberContribution} color="bg-blue-500/15 text-blue-400" />
+        <QuickAction href="/receipts/new" icon={Plus} label={l.newReceipt} />
+        <QuickAction href="/expenses?new=1" icon={IndianRupee} label={l.addExpense} />
+        <QuickAction href="/members?tab=internal" icon={Users2} label={l.memberContribution} />
       </div>
 
-      {/* Hero stats — the three numbers a treasurer actually cares about first */}
+      {/* Hero stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard hero title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} color="bg-saffron-600/15 text-saffron-400" />
-        <StatCard hero title={l.expenses} value={formatCurrency(stats.totalExpenses || 0)} icon={IndianRupee} color="bg-red-500/15 text-red-400" />
-        <StatCard hero title={l.balance} value={formatCurrency(stats.netBalance || 0)} icon={Wallet} color={`${(stats.netBalance || 0) >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`} />
+        <StatCard hero title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} />
+        <StatCard hero title={l.expenses} value={formatCurrency(stats.totalExpenses || 0)} icon={IndianRupee} variant="danger" />
+        <StatCard hero title={l.balance} value={formatCurrency(stats.netBalance || 0)} icon={Wallet} variant={(stats.netBalance || 0) >= 0 ? 'success' : 'danger'} />
       </div>
 
-      {/* Supporting counts — smaller, secondary tier */}
+      {/* Supporting counts */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard title={l.today} value={formatCurrency(stats.todayCollections || 0)} icon={Wallet} color="bg-emerald-500/15 text-emerald-400" />
-        <StatCard title={l.receipts} value={(stats.totalReceipts || 0).toLocaleString('en-IN')} icon={Receipt} color="bg-blue-500/15 text-blue-400" />
-        <StatCard title={l.todayR} value={(stats.todayReceipts || 0).toLocaleString('en-IN')} icon={FileText} color="bg-purple-500/15 text-purple-400" />
-        <StatCard title={l.collectors} value={stats.activeCollectors || 0} icon={Users} color="bg-amber-500/15 text-amber-400" />
-        <StatCard title={l.pending} value={stats.pendingExpenses || 0} icon={FileText} color="bg-orange-500/15 text-orange-400" />
+        <StatCard title={l.today} value={formatCurrency(stats.todayCollections || 0)} icon={Wallet} />
+        <StatCard title={l.receipts} value={(stats.totalReceipts || 0).toLocaleString('en-IN')} icon={Receipt} />
+        <StatCard title={l.todayR} value={(stats.todayReceipts || 0).toLocaleString('en-IN')} icon={FileText} />
+        <StatCard title={l.collectors} value={stats.activeCollectors || 0} icon={Users} />
+        <StatCard title={l.pending} value={stats.pendingExpenses || 0} icon={FileText} />
       </div>
 
       {/* Charts Row */}

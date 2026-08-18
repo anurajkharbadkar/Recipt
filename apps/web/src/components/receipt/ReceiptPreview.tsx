@@ -141,15 +141,15 @@ export default function ReceiptPreview({ receipt, printMode = false, language: l
         {/* Category, Mode & Status */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
-            <div className="text-[9px] text-gray-400 uppercase font-semibold">{l.category}</div>
-            <div className="text-xs font-semibold text-gray-700 mt-0.5 truncate">{receipt.category}</div>
+            <div className="text-[10px] text-gray-400 uppercase font-semibold">{l.category}</div>
+            <div className="text-xs font-semibold text-gray-700 mt-0.5 leading-tight break-words">{receipt.category}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
-            <div className="text-[9px] text-gray-400 uppercase font-semibold">{l.mode}</div>
-            <div className="text-xs font-semibold text-gray-700 mt-0.5 truncate">{receipt.paymentMode}</div>
+            <div className="text-[10px] text-gray-400 uppercase font-semibold">{l.mode}</div>
+            <div className="text-xs font-semibold text-gray-700 mt-0.5 leading-tight break-words">{receipt.paymentMode}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
-            <div className="text-[9px] text-gray-400 uppercase font-semibold">Status</div>
+            <div className="text-[10px] text-gray-400 uppercase font-semibold">Status</div>
             <div className="text-xs font-bold mt-0.5">
               {isUnpaid ? (
                 <span className="text-amber-600">{language === 'mr' ? 'थकबाकी' : language === 'hi' ? 'बकाया' : 'Unpaid'}</span>

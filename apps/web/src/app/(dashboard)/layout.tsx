@@ -8,6 +8,7 @@ import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import PendingPaymentBanner from '@/components/layout/PendingPaymentBanner';
+import NewReceiptFab from '@/components/layout/NewReceiptFab';
 import toast from 'react-hot-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -56,6 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
+      <NewReceiptFab />
     </div>
   );
 }

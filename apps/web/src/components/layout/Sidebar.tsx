@@ -164,10 +164,11 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile toggle */}
+      {/* Mobile toggle button (positioned on the right) */}
       <button
-        className="fixed top-4 left-4 z-50 md:hidden glass-card p-2 rounded-xl"
+        className="fixed top-3.5 right-4 z-50 md:hidden glass-card p-2 rounded-xl shadow-sm text-theme-fg hover:text-saffron-700 transition-colors"
         onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label="Toggle Menu"
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -175,16 +176,16 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar (slides in from the right) */}
       <div className={clsx(
-        'fixed left-0 top-0 h-full w-64 z-50 md:hidden transition-transform duration-300',
-        'bg-navy-800 border-r border-theme',
-        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        'fixed right-0 top-0 h-full w-64 z-50 md:hidden transition-transform duration-300',
+        'bg-navy-800 border-l border-theme shadow-2xl',
+        mobileOpen ? 'translate-x-0' : 'translate-x-full',
       )}>
         <SidebarContent />
       </div>

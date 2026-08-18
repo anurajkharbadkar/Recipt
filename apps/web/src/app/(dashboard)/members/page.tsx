@@ -89,7 +89,7 @@ function StaffTab() {
             </div>
             <div>
               <label className="form-label">{sl.phone} *</label>
-              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" />
+              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" inputMode="tel" />
             </div>
             <div>
               <label className="form-label">{sl.email}</label>
@@ -164,8 +164,8 @@ function CollectorCard({ collector: c, language, onToggle }: any) {
             <span className={`badge text-[10px] ${c.role === 'TREASURER' ? 'badge-warning' : 'badge-neutral'}`}>{USER_ROLE_LABELS[c.role as UserRole]?.[language] || c.role}</span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => onToggle(c.id, !c.isActive)} className="text-theme-fg/30 hover:text-saffron-400 transition-colors">
+        <div className="flex items-center gap-1.5 -mr-2 -mt-1">
+          <button onClick={() => onToggle(c.id, !c.isActive)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors">
             {c.isActive ? <ToggleRight size={22} className="text-saffron-400" /> : <ToggleLeft size={22} />}
           </button>
         </div>
@@ -298,7 +298,7 @@ function RegisteredMembersTab() {
             </div>
             <div>
               <label className="form-label"><Phone size={11} className="inline mr-1" /> {ml.phone}</label>
-              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" />
+              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" inputMode="tel" />
             </div>
             <div>
               <label className="form-label"><MapPin size={11} className="inline mr-1" /> {ml.address}</label>
@@ -344,11 +344,11 @@ function RegisteredMembersTab() {
                     {m.phone && <p className="text-xs text-theme-fg/40">{m.phone}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => toggleMutation.mutate({ id: m.id, isActive: !m.isActive })} className="p-1 text-theme-fg/30 hover:text-saffron-400 transition-colors" title={m.isActive ? ml.deactivate : ml.activate}>
+                <div className="flex items-center shrink-0 -mr-2 -mt-1">
+                  <button onClick={() => toggleMutation.mutate({ id: m.id, isActive: !m.isActive })} className="min-w-[40px] min-h-[40px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors" title={m.isActive ? ml.deactivate : ml.activate}>
                     {m.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                   </button>
-                  <button onClick={() => deleteMutation.mutate(m.id)} className="p-1 text-theme-fg/30 hover:text-red-400 transition-colors" title={ml.remove}>
+                  <button onClick={() => deleteMutation.mutate(m.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center text-theme-fg/30 hover:text-red-400 transition-colors" title={ml.remove}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -435,16 +435,43 @@ export default function MembersPage() {
   const canSeeMembers = canView('Members');
 
   const tabLabels = {
-    en: { staff: 'Staff & Collectors', members: 'Registered Members', internal: 'Member Contributions', subtitle: 'Staff who collect, members who contribute, and member contributions — all in one place.', noAccess: "You don't have access to this section." },
-    hi: { staff: 'स्टाफ व संग्रहकर्ता', members: 'पंजीकृत सदस्य', internal: 'सदस्य योगदान', subtitle: 'संग्रह करने वाला स्टाफ, योगदान देने वाले सदस्य, और सदस्य योगदान — सब एक जगह।', noAccess: 'आपको इस अनुभाग तक पहुंच नहीं है।' },
-    mr: { staff: 'स्टाफ व संग्राहक', members: 'नोंदणीकृत सभासद', internal: 'सभासद वर्गणी', subtitle: 'संकलन करणारे स्टाफ, वर्गणी देणारे सभासद, आणि सभासद वर्गणी — सर्व एका ठिकाणी.', noAccess: 'तुम्हाला या विभागात प्रवेश नाही.' },
+    en: {
+      staff: 'Staff & Collectors',
+      staffShort: 'Staff',
+      members: 'Registered Members',
+      membersShort: 'Members',
+      internal: 'Member Contributions',
+      internalShort: 'Contributions',
+      subtitle: 'Staff who collect, members who contribute, and member contributions — all in one place.',
+      noAccess: "You don't have access to this section.",
+    },
+    hi: {
+      staff: 'स्टाफ व संग्रहकर्ता',
+      staffShort: 'स्टाफ',
+      members: 'पंजीकृत सदस्य',
+      membersShort: 'सदस्य',
+      internal: 'सदस्य योगदान',
+      internalShort: 'योगदान',
+      subtitle: 'संग्रह करने वाला स्टाफ, योगदान देने वाले सदस्य, और सदस्य योगदान — सब एक जगह।',
+      noAccess: 'आपको इस अनुभाग तक पहुंच नहीं है।',
+    },
+    mr: {
+      staff: 'स्टाफ व संग्राहक',
+      staffShort: 'स्टाफ',
+      members: 'नोंदणीकृत सभासद',
+      membersShort: 'सभासद',
+      internal: 'सभासद वर्गणी',
+      internalShort: 'वर्गणी',
+      subtitle: 'संकलन करणारे स्टाफ, वर्गणी देणारे सभासद, आणि सभासद वर्गणी — सर्व एका ठिकाणी.',
+      noAccess: 'तुम्हाला या विभागात प्रवेश नाही.',
+    },
   };
   const tl = tabLabels[language] || tabLabels.en;
 
-  const tabs: { key: TabKey; label: string; icon: any; visible: boolean }[] = [
-    { key: 'staff', label: tl.staff, icon: UserCog, visible: canSeeStaff },
-    { key: 'members', label: tl.members, icon: Users2, visible: canSeeMembers },
-    { key: 'internal', label: tl.internal, icon: Wallet, visible: canSeeMembers },
+  const tabs: { key: TabKey; label: string; shortLabel: string; icon: any; visible: boolean }[] = [
+    { key: 'staff', label: tl.staff, shortLabel: tl.staffShort, icon: UserCog, visible: canSeeStaff },
+    { key: 'members', label: tl.members, shortLabel: tl.membersShort, icon: Users2, visible: canSeeMembers },
+    { key: 'internal', label: tl.internal, shortLabel: tl.internalShort, icon: Wallet, visible: canSeeMembers },
   ];
   const visibleTabs = tabs.filter((t) => t.visible);
 
@@ -466,16 +493,28 @@ export default function MembersPage() {
         <p className="text-xs text-theme-fg/40 mt-0.5">{tl.subtitle}</p>
       </div>
 
-      <div className="flex gap-2 border-b border-theme overflow-x-auto">
-        {visibleTabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === t.key ? 'border-saffron-500 text-saffron-400' : 'border-transparent text-theme-fg/50 hover:text-theme-fg'}`}
-          >
-            <t.icon size={15} /> {t.label}
-          </button>
-        ))}
+      {/* Zero-Overflow Mobile Grid Segmented Control */}
+      <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-saffron-100/60 dark:bg-navy-800 rounded-2xl border border-theme/20 shadow-xs">
+        {visibleTabs.map((t) => {
+          const isActive = activeTab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 px-1 sm:px-3 rounded-xl text-center transition-all duration-200 ${
+                isActive
+                  ? 'bg-saffron-700 text-white shadow-sm font-bold'
+                  : 'text-theme-fg/70 hover:text-theme-fg hover:bg-white/50 dark:hover:bg-white/5 font-medium'
+              }`}
+            >
+              <t.icon size={16} className={isActive ? 'text-white' : 'text-saffron-700 dark:text-saffron-300 shrink-0'} />
+              <span className="text-[11px] sm:text-xs md:text-sm leading-tight truncate sm:whitespace-nowrap">
+                <span className="sm:hidden">{t.shortLabel}</span>
+                <span className="hidden sm:inline">{t.label}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === 'staff' && canSeeStaff && <StaffTab />}

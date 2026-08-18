@@ -85,14 +85,18 @@ export default function LoginPage() {
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">ई पावती बुक</p>
         </div>
 
-        <div className="glass-card p-7">
+        <div className="glass-card p-7 shadow-xl shadow-saffron-900/5">
           {/* Mode Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-theme-fg/5 border border-theme-fg/5 rounded-xl">
+          <div className="flex gap-1.5 mb-6 p-1 bg-saffron-100/60 dark:bg-[#120D08] rounded-xl border border-theme/20">
             {(['password', 'otp'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${mode === m ? 'bg-saffron-600 text-white' : 'text-theme-fg/50 hover:text-theme-fg'}`}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  mode === m
+                    ? 'bg-saffron-700 text-white shadow-sm'
+                    : 'text-theme-fg/60 hover:text-theme-fg'
+                }`}
               >
                 {m === 'password' ? '🔒 Password' : '📱 OTP'}
               </button>
@@ -175,18 +179,18 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-theme-fg/10 text-center">
-            <p className="text-sm text-theme-fg/40">
+          <div className="mt-6 pt-6 border-t border-black/[0.04] text-center">
+            <p className="text-sm text-theme-fg/60">
               New organization?{' '}
-              <Link href="/register" className="text-saffron-400 hover:text-saffron-300 font-medium">
+              <Link href="/register" className="text-saffron-700 hover:text-saffron-600 font-semibold underline underline-offset-2">
                 Register here
               </Link>
             </p>
           </div>
 
           {/* Demo credentials */}
-          <div className="mt-4 p-3 bg-theme-fg/5 border border-theme-fg/5 rounded-xl text-xs text-theme-fg/50">
-            <p className="font-semibold text-theme-fg/70 mb-1">Demo Credentials:</p>
+          <div className="mt-4 p-3.5 bg-black/[0.03] backdrop-blur-sm rounded-xl text-xs text-theme-fg/60">
+            <p className="font-semibold text-theme-fg/80 mb-1">Demo Credentials:</p>
             <p>📱 9876543210 | 🔑 Admin@123</p>
           </div>
         </div>

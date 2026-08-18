@@ -44,7 +44,7 @@ export default function PendingPaymentBanner() {
           href={platformWhatsappLink(message)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded-lg shrink-0"
+          className="flex items-center justify-center gap-1.5 min-h-[40px] text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 px-4 rounded-lg shrink-0"
         >
           <MessageCircle size={13} /> I've Paid — Notify Us
         </a>

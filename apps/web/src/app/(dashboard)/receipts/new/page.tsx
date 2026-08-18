@@ -42,7 +42,12 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const STEPS = ['Campaign & Donor', 'Amount & Details', 'Review & Send'];
+// Two steps, not three — donor info and amount/payment used to be separate
+// taps, but neither is long enough alone to earn its own screen, and the
+// extra "Continue" was pure friction for the common case (one donor, one
+// amount, cash). Review still gets its own step since it's the one place a
+// collector should actually stop and check what they're about to submit.
+const STEPS = ['Details', 'Review & Send'];
 
 export default function NewReceiptPage() {
   const [step, setStep] = useState(0);
@@ -98,7 +103,6 @@ export default function NewReceiptPage() {
     mutationFn: receiptsApi.create,
     onSuccess: (receipt) => {
       setCreatedReceipt(receipt);
-      setStep(3);
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       toast.success(language === 'mr' ? 'पावती यशस्वीरित्या तयार झाली!' : 'Receipt created successfully!');
@@ -110,8 +114,7 @@ export default function NewReceiptPage() {
 
   const nextStep = async () => {
     const fields: Record<number, (keyof FormData)[]> = {
-      0: ['campaignId', 'donorName', 'donorPhone'],
-      1: ['amount', 'category', 'paymentMode'],
+      0: ['campaignId', 'donorName', 'donorPhone', 'amount', 'category', 'paymentMode'],
     };
     const valid = await trigger(fields[step] || []);
     if (valid) setStep(s => s + 1);
@@ -143,7 +146,7 @@ export default function NewReceiptPage() {
     window.open(`https://wa.me/91${createdReceipt.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
   };
 
-  if (step === 3 && createdReceipt) {
+  if (createdReceipt) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 animate-slide-up">
         <div className="glass-card p-8 text-center">
@@ -197,9 +200,10 @@ export default function NewReceiptPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Step 0: Campaign & Donor */}
+        {/* Step 0: Donor + Amount/Payment together — see the STEPS comment above */}
         {step === 0 && (
-          <div className="glass-card p-6 space-y-5 animate-slide-up">
+          <div className="space-y-4 animate-slide-up">
+          <div className="glass-card p-6 space-y-5">
             <div>
               <label className="form-label">Collection Type</label>
               <div className="flex gap-2">
@@ -323,11 +327,8 @@ export default function NewReceiptPage() {
               />
             </div>
           </div>
-        )}
 
-        {/* Step 1: Amount & Details */}
-        {step === 1 && (
-          <div className="glass-card p-6 space-y-5 animate-slide-up">
+          <div className="glass-card p-6 space-y-5">
             <div>
               <label className="form-label">
                 <IndianRupee size={12} className="inline mr-1" />
@@ -388,7 +389,7 @@ export default function NewReceiptPage() {
                 <CreditCard size={12} className="inline mr-1" />
                 {language === 'mr' ? 'देय पद्धत' : 'Payment Mode'}
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.values(PaymentMode).map((mode) => (
                   <label key={mode} className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-medium ${watch('paymentMode') === mode ? 'border-saffron-500 bg-saffron-600/15 text-saffron-400' : 'border-theme-fg/10 bg-theme-fg/5 text-theme-fg/60 hover:bg-theme-fg/8'}`}>
                     <input {...register('paymentMode')} type="radio" value={mode} className="hidden" />
@@ -446,10 +447,11 @@ export default function NewReceiptPage() {
               </label>
             </div>
           </div>
+          </div>
         )}
 
-        {/* Step 2: Review */}
-        {step === 2 && (
+        {/* Step 1: Review */}
+        {step === 1 && (
           <div className="space-y-4 animate-slide-up">
             <div className="glass-card p-6">
               <h3 className="text-sm font-semibold text-theme-fg/60 uppercase tracking-wider mb-4">Review Receipt</h3>
@@ -481,7 +483,7 @@ export default function NewReceiptPage() {
               Back
             </button>
           )}
-          {step < 2 ? (
+          {step < STEPS.length - 1 ? (
             <button type="button" onClick={nextStep} className="btn-primary flex-1">
               Continue →
             </button>

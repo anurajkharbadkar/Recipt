@@ -1,21 +1,38 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  // The app's own theme toggle (Sidebar.tsx) adds/removes a literal `dark`/
+  // `light` class on <html>, but without this, Tailwind's default `media`
+  // strategy makes every `dark:` utility follow the OS color scheme instead
+  // — so picking "Dark Mode" in-app while the OS is set to light silently did
+  // nothing for any element using a `dark:` class. `class` mode makes every
+  // existing `dark:` utility in the app finally track the real toggle.
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         // Brand Colors
         saffron: {
-          50:  '#FCF3E4',
-          100: '#EFD2AE',
-          200: '#D6B691',
-          300: '#AF8C62',
-          400: '#D2A46D',
-          500: '#995C21',
-          600: '#71471D',
-          700: '#592E09',
-          800: '#422105',
-          900: '#29190B',
+          50:  '#FAF7F0',
+          100: '#F7F0E8',
+          200: '#F3E6D5',
+          300: '#F0D8A0',
+          400: '#E8C878',
+          500: '#C89B3C',
+          600: '#603000',
+          700: '#502000',
+          800: '#401800',
+          900: '#301000',
+        },
+        royal: {
+          50:  '#f0f5fa',
+          100: '#dbe6f4',
+          200: '#b8cde8',
+          500: '#1d5fa8',
+          600: '#0F3870',
+          700: '#0a2750',
+          800: '#061a36',
+          900: '#030e20',
         },
         navy: {
           50:  '#e8ecf0',
@@ -30,18 +47,16 @@ module.exports = {
           900: 'var(--bg-color)',
         },
         gold: {
-          400: '#ffd54f',
-          500: '#ffca28',
-          600: '#ffb300',
+          300: '#F0D8A0',
+          400: '#E8C878',
+          500: '#C89B3C',
+          600: '#A97C24',
         },
-        // Theme-aware foreground token — resolves to white in Dark mode and
-        // slate-900 in Light mode via the --fg-rgb CSS var (globals.css),
-        // and supports Tailwind opacity modifiers (text-theme-fg/60) through
-        // the <alpha-value> placeholder. Use this instead of literal
-        // text-white/bg-white/border-white anywhere the surface underneath
-        // is theme-following (page background, glass-card, table row) —
-        // literal white utilities don't react to the Light theme toggle and
-        // render invisible text once the card background turns solid white.
+        success: {
+          500: '#159447',
+          600: '#117a3a',
+        },
+        // Theme-aware foreground token
         theme: {
           fg: 'rgb(var(--fg-rgb) / <alpha-value>)',
         },
@@ -51,7 +66,9 @@ module.exports = {
         devanagari: ['var(--font-noto)', 'Noto Sans Devanagari', 'sans-serif'],
       },
       backgroundImage: {
-        'gradient-brand': 'linear-gradient(135deg, #592E09 0%, #71471D 50%, #D2A46D 100%)',
+        'gradient-brand': 'linear-gradient(135deg, #502000 0%, #603000 50%, #C89B3C 100%)',
+        'gradient-royal': 'linear-gradient(135deg, #0F3870 0%, #1d5fa8 50%, #C89B3C 100%)',
+        'gradient-premium': 'linear-gradient(135deg, #120D08 0%, #29190B 50%, #C89B3C 100%)',
         'gradient-navy': 'linear-gradient(135deg, #0d1e2c 0%, #142d3d 100%)',
         'gradient-card': 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
       },

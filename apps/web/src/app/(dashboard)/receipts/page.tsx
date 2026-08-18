@@ -194,13 +194,69 @@ export default function ReceiptsPage() {
         </select>
       </div>
 
-      {/* Table */}
+      {/* List — a stacked card per receipt below sm:, the full table at sm: and up.
+          The table doesn't overflow the page (it's wrapped in a scroll container),
+          but "scroll sideways to see your own amount and status" is real friction
+          on the screen collectors check most; see the mobile UX audit. */}
       <div className="glass-card overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-theme-fg/30">Loading...</div>
         ) : (
           <>
-            <div className="table-container">
+            {/* Mobile: cards */}
+            <div className="sm:hidden divide-y divide-theme-fg/8">
+              {(data?.data || []).map((r: any) => (
+                <div key={r.id} className={`p-4 space-y-2.5 ${r.isVoided ? 'opacity-50' : ''}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link href={`/receipts/${r.id}`} className="text-saffron-400 font-mono text-xs block">
+                        {r.receiptNumber}
+                      </Link>
+                      <p className="font-semibold text-theme-fg truncate">{r.donorName}</p>
+                      {r.donorPhone && <p className="text-xs text-theme-fg/40">{r.donorPhone}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold text-emerald-400">{formatCurrency(r.amount)}</p>
+                      {r.isVoided ? (
+                        <span className="badge badge-danger text-[10px] mt-1">Voided</span>
+                      ) : r.status === 'PENDING' ? (
+                        <span className="badge badge-warning text-[10px] mt-1">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
+                      ) : r.status === 'CANCELLED' ? (
+                        <span className="badge badge-neutral text-[10px] mt-1">⚫ {RECEIPT_STATUS_LABELS[ReceiptStatus.CANCELLED][language]}</span>
+                      ) : (
+                        <span className="badge badge-success text-[10px] mt-1">🟢 {RECEIPT_STATUS_LABELS[ReceiptStatus.PAID][language]}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="badge badge-saffron text-[10px]">{RECEIPT_CATEGORIES_LABELS[r.category as DonationCategory]?.[language] || r.category}</span>
+                    <span className="badge badge-info text-[10px]">{PAYMENT_MODE_LABELS[r.paymentMode as PaymentMode]?.[language] || r.paymentMode}</span>
+                    <span className="text-[11px] text-theme-fg/40 ml-auto">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-theme-fg/60">{r.collector?.name}</span>
+                    <div className="flex gap-1 -mr-2">
+                      <Link href={`/receipts/${r.id}`} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-theme-fg/8 text-theme-fg/50 hover:text-theme-fg transition-colors">
+                        <Eye size={17} />
+                      </Link>
+                      {r.donorPhone && (
+                        <button onClick={() => handleShare(r)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
+                          <Share2 size={17} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!data?.data?.length && (
+                <p className="text-center text-theme-fg/30 py-12 text-sm">
+                  {language === 'mr' ? 'कोणत्याही पावत्या आढळल्या नाहीत' : 'No receipts found'}
+                </p>
+              )}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="table-container hidden sm:block">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -255,11 +311,11 @@ export default function ReceiptsPage() {
                       </td>
                       <td>
                         <div className="flex gap-1">
-                          <Link href={`/receipts/${r.id}`} className="p-1.5 rounded-lg hover:bg-theme-fg/8 text-theme-fg/50 hover:text-theme-fg transition-colors">
+                          <Link href={`/receipts/${r.id}`} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-theme-fg/8 text-theme-fg/50 hover:text-theme-fg transition-colors">
                             <Eye size={14} />
                           </Link>
                           {r.donorPhone && (
-                            <button onClick={() => handleShare(r)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
+                            <button onClick={() => handleShare(r)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
                               <Share2 size={14} />
                             </button>
                           )}

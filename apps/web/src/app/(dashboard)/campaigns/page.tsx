@@ -102,7 +102,7 @@ export default function CampaignsPage() {
             </div>
             <div>
               <label className="form-label">{l.year} *</label>
-              <input type="number" value={form.year} onChange={e => setForm(p => ({ ...p, year: +e.target.value }))} className="form-input" />
+              <input type="number" inputMode="numeric" value={form.year} onChange={e => setForm(p => ({ ...p, year: +e.target.value }))} className="form-input" />
             </div>
             <div>
               <label className="form-label">{l.prefix}</label>
@@ -118,7 +118,7 @@ export default function CampaignsPage() {
             </div>
             <div>
               <label className="form-label">{l.target}</label>
-              <input type="number" value={form.targetAmount} onChange={e => setForm(p => ({ ...p, targetAmount: e.target.value }))} className="form-input" placeholder="500000" />
+              <input type="number" inputMode="decimal" value={form.targetAmount} onChange={e => setForm(p => ({ ...p, targetAmount: e.target.value }))} className="form-input" placeholder="500000" />
             </div>
             <div>
               <label className="form-label">{l.description}</label>

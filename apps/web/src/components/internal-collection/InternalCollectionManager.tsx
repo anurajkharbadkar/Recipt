@@ -55,7 +55,7 @@ function DeclareContributionForm({ campaignId, existingMemberIds, onDone }: { ca
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div>
           <label className="form-label">Amount per member (₹) *</label>
-          <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="form-input" />
+          <input type="number" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} className="form-input" />
         </div>
         <div>
           <label className="form-label">Due Date</label>
@@ -127,6 +127,7 @@ function RosterRow({ member, campaignId }: { member: any; campaignId: string }) 
         {editing ? (
           <input
             type="number"
+            inputMode="decimal"
             autoFocus
             value={amount}
             onChange={e => setAmount(e.target.value)}

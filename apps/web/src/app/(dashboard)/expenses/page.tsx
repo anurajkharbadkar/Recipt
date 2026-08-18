@@ -132,13 +132,13 @@ function ExpensesPageInner() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="stat-card">
+        <div className="glass-card p-5">
           <p className="form-label">{l.approved}</p>
           <p className="text-xl font-bold text-red-400">{formatCurrency(totalApproved)}</p>
         </div>
-        <div className="stat-card">
+        <div className="glass-card p-5">
           <p className="form-label">{l.pending}</p>
-          <p className="text-xl font-bold text-amber-400">{formatCurrency(totalPending)}</p>
+          <p className="text-xl font-bold text-saffron-400">{formatCurrency(totalPending)}</p>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ function ExpensesPageInner() {
             </div>
             <div>
               <label className="form-label">{l.amount} *</label>
-              <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} className="form-input" placeholder="0" />
+              <input type="number" inputMode="decimal" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} className="form-input" placeholder="0" />
             </div>
             <div>
               <label className="form-label">{l.date}</label>
@@ -195,7 +195,7 @@ function ExpensesPageInner() {
             </div>
             <div>
               <label className="form-label">{l.recipientPhone}</label>
-              <input value={form.beneficiaryPhone} onChange={e => setForm(p => ({ ...p, beneficiaryPhone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" />
+              <input value={form.beneficiaryPhone} onChange={e => setForm(p => ({ ...p, beneficiaryPhone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" inputMode="tel" />
             </div>
             <div>
               <label className="form-label">{l.gst}</label>
@@ -224,69 +224,123 @@ function ExpensesPageInner() {
         {isLoading ? (
           <div className="p-8 text-center text-theme-fg/30">Loading...</div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Vendor / Recipient</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Payment Mode</th>
-                  <th>Date</th>
-                  <th>Added By</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(expenses || []).map((e: any) => (
-                  <tr key={e.id}>
-                    <td>
-                      <span className="text-lg">{CATEGORY_EMOJI[e.category]}</span>
-                      <span className="ml-2 text-xs text-theme-fg/60">{EXPENSE_CATEGORY_LABELS[e.category as ExpenseCategory]?.[language] || e.category}</span>
-                    </td>
-                    <td>
-                      <div className="font-semibold text-theme-fg/80">{e.paidTo || '—'}</div>
-                      {e.beneficiaryPhone && <div className="text-[10px] text-theme-fg/40">{e.beneficiaryPhone}</div>}
-                    </td>
-                    <td className="text-theme-fg/70 text-sm">{e.description}</td>
-                    <td className="font-bold text-red-400">{formatCurrency(e.amount)}</td>
-                    <td><span className="badge badge-info text-[10px]">{PAYMENT_MODE_LABELS[e.paymentMode as PaymentMode]?.[language] || e.paymentMode}</span></td>
-                    <td className="text-theme-fg/40 text-xs">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</td>
-                    <td className="text-theme-fg/60 text-sm">{e.addedBy?.name}</td>
-                    <td>
+          <>
+            {/* Mobile: cards */}
+            <div className="sm:hidden divide-y divide-theme-fg/8">
+              {(expenses || []).map((e: any) => (
+                <div key={e.id} className="p-4 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-theme-fg truncate">
+                        <span className="mr-1">{CATEGORY_EMOJI[e.category]}</span>
+                        {e.paidTo || '—'}
+                      </p>
+                      <p className="text-xs text-theme-fg/60 truncate">{e.description}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold text-red-400">{formatCurrency(e.amount)}</p>
                       {e.isApproved ? (
-                        <span className="badge badge-success">✓ Approved</span>
+                        <span className="badge badge-success text-[10px] mt-1">✓ Approved</span>
                       ) : (
-                        <span className="badge badge-warning">Pending</span>
+                        <span className="badge badge-warning text-[10px] mt-1">Pending</span>
                       )}
-                    </td>
-                    <td>
-                      <div className="flex gap-1">
-                        <button onClick={() => voucherMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-saffron-500/10 text-theme-fg/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
-                          <FileDown size={14} />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="badge badge-neutral text-[10px]">{EXPENSE_CATEGORY_LABELS[e.category as ExpenseCategory]?.[language] || e.category}</span>
+                    <span className="badge badge-info text-[10px]">{PAYMENT_MODE_LABELS[e.paymentMode as PaymentMode]?.[language] || e.paymentMode}</span>
+                    <span className="text-[11px] text-theme-fg/40 ml-auto">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-theme-fg/60">{e.addedBy?.name}</span>
+                    <div className="flex gap-1 -mr-2">
+                      <button onClick={() => voucherMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-saffron-500/10 text-theme-fg/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
+                        <FileDown size={17} />
+                      </button>
+                      {!e.isApproved && (
+                        <button onClick={() => approveMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-emerald-500/10 text-theme-fg/40 hover:text-emerald-400 transition-colors">
+                          <CheckCircle size={17} />
                         </button>
-                        {!e.isApproved && (
-                          <button onClick={() => approveMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-theme-fg/40 hover:text-emerald-400 transition-colors">
-                            <CheckCircle size={14} />
-                          </button>
-                        )}
-                        {!e.isApproved && (
-                          <button onClick={() => deleteMutation.mutate(e.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                      )}
+                      {!e.isApproved && (
+                        <button onClick={() => deleteMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
+                          <Trash2 size={17} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!expenses?.length && (
+                <p className="text-center text-theme-fg/30 py-8 text-sm">{l.noExpenses}</p>
+              )}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="table-container hidden sm:block">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Vendor / Recipient</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                    <th>Payment Mode</th>
+                    <th>Date</th>
+                    <th>Added By</th>
+                    <th>Status</th>
+                    <th></th>
                   </tr>
-                ))}
-                {!expenses?.length && (
-                  <tr><td colSpan={11} className="text-center text-theme-fg/30 py-8">{l.noExpenses}</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {(expenses || []).map((e: any) => (
+                    <tr key={e.id}>
+                      <td>
+                        <span className="text-lg">{CATEGORY_EMOJI[e.category]}</span>
+                        <span className="ml-2 text-xs text-theme-fg/60">{EXPENSE_CATEGORY_LABELS[e.category as ExpenseCategory]?.[language] || e.category}</span>
+                      </td>
+                      <td>
+                        <div className="font-semibold text-theme-fg/80">{e.paidTo || '—'}</div>
+                        {e.beneficiaryPhone && <div className="text-[10px] text-theme-fg/40">{e.beneficiaryPhone}</div>}
+                      </td>
+                      <td className="text-theme-fg/70 text-sm">{e.description}</td>
+                      <td className="font-bold text-red-400">{formatCurrency(e.amount)}</td>
+                      <td><span className="badge badge-info text-[10px]">{PAYMENT_MODE_LABELS[e.paymentMode as PaymentMode]?.[language] || e.paymentMode}</span></td>
+                      <td className="text-theme-fg/40 text-xs">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</td>
+                      <td className="text-theme-fg/60 text-sm">{e.addedBy?.name}</td>
+                      <td>
+                        {e.isApproved ? (
+                          <span className="badge badge-success">✓ Approved</span>
+                        ) : (
+                          <span className="badge badge-warning">Pending</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex gap-1">
+                          <button onClick={() => voucherMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-saffron-500/10 text-theme-fg/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
+                            <FileDown size={14} />
+                          </button>
+                          {!e.isApproved && (
+                            <button onClick={() => approveMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-emerald-500/10 text-theme-fg/40 hover:text-emerald-400 transition-colors">
+                              <CheckCircle size={14} />
+                            </button>
+                          )}
+                          {!e.isApproved && (
+                            <button onClick={() => deleteMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!expenses?.length && (
+                    <tr><td colSpan={11} className="text-center text-theme-fg/30 py-8">{l.noExpenses}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -129,15 +129,15 @@ export default function ReportsPage() {
           {language === 'mr' ? 'देणगी वि. अंतर्गत संग्रह' : 'Donation vs Internal Collection'}
         </h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="stat-card">
+          <div className="glass-card p-4">
             <p className="form-label">🤝 Donations</p>
-            <p className="text-xl font-bold text-emerald-400">{formatCurrency(donationAmount)}</p>
-            <p className="text-xs text-theme-fg/40 mt-1">{donationCount} receipts</p>
+            <p className="text-xl font-bold text-success-500">{formatCurrency(donationAmount)}</p>
+            <p className="text-xs text-theme-fg/50 mt-1">{donationCount} receipts</p>
           </div>
-          <div className="stat-card">
+          <div className="glass-card p-4">
             <p className="form-label">🏢 Internal Collections</p>
-            <p className="text-xl font-bold text-saffron-400">{formatCurrency(internalAmount)}</p>
-            <p className="text-xs text-theme-fg/40 mt-1">{internalCount} receipts</p>
+            <p className="text-xl font-bold text-saffron-700 dark:text-saffron-300">{formatCurrency(internalAmount)}</p>
+            <p className="text-xs text-theme-fg/50 mt-1">{internalCount} receipts</p>
           </div>
         </div>
       </div>

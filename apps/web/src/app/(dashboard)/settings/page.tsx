@@ -353,7 +353,7 @@ export default function SettingsPage() {
               />
               <label
                 htmlFor="logo-upload"
-                className="btn-secondary py-1.5 px-4 rounded-xl text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
+                className="btn-secondary py-2.5 px-4 rounded-xl text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
                 {uploadingLogo ? sl.uploading : sl.chooseFile}
               </label>
@@ -498,7 +498,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <label className="form-label">Account Number</label>
-            <input value={form.bankAccountNumber || ''} onChange={e => setForm((p: any) => ({ ...p, bankAccountNumber: e.target.value }))} className="form-input" placeholder="XXXXXXXXXXXX" />
+            <input value={form.bankAccountNumber || ''} onChange={e => setForm((p: any) => ({ ...p, bankAccountNumber: e.target.value }))} className="form-input" placeholder="XXXXXXXXXXXX" inputMode="numeric" />
           </div>
           <div>
             <label className="form-label">IFSC Code</label>
@@ -697,7 +697,7 @@ export default function SettingsPage() {
                             key={preset.id}
                             type="button"
                             onClick={() => updateLine('headerTagline', preset.value)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -729,7 +729,7 @@ export default function SettingsPage() {
                             key={preset.value}
                             type="button"
                             onClick={() => updateLine('receiptTitle', preset.value)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -761,7 +761,7 @@ export default function SettingsPage() {
                             key={preset.label}
                             type="button"
                             onClick={() => updateLine('donorPrefix', preset.value)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -793,7 +793,7 @@ export default function SettingsPage() {
                             key={preset.label}
                             type="button"
                             onClick={() => updateLine('footerNote', preset.value)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -844,7 +844,7 @@ export default function SettingsPage() {
                               key={preset.label}
                               type="button"
                               onClick={() => updateLine('shareMessage', preset.template)}
-                              className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                              className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
                                 active
                                   ? 'bg-emerald-600 text-white border-emerald-600 font-semibold shadow-sm'
                                   : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -911,7 +911,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setPreviewMode('PAVTI')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                    className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all ${
                       previewMode === 'PAVTI'
                         ? 'bg-saffron-500 text-white shadow-sm'
                         : 'text-theme-fg/60 hover:text-theme-fg'
@@ -922,7 +922,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setPreviewMode('WHATSAPP')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                       previewMode === 'WHATSAPP'
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'text-theme-fg/60 hover:text-theme-fg'

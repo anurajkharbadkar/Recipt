@@ -126,24 +126,53 @@ function RegisterForm() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {PRICING_PLANS.map((plan) => {
                 const selected = form.subscriptionPlan === plan.id;
+                const isStandard = plan.id === 'STANDARD';
+                const isPremium = plan.id === 'PREMIUM';
+
                 return (
                   <button
                     key={plan.id}
                     type="button"
                     onClick={() => set({ subscriptionPlan: plan.id })}
-                    className={`relative text-left rounded-xl border-2 p-4 transition-all ${selected ? 'border-saffron-500 bg-saffron-600/10' : 'border-theme hover:border-saffron-500/40'}`}
+                    className={`relative text-left rounded-xl border-2 p-4 transition-all duration-200 ${
+                      selected
+                        ? isStandard
+                          ? 'border-royal-600 bg-royal-50/60 shadow-md shadow-royal-900/10'
+                          : isPremium
+                          ? 'border-gold-400 bg-[#1E140C] text-[#F4F0E0] shadow-md shadow-black/20'
+                          : 'border-saffron-600 bg-saffron-100/60 shadow-md shadow-saffron-900/10'
+                        : isPremium
+                        ? 'border-[#301000]/20 bg-[#1E140C]/30 text-theme-fg hover:border-gold-400/40'
+                        : 'border-theme hover:border-saffron-500/40'
+                    }`}
                   >
-                    {plan.highlighted && (
-                      <span className="absolute -top-2.5 right-3 badge badge-saffron text-[9px] flex items-center gap-0.5">
-                        <Star size={9} /> Popular
+                    {isStandard && (
+                      <span className="absolute -top-2.5 right-3 badge-royal text-[9px] flex items-center gap-0.5 font-bold">
+                        <Star size={9} className="fill-gold-500 text-gold-500" /> Popular
+                      </span>
+                    )}
+                    {isPremium && (
+                      <span className="absolute -top-2.5 right-3 badge-gold text-[9px] flex items-center gap-0.5 font-bold">
+                        👑 VIP
                       </span>
                     )}
                     <div className="flex items-center gap-2 mb-1">
-                      {selected && <Check size={14} className="text-saffron-400" />}
-                      <span className="font-bold text-theme-fg">{plan.name}</span>
+                      {selected && (
+                        <Check
+                          size={14}
+                          className={isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-saffron-700'}
+                        />
+                      )}
+                      <span className={`font-bold ${isPremium && selected ? 'text-gold-300' : 'text-theme-fg'}`}>{plan.name}</span>
                     </div>
-                    <div className="text-xl font-bold text-saffron-400">{formatCurrency(plan.priceInr)}</div>
-                    <p className="text-[10px] text-theme-fg/40">{plan.priceNote}</p>
+                    <div
+                      className={`text-xl font-extrabold ${
+                        isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-saffron-700'
+                      }`}
+                    >
+                      {formatCurrency(plan.priceInr)}
+                    </div>
+                    <p className={`text-[10px] ${isPremium && selected ? 'text-saffron-200/60' : 'text-theme-fg/40'}`}>{plan.priceNote}</p>
                   </button>
                 );
               })}
