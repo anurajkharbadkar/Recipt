@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
-import { USER_ROLE_LABELS, UserRole } from '@pavti/shared';
+import { USER_ROLE_LABELS, UserRole, BRAND_NAME } from '@pavti/shared';
 import {
   Home, Plus, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
-  IndianRupee, BookOpen, Sun, Moon, UserSquare2
+  IndianRupee, Sun, Moon, UserSquare2
 } from 'lucide-react';
 import clsx from 'clsx';
+import LogoMark from '@/components/brand/LogoMark';
 
 // 'module' drives the permission check (see useModuleAccessResolver) and can
 // differ from the href's own path — /members is the merged Staff & Collectors
@@ -74,11 +75,9 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-theme">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-glow-saffron">
-            <BookOpen size={20} className="text-white" />
-          </div>
+          <LogoMark size={40} className="rounded-xl shadow-glow-saffron" />
           <div>
-            <div className="font-bold text-sm">e Pavti Book</div>
+            <div className="font-bold text-sm">{BRAND_NAME}</div>
             <div className="text-[10px] text-saffron-400 font-devanagari">ई पावती बुक</div>
           </div>
         </div>

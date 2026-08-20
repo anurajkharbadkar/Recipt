@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { join } from 'path';
 import * as express from 'express';
 import { AppModule } from './app.module';
+import { BRAND_NAME } from '@pavti/shared';
 
 async function bootstrap() {
   // rawBody: true — the Cashfree webhook signature (CashfreeWebhookService)
@@ -20,13 +21,13 @@ async function bootstrap() {
   // Root & Health routes for platform proxies (Railway / Load Balancers)
   const httpAdapter = app.getHttpAdapter().getInstance();
   httpAdapter.get('/', (_req: any, res: any) => {
-    res.json({ status: 'ok', service: 'e Pavti Book API', version: '1.0.0' });
+    res.json({ status: 'ok', service: `${BRAND_NAME} API`, version: '1.0.0' });
   });
   httpAdapter.get('/health', (_req: any, res: any) => {
     res.json({ status: 'ok', uptime: process.uptime() });
   });
   httpAdapter.get('/api/v1', (_req: any, res: any) => {
-    res.json({ status: 'ok', service: 'e Pavti Book API', version: '1.0.0' });
+    res.json({ status: 'ok', service: `${BRAND_NAME} API`, version: '1.0.0' });
   });
 
   // Serve static uploads
@@ -79,8 +80,8 @@ async function bootstrap() {
 
   // Swagger Documentation
   const config = new DocumentBuilder()
-    .setTitle('e Pavti Book API')
-    .setDescription('Production API for Digital Receipt Book for Indian Community Organizations')
+    .setTitle(`${BRAND_NAME} API`)
+    .setDescription('Production API for digital receipt & collection management for Mandals, trusts, NGOs and community organizations')
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('auth', 'Authentication endpoints')
@@ -96,7 +97,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : configService.get<number>('PORT', 3001);
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 e Pavti Book API running on port ${port} -> http://localhost:${port}/api/v1`);
+  console.log(`🚀 ${BRAND_NAME} API running on port ${port} -> http://localhost:${port}/api/v1`);
   console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
 }
 bootstrap();

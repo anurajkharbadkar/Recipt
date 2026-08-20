@@ -6,7 +6,9 @@ import { useSearchParams } from 'next/navigation';
 import { receiptsApi } from '@/lib/api';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
-import { CheckCircle, XCircle, BookOpen, Sparkles, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Sparkles, FileText } from 'lucide-react';
+import LogoMark from '@/components/brand/LogoMark';
+import { BRAND_NAME } from '@pavti/shared';
 
 const LANGUAGE_OPTIONS: { code: 'en' | 'hi' | 'mr'; label: string }[] = [
   { code: 'en', label: 'EN' },
@@ -51,9 +53,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
       <div className="relative w-full max-w-sm space-y-4 my-6">
         {/* Header */}
         <div className="text-center">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#5c1220] to-amber-700 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-950/40 border border-amber-500/30">
-            <BookOpen size={22} className="text-amber-200" />
-          </div>
+          <LogoMark size={48} className="rounded-xl shadow-lg shadow-amber-950/40 mx-auto mb-3 block" />
           <h1 className="text-lg font-bold text-amber-100">Receipt Verification</h1>
           <p className="text-xs text-amber-200/50 font-devanagari">पावती पडताळणी</p>
         </div>
@@ -129,7 +129,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
             {/* Receipt Preview */}
             <ReceiptPreview receipt={receipt} language={language} />
 
-            <p className="text-center text-xs text-amber-200/30 font-medium">Powered by e Pavti Book</p>
+            <p className="text-center text-xs text-amber-200/30 font-medium">Powered by {BRAND_NAME}</p>
           </>
         )}
       </div>

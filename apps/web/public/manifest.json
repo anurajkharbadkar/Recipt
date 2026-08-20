@@ -1,11 +1,11 @@
 {
-  "name": "e Pavti Book",
-  "short_name": "e Pavti Book",
-  "description": "Digital Receipt Book for Indian Community Organizations",
+  "name": "e-Pavti Book",
+  "short_name": "e-Pavti Book",
+  "description": "Digital Receipt & Collection Management for Mandals, Trusts and Community Organizations",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#060f18",
-  "theme_color": "#592E09",
+  "background_color": "#120D08",
+  "theme_color": "#502000",
   "orientation": "portrait",
   "icons": [
     {

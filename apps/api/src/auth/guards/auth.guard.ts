@@ -2,7 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserRole } from '@pavti/shared';
+import { UserRole, BRAND_NAME } from '@pavti/shared';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {}
@@ -37,7 +37,7 @@ export class RolesGuard implements CanActivate {
     if (user.role !== UserRole.SUPER_ADMIN && method !== 'GET') {
       const expiry = user.organization?.subscriptionExpiry;
       if (expiry && new Date(expiry).getTime() < Date.now()) {
-        throw new ForbiddenException('Your plan has expired. Renew to keep using e Pavti Book.');
+        throw new ForbiddenException(`Your plan has expired. Renew to keep using ${BRAND_NAME}.`);
       }
     }
 

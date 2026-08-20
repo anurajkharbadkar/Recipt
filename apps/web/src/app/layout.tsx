@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Noto_Sans_Devanagari } from 'next/font/google';
 import Providers from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
+import { BRAND_NAME, BRAND_TAGLINE, BRAND_TAGLINE_ALT } from '@pavti/shared';
 import './globals.css';
 
 const inter = Inter({
@@ -20,27 +21,30 @@ const noto = Noto_Sans_Devanagari({
 
 export const metadata: Metadata = {
   title: {
-    default: 'e Pavti Book — ई पावती बुक',
-    template: '%s | e Pavti Book',
+    default: `${BRAND_NAME} — Digital Receipt & Collection Management`,
+    template: `%s | ${BRAND_NAME}`,
   },
   description:
-    'Digital receipt management platform for Ganesh Mandals, Durga Puja Committees, Temple Trusts and all Indian community organizations. Generate, share and track donations digitally.',
-  keywords: ['e pavti book', 'digital pavti', 'donation receipt', 'ganesh mandal', 'temple trust', 'pavti book', 'digital receipt india'],
-  authors: [{ name: 'e Pavti Book' }],
-  creator: 'e Pavti Book',
+    'Digital receipt and collection management for Mandals, trusts, NGOs and community organizations. Collect donations, issue QR-verified receipts, and track everything in one place.',
+  keywords: ['e-pavti', 'e pavti book', 'digital pavti', 'donation receipt', 'mandal collection software', 'trust receipt management', 'ngo donation tracking', 'digital receipt india'],
+  authors: [{ name: BRAND_NAME }],
+  creator: BRAND_NAME,
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'e Pavti Book' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: BRAND_NAME },
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    title: 'e Pavti Book — ई पावती बुक',
-    description: 'Digitize your donation receipts. Built for Indian community organizations.',
-    siteName: 'e Pavti Book',
+    title: `${BRAND_NAME} — ${BRAND_TAGLINE_ALT}`,
+    description: `${BRAND_TAGLINE} Digital receipt and collection management for Mandals, trusts, NGOs and community organizations.`,
+    siteName: BRAND_NAME,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#592E09',
+  // Matches --primary-brand-color's default in globals.css — the mobile
+  // browser chrome tint should be the same brand accent as the rest of the
+  // app, not an unrelated leftover color.
+  themeColor: '#502000',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

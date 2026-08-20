@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import toast from 'react-hot-toast';
-import { BookOpen, Phone, Lock, ArrowRight, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Phone, Lock, ArrowRight, Eye, EyeOff, KeyRound } from 'lucide-react';
 import Link from 'next/link';
+import LogoMark from '@/components/brand/LogoMark';
+import { BRAND_NAME } from '@pavti/shared';
 
 export default function LoginPage() {
   const [mandalCode, setMandalCode] = useState('');
@@ -45,10 +47,8 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center mx-auto mb-4 shadow-glow-saffron">
-            <BookOpen size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-theme-fg">e Pavti Book</h1>
+          <LogoMark size={64} className="rounded-2xl shadow-glow-saffron mx-auto mb-4 block" />
+          <h1 className="text-2xl font-bold text-theme-fg">{BRAND_NAME}</h1>
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">ई पावती बुक</p>
         </div>
 

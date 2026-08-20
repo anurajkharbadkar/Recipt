@@ -3,7 +3,8 @@
 import { useAuthStore } from '@/store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { campaignsApi } from '@/lib/api';
-import { BookOpen } from 'lucide-react';
+import LogoMark from '@/components/brand/LogoMark';
+import { BRAND_NAME } from '@pavti/shared';
 
 const campaignLabel = { en: 'Festival / Drive:', hi: 'अभियान:', mr: 'मोहीम:' };
 const noCampaignLabel = { en: 'No active festival', hi: 'कोई सक्रिय अभियान नहीं', mr: 'सक्रिय मोहीम नाही' };
@@ -26,13 +27,11 @@ export default function TopBar() {
         {organization?.logoUrl ? (
           <img src={organization.logoUrl} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0 shadow-sm border border-black/5" />
         ) : (
-          <div className="w-7 h-7 rounded-lg bg-gradient-brand flex items-center justify-center text-white shrink-0 shadow-sm">
-            <BookOpen size={14} />
-          </div>
+          <LogoMark size={28} className="rounded-lg shadow-sm shrink-0" />
         )}
         <div className="min-w-0">
           <h1 className="font-bold text-xs sm:text-sm text-theme-fg truncate leading-tight">
-            {organization ? (language === 'mr' && organization.nameMarathi ? organization.nameMarathi : organization.name) : 'e Pavti Book'}
+            {organization ? (language === 'mr' && organization.nameMarathi ? organization.nameMarathi : organization.name) : BRAND_NAME}
           </h1>
           <p className="text-[10px] text-saffron-700 dark:text-saffron-300 font-devanagari leading-none mt-0.5 truncate font-medium">
             {organization?.nameMarathi || 'ई पावती बुक'}

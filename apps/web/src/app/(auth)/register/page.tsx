@@ -7,8 +7,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
 import toast from 'react-hot-toast';
-import { BookOpen, ArrowRight, ArrowLeft, Check, Star, MessageCircle, KeyRound, Copy, CheckCheck } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Star, MessageCircle, KeyRound, Copy, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
+import LogoMark from '@/components/brand/LogoMark';
 
 function RegisterForm() {
   const router = useRouter();
@@ -104,8 +105,8 @@ function RegisterForm() {
 
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex w-16 h-16 rounded-2xl bg-gradient-brand items-center justify-center mx-auto mb-4 shadow-glow-saffron">
-            <BookOpen size={28} className="text-white" />
+          <Link href="/" className="inline-flex mx-auto mb-4">
+            <LogoMark size={64} className="rounded-2xl shadow-glow-saffron" />
           </Link>
           <h1 className="text-2xl font-bold text-theme-fg">Register Your Mandal</h1>
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">आपल्या मंडळाची नोंदणी करा</p>
@@ -213,6 +214,12 @@ function RegisterForm() {
                         Instant
                       </span>
                     )}
+                    {/* Positioning word only here, not the full Marathi/feature
+                        treatment — this is a decision moment in a signup form,
+                        not the marketing pricing section; keep it fast. */}
+                    <p className={`text-[9px] font-bold uppercase tracking-wider mb-0.5 ${isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-saffron-600'}`}>
+                      {plan.positioningLine}
+                    </p>
                     <div className="flex items-center gap-2 mb-1">
                       {selected && (
                         <Check
