@@ -6,16 +6,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { receiptsApi, campaignsApi, orgsApi } from '@/lib/api';
+import { shareReceiptViaWhatsApp, prefetchReceiptImage } from '@/lib/whatsappShare';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
-  DonationCategory, PaymentMode, CollectionType, ReceiptStatus, formatShareMessage, formatSocialLinksText, resolveReceiptSettings,
+  DonationCategory, PaymentMode, CollectionType, ReceiptStatus,
   RECEIPT_CATEGORIES_LABELS, PAYMENT_MODE_LABELS, RECEIPT_STATUS_LABELS, COLLECTION_TYPE_LABELS,
 } from '@pavti/shared';
 import {
   User, Phone, MapPin, IndianRupee, Tag, CreditCard, FileText,
-  MapPinned, MessageCircle, ArrowLeft, CheckCircle, Printer, Share2
+  MapPinned, ArrowLeft, CheckCircle, Printer, Share2, Loader2
 } from 'lucide-react';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import PickerWithAdd from '@/components/form/PickerWithAdd';
@@ -34,8 +35,6 @@ const schema = z.object({
   chequeNumber: z.string().optional(),
   notes: z.string().optional(),
   areaId: z.string().optional(),
-  sendWhatsapp: z.boolean().default(true),
-  sendSms: z.boolean().default(false),
   collectionType: z.nativeEnum(CollectionType).default(CollectionType.DONATION),
   status: z.nativeEnum(ReceiptStatus).default(ReceiptStatus.PAID),
 });
@@ -52,6 +51,7 @@ const STEPS = ['Details', 'Review & Send'];
 export default function NewReceiptPage() {
   const [step, setStep] = useState(0);
   const [createdReceipt, setCreatedReceipt] = useState<any>(null);
+  const [sharing, setSharing] = useState(false);
   const { activeCampaignId, language, organization } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,16 +73,12 @@ export default function NewReceiptPage() {
       campaignId: activeCampaignId || activeCampaigns[0]?.id || '',
       category: DonationCategory.GENERAL,
       paymentMode: PaymentMode.CASH,
-      sendWhatsapp: true,
-      sendSms: false,
       collectionType: CollectionType.DONATION,
       status: ReceiptStatus.PAID,
     },
   });
 
   const paymentMode = watch('paymentMode');
-  const donorPhone = watch('donorPhone');
-  const sendWhatsapp = watch('sendWhatsapp');
 
   // Quick receipt: prefill from ?donorPhone= and jump straight to the amount step
   useEffect(() => {
@@ -103,6 +99,10 @@ export default function NewReceiptPage() {
     mutationFn: receiptsApi.create,
     onSuccess: (receipt) => {
       setCreatedReceipt(receipt);
+      // Start fetching the pavti image the moment it exists, well before the
+      // user reaches the WhatsApp button on the success screen — see
+      // prefetchReceiptImage's comment in lib/whatsappShare.ts.
+      if (receipt.donorPhone) prefetchReceiptImage(receipt.id);
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       toast.success(language === 'mr' ? 'पावती यशस्वीरित्या तयार झाली!' : 'Receipt created successfully!');
@@ -124,26 +124,22 @@ export default function NewReceiptPage() {
     createMutation.mutate(data);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!createdReceipt?.donorPhone) return;
-    const url = `${window.location.origin}/receipt/${createdReceipt.id}`;
-    const org = organization as any;
-    const settings = resolveReceiptSettings(org?.receiptTemplateSettings);
-    const msgText = formatShareMessage(
-      settings.shareMessage,
-      {
+    setSharing(true);
+    try {
+      await shareReceiptViaWhatsApp({
+        donorPhone: createdReceipt.donorPhone,
         donorName: createdReceipt.donorName,
         amount: createdReceipt.amount,
         receiptNumber: createdReceipt.receiptNumber,
-        organizationName: org?.name || 'संस्था',
-        receiptUrl: url,
-        date: new Date().toLocaleDateString('en-IN'),
+        receiptId: createdReceipt.id,
         category: createdReceipt.category,
-        socialLinksText: formatSocialLinksText(org?.socialLinks),
-      },
-      settings.language,
-    );
-    window.open(`https://wa.me/91${createdReceipt.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
+        organization: organization as any,
+      });
+    } finally {
+      setSharing(false);
+    }
   };
 
   if (createdReceipt) {
@@ -159,8 +155,8 @@ export default function NewReceiptPage() {
           <p className="text-theme-fg/50 text-sm mb-6">{createdReceipt.receiptNumber}</p>
 
           <div className="flex flex-wrap gap-3 justify-center mb-6">
-            <button onClick={handleShare} className="btn-primary gap-2" disabled={!createdReceipt.donorPhone}>
-              <Share2 size={16} /> WhatsApp
+            <button onClick={handleShare} className="btn-primary gap-2" disabled={!createdReceipt.donorPhone || sharing}>
+              {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />} WhatsApp
             </button>
             <button onClick={() => window.open(`/receipt/${createdReceipt.id}`, '_blank')} className="btn-secondary gap-2">
               <Printer size={16} /> View & Print
@@ -296,7 +292,7 @@ export default function NewReceiptPage() {
                 <Phone size={12} className="inline mr-1" />
                 {language === 'mr' ? 'मोबाईल नंबर' : 'Mobile Number'} ({language === 'mr' ? 'पर्यायी' : 'Optional'})
               </label>
-              <input {...register('donorPhone')} className="form-input" placeholder="9876543210" type="tel" inputMode="numeric" />
+              <input {...register('donorPhone')} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="numeric" />
             </div>
 
             <div>
@@ -350,10 +346,15 @@ export default function NewReceiptPage() {
                   <button
                     key={amt}
                     type="button"
-                    onClick={() => {
-                      const input = document.querySelector('input[type="number"]') as HTMLInputElement;
-                      if (input) { input.value = amt.toString(); input.dispatchEvent(new Event('input', { bubbles: true })); }
-                    }}
+                    // Go through react-hook-form directly instead of poking the
+                    // DOM (the old code did `input.value = ...` + dispatched a
+                    // fake 'input' event — but React patches the native value
+                    // setter on controlled inputs, so it had already "seen" that
+                    // assignment and didn't re-fire onChange for the dispatched
+                    // event. The field looked filled in but RHF's real state
+                    // stayed empty, so validation still failed with "Enter a
+                    // valid amount" even though a number was visibly there.
+                    onClick={() => setValue('amount', amt, { shouldValidate: true, shouldDirty: true })}
                     className="px-3 py-1 rounded-lg text-xs font-semibold bg-saffron-600/10 text-saffron-400 border border-saffron-600/20 hover:bg-saffron-600/20 transition-colors"
                   >
                     ₹{amt.toLocaleString('en-IN')}
@@ -423,29 +424,10 @@ export default function NewReceiptPage() {
               </select>
             </div>
 
-            {/* Notification options */}
-            <div className="border border-theme-fg/8 rounded-xl p-4 space-y-3">
-              <p className="text-xs font-semibold text-theme-fg/50 uppercase tracking-wider">Send Notification</p>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-10 h-5 rounded-full transition-colors relative ${watch('sendWhatsapp') ? 'bg-saffron-600' : 'bg-theme-fg/15'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-theme-fg rounded-full transition-transform ${watch('sendWhatsapp') ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </div>
-                <input {...register('sendWhatsapp')} type="checkbox" className="hidden" />
-                <div>
-                  <p className="text-sm text-theme-fg/80 flex items-center gap-1.5">
-                    <MessageCircle size={14} className="text-green-400" />
-                    WhatsApp {!donorPhone && <span className="text-xs text-theme-fg/30">(phone required)</span>}
-                  </p>
-                </div>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-10 h-5 rounded-full transition-colors relative ${watch('sendSms') ? 'bg-saffron-600' : 'bg-theme-fg/15'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-theme-fg rounded-full transition-transform ${watch('sendSms') ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </div>
-                <input {...register('sendSms')} type="checkbox" className="hidden" />
-                <p className="text-sm text-theme-fg/80">SMS</p>
-              </label>
-            </div>
+            {/* Sharing is manual, from the confirmation screen after the
+                receipt is created — see handleShare below. Nothing to
+                configure here; the "Share via WhatsApp" button only needs a
+                donor phone to be enabled. */}
           </div>
           </div>
         )}
@@ -464,7 +446,6 @@ export default function NewReceiptPage() {
                   { label: 'Category', value: RECEIPT_CATEGORIES_LABELS[getValues('category')][language] },
                   { label: 'Payment', value: PAYMENT_MODE_LABELS[getValues('paymentMode')][language] },
                   { label: 'Status', value: RECEIPT_STATUS_LABELS[getValues('status')][language] },
-                  { label: 'WhatsApp', value: getValues('sendWhatsapp') && getValues('donorPhone') ? '✅ Will be sent' : '❌ Not sending' },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-center py-2 border-b border-theme-fg/5">
                     <span className="text-xs text-theme-fg/40">{label}</span>

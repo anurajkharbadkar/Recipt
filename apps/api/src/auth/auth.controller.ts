@@ -4,7 +4,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
-  RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto, RefreshTokenDto
+  RegisterDto, LoginDto, RefreshTokenDto
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -25,20 +25,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with phone + password' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
-  }
-
-  @Post('otp/send')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send OTP to phone number' })
-  sendOtp(@Body() dto: SendOtpDto) {
-    return this.authService.sendOtp(dto);
-  }
-
-  @Post('otp/verify')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify OTP and get JWT tokens' })
-  verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyOtp(dto);
   }
 
   @Post('refresh')

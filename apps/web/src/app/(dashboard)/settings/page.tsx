@@ -4,11 +4,18 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, FlaskConical, Check, Play, Lock, KeyRound, Copy, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
+import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
+import { platformWhatsappLink } from '@/lib/platform';
 import {
   RECEIPT_THEMES,
+  RECEIPT_GOLD_ACCENT,
+  ReceiptThemeStyle,
+  INTERACTIVE_PAVTI_TEMPLATES,
+  InteractivePavtiTemplate,
   PAVTI_HEADER_TAGLINE_PRESETS,
   PAVTI_TITLE_PRESETS,
   PAVTI_DONOR_PREFIX_PRESETS,
@@ -22,16 +29,141 @@ import {
   resolveReceiptSettings,
 } from '@pavti/shared';
 
+/**
+ * "Wallpaper picker" card — a horizontally-swipeable gallery of large,
+ * actual-preview thumbnails with a tap-to-select interaction, used for both
+ * the receipt theme picker and the interactive template picker below (item 5
+ * of the settings simplification: same interface for both choices instead of
+ * two differently-styled small grids).
+ */
+function WallpaperGallery({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 scroll-smooth">
+      {children}
+    </div>
+  );
+}
+
+function ReceiptThemeCard({ theme, selected, locked, onSelect, onLockedClick }: { theme: ReceiptThemeStyle; selected: boolean; locked?: boolean; onSelect: () => void; onLockedClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={locked ? onLockedClick : onSelect}
+      className={`snap-center shrink-0 w-[172px] sm:w-[196px] rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left ${
+        selected
+          ? 'border-saffron-400 ring-2 ring-saffron-400/30 shadow-lg shadow-saffron-500/10'
+          : locked
+            ? 'border-theme-fg/10 opacity-70'
+            : 'border-theme-fg/10 hover:border-theme-fg/25 bg-theme-fg/[0.02]'
+      }`}
+    >
+      {/* Mini pavti mockup — an actual miniature of the real card: one consistent paper tone, no separate header color, matching the real design exactly. */}
+      <div className="p-2.5 relative" style={{ background: theme.paperBg }}>
+        {locked && (
+          <span className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center shadow-sm">
+            <Lock size={11} />
+          </span>
+        )}
+        <div className="rounded-lg overflow-hidden" style={{ border: `1.5px solid ${theme.primaryColor}` }}>
+          <div className="h-11 flex items-center px-2.5 gap-1.5" style={{ background: theme.paperBg }}>
+            <div className="w-4 h-4 rounded shrink-0" style={{ background: `${theme.primaryColor}1a` }} />
+            <div className="flex-1 min-w-0">
+              <div className="h-1.5 w-4/5 rounded-full mb-1" style={{ background: `${theme.primaryColor}bb` }} />
+              <div className="h-1 w-1/2 rounded-full" style={{ background: `${theme.primaryColor}55` }} />
+            </div>
+          </div>
+          <div className="p-2 flex flex-col items-center gap-1.5 border-t" style={{ background: theme.amountBg, borderColor: `${RECEIPT_GOLD_ACCENT}55` }}>
+            <div className="h-1 w-2/3 rounded-full bg-black/10" />
+            <div
+              className="px-3 py-1 rounded-md text-[10px] font-bold tabular-nums"
+              style={{ background: theme.paperBg, color: theme.primaryColor, border: `1px solid ${RECEIPT_GOLD_ACCENT}` }}
+            >
+              ₹5,000
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="px-2.5 pb-2.5 pt-0.5">
+        <p className="text-xs font-semibold text-theme-fg truncate flex items-center gap-1.5">
+          {selected && (
+            <span className="w-3.5 h-3.5 rounded-full bg-saffron-500 text-white flex items-center justify-center shrink-0">
+              <Check size={9} strokeWidth={3} />
+            </span>
+          )}
+          {theme.label}
+        </p>
+        <p className="text-[10px] text-theme-fg/45 mt-0.5 leading-snug line-clamp-2">
+          {locked ? 'Standard plan and up' : theme.tagline}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+function InteractiveTemplateCard({ template, selected, onSelect, onPreview }: { template: InteractivePavtiTemplate; selected: boolean; onSelect: () => void; onPreview: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`snap-center shrink-0 w-[188px] sm:w-[212px] rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left relative ${
+        selected
+          ? 'border-amber-400 ring-2 ring-amber-400/30 shadow-lg shadow-amber-500/10'
+          : 'border-theme-fg/10 hover:border-theme-fg/25 bg-theme-fg/[0.02]'
+      }`}
+    >
+      {/* Envelope mockup — the actual "sealed envelope" the interactive experience opens with, not an abstract swatch */}
+      <div
+        className="h-28 flex items-center justify-center relative"
+        style={{ background: `linear-gradient(145deg, ${template.primaryColor} 0%, #000000 130%)` }}
+      >
+        <div className="absolute inset-3 rounded-lg border border-white/15" />
+        <div
+          className="w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg border-2 border-white/30"
+          style={{ background: `linear-gradient(135deg, ${template.goldColor} 0%, ${template.primaryColor} 100%)` }}
+        >
+          {template.previewThumbnail}
+        </div>
+        {selected && (
+          <span className="absolute top-2 left-2 w-5 h-5 rounded-full bg-white text-amber-600 flex items-center justify-center shadow-md">
+            <Check size={12} strokeWidth={3} />
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPreview(); }}
+          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110"
+          title="Play full-screen preview"
+        >
+          <Play size={13} fill="currentColor" className="ml-0.5" />
+        </button>
+      </div>
+      <div className="p-2.5">
+        <p className="text-xs font-bold text-theme-fg truncate">{template.nameMarathi}</p>
+        <p className="text-[10px] text-theme-fg/50 mt-0.5">{template.name}</p>
+        <p className="text-[10px] text-theme-fg/40 mt-1 leading-tight line-clamp-2">{template.description}</p>
+      </div>
+    </button>
+  );
+}
+
+/** Shown under both the receipt-theme and interactive-template galleries — the honest answer to "what if none of these fit us". */
+function CustomDesignNote() {
+  return (
+    <p className="text-[11px] text-theme-fg/45 mt-2.5 flex items-center gap-1.5 flex-wrap">
+      <Mail size={12} className="shrink-0" />
+      Want a fully custom design for your mandal? Write to us at{' '}
+      <a href="mailto:design@epavtibook.com" className="text-saffron-400 hover:underline font-medium">design@epavtibook.com</a>
+    </p>
+  );
+}
+
 // `missingLabel` is the jargon-free copy every org admin sees. `envHint` (the
 // raw Railway variable names) only renders for SUPER_ADMIN — an org admin has
 // no way to act on "WHATSAPP_ACCESS_TOKEN"; that's operator-facing info.
 const settingsLabels = {
   en: {
     integrationsTitle: 'Integrations', integrationsDesc: 'Status of delivery & storage services connected to your account.',
-    whatsappDelivery: 'WhatsApp Delivery', whatsappOk: 'Receipts are delivered to donors via WhatsApp.',
-    whatsappMissing: "WhatsApp delivery isn't set up yet — contact support to enable it.",
-    smsOtp: 'SMS / OTP', smsOk: 'SMS receipts and OTP login are active.',
-    smsMissing: "SMS/OTP isn't set up yet — contact support to enable it.",
+    whatsappDelivery: 'WhatsApp Delivery', whatsappManualNote: 'Manual — click "Share via WhatsApp" on any receipt to open a prefilled chat with the donor. Nothing to configure.',
     fileStorage: 'File Storage', storageOk: 'Logos and receipt PDFs are stored permanently.',
     storageMissing: "File uploads (logo, receipt PDFs) aren't saved permanently yet — contact support to fix this.",
     orgInfoTitle: 'Organization Information', orgInfoDesc: 'Details displayed on receipt headers, WhatsApp messages, and official reports.',
@@ -48,13 +180,12 @@ const settingsLabels = {
     expenseCategoriesLabel: 'Expense Categories', donationCategoriesLabel: 'Donation Categories', addCategory: 'Add', noCategories: 'No custom categories yet',
     socialTitle: 'Social Media Links', socialDesc: 'Shown on the printed pavti and available as a tag in the WhatsApp message below.',
     instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', website: 'Website',
+    tabGeneral: 'General', tabBank: 'Bank & Integrations', tabDesign: 'Receipt Design', tabInteractive: 'Interactive View', tabAreas: 'Areas & Categories',
+    interactiveNote: 'Optional and separate from your actual receipt. This only appears if someone opens the receipt link in a browser — it never changes the printed pavti, the downloaded PDF, or the WhatsApp message.',
   },
   hi: {
     integrationsTitle: 'एकीकरण', integrationsDesc: 'आपके खाते से जुड़ी डिलीवरी व स्टोरेज सेवाओं की स्थिति।',
-    whatsappDelivery: 'व्हाट्सएप डिलीवरी', whatsappOk: 'रसीदें व्हाट्सएप के माध्यम से दानकर्ताओं को भेजी जाती हैं।',
-    whatsappMissing: 'व्हाट्सएप डिलीवरी अभी सेट नहीं है — सक्रिय करने के लिए सहायता से संपर्क करें।',
-    smsOtp: 'SMS / OTP', smsOk: 'SMS रसीदें और OTP लॉगिन सक्रिय हैं।',
-    smsMissing: 'SMS/OTP अभी सेट नहीं है — सक्रिय करने के लिए सहायता से संपर्क करें।',
+    whatsappDelivery: 'व्हाट्सएप डिलीवरी', whatsappManualNote: 'मैन्युअल — दानकर्ता के साथ पहले से भरी चैट खोलने के लिए किसी भी रसीद पर "व्हाट्सएप से शेयर करें" पर क्लिक करें। कुछ भी सेट करने की आवश्यकता नहीं।',
     fileStorage: 'फ़ाइल संग्रहण', storageOk: 'लोगो और रसीद PDF स्थायी रूप से सहेजे जाते हैं।',
     storageMissing: 'फ़ाइल अपलोड (लोगो, रसीद PDF) अभी स्थायी रूप से सहेजे नहीं जाते — ठीक करने के लिए सहायता से संपर्क करें।',
     orgInfoTitle: 'संस्था की जानकारी', orgInfoDesc: 'रसीद हेडर, व्हाट्सएप संदेश और आधिकारिक रिपोर्ट पर दिखाई जाने वाली जानकारी।',
@@ -71,13 +202,12 @@ const settingsLabels = {
     expenseCategoriesLabel: 'व्यय श्रेणियां', donationCategoriesLabel: 'दान श्रेणियां', addCategory: 'जोड़ें', noCategories: 'अभी तक कोई कस्टम श्रेणी नहीं',
     socialTitle: 'सोशल मीडिया लिंक', socialDesc: 'प्रिंटेड पावती पर दिखेंगे और नीचे व्हाट्सएप संदेश में टैग के रूप में उपलब्ध हैं।',
     instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
+    tabGeneral: 'सामान्य', tabBank: 'बैंक व एकीकरण', tabDesign: 'रसीद डिज़ाइन', tabInteractive: 'इंटरैक्टिव दृश्य', tabAreas: 'क्षेत्र व श्रेणियां',
+    interactiveNote: 'वैकल्पिक और आपकी वास्तविक रसीद से अलग। यह केवल तब दिखता है जब कोई ब्राउज़र में रसीद लिंक खोलता है — यह छपी हुई पावती, डाउनलोड की गई PDF, या व्हाट्सएप संदेश को कभी नहीं बदलता।',
   },
   mr: {
     integrationsTitle: 'इंटिग्रेशन्स', integrationsDesc: 'आपल्या खात्याशी जोडलेल्या डिलिव्हरी व स्टोरेज सेवांची स्थिती.',
-    whatsappDelivery: 'व्हॉट्सअॅप डिलिव्हरी', whatsappOk: 'पावत्या व्हॉट्सअॅपद्वारे देणगीदारांना पाठवल्या जातात.',
-    whatsappMissing: 'व्हॉट्सअॅप डिलिव्हरी अद्याप सेट केलेली नाही — सुरू करण्यासाठी सपोर्टशी संपर्क साधा.',
-    smsOtp: 'SMS / OTP', smsOk: 'SMS पावत्या व OTP लॉगिन सक्रिय आहे.',
-    smsMissing: 'SMS/OTP अद्याप सेट केलेले नाही — सुरू करण्यासाठी सपोर्टशी संपर्क साधा.',
+    whatsappDelivery: 'व्हॉट्सअॅप डिलिव्हरी', whatsappManualNote: 'मॅन्युअल — देणगीदाराशी आधीच भरलेली चॅट उघडण्यासाठी कोणत्याही पावतीवर "व्हॉट्सअॅपने शेअर करा" वर क्लिक करा. काहीही सेट करण्याची गरज नाही.',
     fileStorage: 'फाइल स्टोरेज', storageOk: 'लोगो व पावती PDF कायमस्वरूपी साठवले जातात.',
     storageMissing: 'फाइल अपलोड (लोगो, पावती PDF) अद्याप कायमस्वरूपी साठवले जात नाहीत — दुरुस्तीसाठी सपोर्टशी संपर्क साधा.',
     orgInfoTitle: 'संस्थेची माहिती', orgInfoDesc: 'पावती हेडर, व्हॉट्सअॅप मेसेज व अधिकृत अहवालांवर दिसणारी माहिती.',
@@ -94,6 +224,8 @@ const settingsLabels = {
     expenseCategoriesLabel: 'खर्च श्रेणी', donationCategoriesLabel: 'देणगी श्रेणी', addCategory: 'जोडा', noCategories: 'अद्याप कोणतीही कस्टम श्रेणी नाही',
     socialTitle: 'सोशल मीडिया लिंक्स', socialDesc: 'छापील पावतीवर दिसतील आणि खालील व्हॉट्सअॅप मेसेजमध्ये टॅग म्हणून उपलब्ध असतील.',
     instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
+    tabGeneral: 'सामान्य', tabBank: 'बँक व इंटिग्रेशन्स', tabDesign: 'पावती डिझाइन', tabInteractive: 'इंटरॅक्टिव्ह दृश्य', tabAreas: 'क्षेत्रे व श्रेणी',
+    interactiveNote: 'ऐच्छिक आणि तुमच्या प्रत्यक्ष पावतीपेक्षा वेगळे. कोणी ब्राउझरमध्ये पावतीची लिंक उघडली तरच हे दिसते — छापील पावती, डाउनलोड केलेली PDF किंवा व्हॉट्सअॅप मेसेज यावर याचा काहीही परिणाम होत नाही.',
   },
 };
 
@@ -126,6 +258,14 @@ export default function SettingsPage() {
   const sl = settingsLabels[language] || settingsLabels.en;
 
   const { data: org } = useQuery({ queryKey: ['org'], queryFn: orgsApi.getMe });
+  // UPI ID and custom receipt themes are Standard-plan-and-up features (see
+  // PRICING_PLANS) — mirrors the server-side check in
+  // OrganizationsService.update so the UI doesn't offer what it can't save
+  // (2026-08 roles/subscription audit).
+  const isStandardPlus = org?.subscriptionPlan === 'STANDARD' || org?.subscriptionPlan === 'PREMIUM';
+  const upgradeWhatsappLink = platformWhatsappLink(
+    `Hi, I'd like to upgrade "${org?.name || 'my organization'}" to the Standard plan.`,
+  );
   const { data: areas } = useQuery({ queryKey: ['areas'], queryFn: orgsApi.getAreas });
   const { data: expenseCategories } = useQuery({ queryKey: ['categories', 'EXPENSE'], queryFn: () => orgsApi.getCategories('EXPENSE') });
   const { data: donationCategories } = useQuery({ queryKey: ['categories', 'DONATION'], queryFn: () => orgsApi.getCategories('DONATION') });
@@ -140,7 +280,28 @@ export default function SettingsPage() {
   const [newCategory, setNewCategory] = useState({ EXPENSE: '', DONATION: '' });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingIdol, setUploadingIdol] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const handleCopyMandalCode = () => {
+    if (!org?.mandalCode) return;
+    navigator.clipboard.writeText(org.mandalCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
   const [previewMode, setPreviewMode] = useState<'PAVTI' | 'WHATSAPP'>('PAVTI');
+  // Which template id (if any) is showing full-screen — not a plain boolean,
+  // since the play button on any gallery card previews *that* template,
+  // independent of which one is currently selected/saved.
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+  // Settings used to be one long scroll through every section at once —
+  // tabs group related controls so each screen is short enough to actually
+  // scan, without dropping any control. "Receipt Design" (what actually
+  // prints/shares) and "Interactive View" (the optional web-only cinematic
+  // experience) are deliberately separate tabs, not sub-sections of one
+  // list — they produce two different things and were easy to confuse when
+  // stacked together (the Interactive template picker doesn't affect the
+  // PDF/WhatsApp receipt at all, and vice versa).
+  const [activeTab, setActiveTab] = useState<'general' | 'bank' | 'design' | 'interactive' | 'areas'>('general');
 
   useEffect(() => {
     if (org) {
@@ -178,9 +339,9 @@ export default function SettingsPage() {
     status: 'PAID',
     collectionType: 'EXTERNAL',
     createdAt: new Date().toISOString(),
-    collector: { name: 'Demo Collector' },
+    collector: { name: 'अमित जोशी (कार्यकर्ता)' },
     campaign: {
-      name: 'Sample Campaign',
+      name: 'श्री गणेशोत्सव २०२६',
       organization: {
         ...org,
         name: form.name || org?.name,
@@ -204,7 +365,7 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['org'] });
       toast.success('Settings saved!');
     },
-    onError: () => toast.error('Failed to save settings'),
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to save settings'),
   });
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,6 +392,30 @@ export default function SettingsPage() {
       toast.error('Failed to upload logo', { id: loadingToast });
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  // Unlike the logo, the idol photo isn't its own DB column — it lives inside
+  // receiptTemplateSettings, so this only uploads the file and stashes the
+  // returned URL in form state; it's persisted by the normal Save Settings
+  // button, same as every other field in this tab.
+  const handleIdolImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingIdol(true);
+    const loadingToast = toast.loading('Uploading idol photo...');
+    try {
+      const { url } = await orgsApi.uploadIdolImage(file);
+      setForm((p: any) => ({
+        ...p,
+        receiptTemplateSettings: { ...p.receiptTemplateSettings, customDarshanUrl: url },
+      }));
+      toast.success('Idol photo uploaded — click Save Settings to apply.', { id: loadingToast });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload idol photo', { id: loadingToast });
+    } finally {
+      setUploadingIdol(false);
     }
   };
 
@@ -284,11 +469,43 @@ export default function SettingsPage() {
         </button>
       </div>
 
+      {/* Tab bar — horizontally scrollable on narrow screens so it never
+          wraps into a second row or forces the page wider than the viewport. */}
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="flex items-center gap-1.5 bg-theme-fg/5 p-1.5 rounded-xl border border-theme-fg/10 w-max min-w-full sm:w-fit">
+          {([
+            { id: 'general', label: sl.tabGeneral, icon: Building2 },
+            { id: 'bank', label: sl.tabBank, icon: Landmark },
+            { id: 'design', label: sl.tabDesign, icon: Palette },
+            { id: 'interactive', label: sl.tabInteractive, icon: Sparkles },
+            { id: 'areas', label: sl.tabAreas, icon: Tag },
+          ] as const).map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`shrink-0 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  active ? 'bg-saffron-600 text-white shadow-sm' : 'text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/5'
+                }`}
+              >
+                <Icon size={14} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Portal Language — a personal, this-device preference (stored locally),
           not part of the organization profile saved by the button above. Kept
           separate from the Receipt Design language picker further down, which
           controls what donors see printed on the pavti, not what staff see in
           the app. */}
+      {activeTab === 'general' && (
+      <>
       <div className="glass-card p-6 sm:p-8">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -325,6 +542,32 @@ export default function SettingsPage() {
             <h3 className="text-base font-semibold text-theme-fg">{sl.orgInfoTitle}</h3>
             <p className="text-xs text-theme-fg/50">{sl.orgInfoDesc}</p>
           </div>
+        </div>
+
+        {/* Mandal Code — every collector/treasurer needs this alongside their
+            phone + password to log in (phone alone is only unique within an
+            org, so this is what disambiguates which org a login resolves
+            to). Shown once at registration; this is where an admin finds it
+            again afterward. 2026-08 mandal code introduction. */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 rounded-2xl bg-saffron-500/[0.06] border border-dashed border-saffron-500/30">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-saffron-500/10 flex items-center justify-center text-saffron-500 shrink-0">
+              <KeyRound size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-theme-fg/70 uppercase tracking-wider">Mandal Code</p>
+              <p className="text-[11px] text-theme-fg/45 mt-0.5">Every collector or treasurer needs this, along with their phone &amp; password, to log in.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleCopyMandalCode}
+            disabled={!org?.mandalCode}
+            className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl bg-[var(--bg-color)] border border-saffron-500/30 hover:border-saffron-500/50 transition-colors shrink-0 disabled:opacity-50"
+          >
+            <span className="text-lg font-extrabold tracking-[0.2em] text-saffron-600">{org?.mandalCode || '——————'}</span>
+            {codeCopied ? <CheckCheck size={16} className="text-emerald-500" /> : <Copy size={14} className="text-theme-fg/40" />}
+          </button>
         </div>
 
         {/* Logo Upload Section */}
@@ -438,9 +681,40 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
+
+      {/* 8. Social Media Links — grouped into General since it's small and
+          about "who we are", same category as org info/branding. */}
+      {activeTab === 'general' && (
+      <div className="glass-card p-6 sm:p-8">
+        <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
+          <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
+            <Globe size={18} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.socialTitle}</h3>
+            <p className="text-xs text-theme-fg/50">{sl.socialDesc}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {SOCIAL_PLATFORMS.map((p) => (
+            <div key={p.key}>
+              <label className="form-label">{p.emoji} {sl[p.key as 'instagram' | 'facebook' | 'youtube' | 'website']}</label>
+              <input
+                value={form.socialLinks?.[p.key] || ''}
+                onChange={(e) => setForm((prev: any) => ({ ...prev, socialLinks: { ...prev.socialLinks, [p.key]: e.target.value } }))}
+                className="form-input"
+                placeholder={`https://${p.key}.com/...`}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      )}
 
       {/* Integrations status — ORG_ADMIN only */}
-      {integrations && (
+      {activeTab === 'bank' && integrations && (
         <div className="glass-card p-6 sm:p-8">
           <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
             <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
@@ -451,23 +725,7 @@ export default function SettingsPage() {
               <p className="text-xs text-theme-fg/50">{sl.integrationsDesc}</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <IntegrationRow
-              label={sl.whatsappDelivery}
-              ok={integrations.whatsapp}
-              okLabel={sl.whatsappOk}
-              missingLabel={sl.whatsappMissing}
-              envHint="WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID"
-              showTechnical={user?.role === 'SUPER_ADMIN'}
-            />
-            <IntegrationRow
-              label={sl.smsOtp}
-              ok={integrations.sms}
-              okLabel={sl.smsOk}
-              missingLabel={sl.smsMissing}
-              envHint="MSG91_API_KEY"
-              showTechnical={user?.role === 'SUPER_ADMIN'}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <IntegrationRow
               label={sl.fileStorage}
               ok={integrations.storage === 'r2'}
@@ -476,11 +734,45 @@ export default function SettingsPage() {
               envHint="R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY"
               showTechnical={user?.role === 'SUPER_ADMIN'}
             />
+            <div className="p-4 rounded-xl border border-theme bg-theme-fg/[0.02]">
+              <p className="text-sm font-medium text-theme-fg/80 flex items-center gap-1.5">💬 {sl.whatsappDelivery}</p>
+              <p className="text-xs text-theme-fg/50 mt-1">{sl.whatsappManualNote}</p>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Cashfree Easy Split — sandbox milestone-1 test link, admin-only.
+          Not a real integration toggle yet (no org-facing Cashfree onboarding
+          exists), just a way to reach the manual order-creation test flow
+          without hunting for the URL. See
+          Digital_Pavti_Cashfree_EasySplit_Developer_Handover.md.
+          ORG_ADMIN, not SUPER_ADMIN — no account in this system is ever
+          actually provisioned with SUPER_ADMIN (not in prisma/seed.ts, not
+          in AuthService.register); gating on it alone made this link
+          unreachable by anyone. */}
+      {activeTab === 'bank' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ORG_ADMIN') && (
+        <div className="glass-card p-6 sm:p-8">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
+              <FlaskConical size={18} />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-theme-fg">Online Donations — Cashfree (Sandbox Test)</h3>
+              <p className="text-xs text-theme-fg/50">Internal only — not shown to Mandals. Verifies the Cashfree order/checkout connection.</p>
+            </div>
+          </div>
+          <Link
+            href="/settings/payments-test"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-saffron-500/10 text-saffron-400 text-sm font-medium hover:bg-saffron-500/20 transition-colors"
+          >
+            Open Cashfree sandbox test →
+          </Link>
+        </div>
+      )}
+
       {/* 3. Bank Details */}
+      {activeTab === 'bank' && (
       <div className="glass-card p-6 sm:p-8">
         <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
           <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
@@ -509,13 +801,32 @@ export default function SettingsPage() {
             <input value={form.bankBranch || ''} onChange={e => setForm((p: any) => ({ ...p, bankBranch: e.target.value }))} className="form-input" placeholder="Pune Main Branch" />
           </div>
           <div className="sm:col-span-2">
-            <label className="form-label">UPI ID</label>
-            <input value={form.upiId || ''} onChange={e => setForm((p: any) => ({ ...p, upiId: e.target.value }))} className="form-input font-mono" placeholder="mandal@upi" />
+            <label className="form-label flex items-center gap-1.5">
+              UPI ID
+              {!isStandardPlus && <Lock size={11} className="text-theme-fg/40" />}
+            </label>
+            <input
+              value={form.upiId || ''}
+              onChange={e => setForm((p: any) => ({ ...p, upiId: e.target.value }))}
+              className="form-input font-mono disabled:opacity-60 disabled:cursor-not-allowed"
+              placeholder="mandal@upi"
+              disabled={!isStandardPlus && !form.upiId}
+            />
+            {!isStandardPlus && (
+              <p className="text-[11px] text-theme-fg/45 mt-1.5">
+                Available on the Standard plan and up.{' '}
+                <a href={upgradeWhatsappLink} target="_blank" rel="noopener noreferrer" className="text-saffron-400 hover:underline font-medium">
+                  Upgrade →
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </div>
+      )}
 
       {/* 4. Receipt Design Settings */}
+      {activeTab === 'design' && (
       <div className="glass-card p-6 sm:p-8">
         <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
           <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
@@ -583,50 +894,37 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* 2. Theme Picker */}
+            {/* 2. Theme Picker — wallpaper-style gallery: swipe through, tap to apply. */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="form-label text-xs uppercase tracking-wider font-semibold text-theme-fg/70">
-                  2. Choose Theme ({RECEIPT_THEMES.length} Available)
-                </label>
-              </div>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {RECEIPT_THEMES.map(t => {
-                  const selected = (form.receiptTemplateSettings?.theme || 'DEFAULT') === t.id;
+              <label className="form-label text-xs uppercase tracking-wider font-semibold text-theme-fg/70">
+                2. Choose Theme ({RECEIPT_THEMES.length} Available)
+              </label>
+              <WallpaperGallery>
+                {RECEIPT_THEMES.map((t) => {
+                  // Grandfathered: an org already on this theme from before a
+                  // downgrade can keep it (and switch back to it) — only
+                  // switching to a *different* non-default theme needs Standard+.
+                  const savedTheme = org?.receiptTemplateSettings?.theme || 'DEFAULT';
+                  const locked = !isStandardPlus && t.id !== 'DEFAULT' && t.id !== savedTheme;
                   return (
-                    <button
+                    <ReceiptThemeCard
                       key={t.id}
-                      type="button"
-                      onClick={() => setForm((p: any) => ({
+                      theme={t}
+                      selected={(form.receiptTemplateSettings?.theme || 'DEFAULT') === t.id}
+                      locked={locked}
+                      onSelect={() => setForm((p: any) => ({
                         ...p,
-                        receiptTemplateSettings: { ...p.receiptTemplateSettings, theme: t.id }
+                        receiptTemplateSettings: { ...p.receiptTemplateSettings, theme: t.id },
                       }))}
-                      className={`group relative rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left flex flex-col ${
-                        selected
-                          ? 'border-saffron-400 ring-2 ring-saffron-400/30 shadow-lg shadow-saffron-500/10 scale-[1.02]'
-                          : 'border-theme-fg/10 hover:border-theme-fg/30 bg-theme-fg/[0.02] hover:bg-theme-fg/[0.04]'
-                      }`}
-                    >
-                      <div
-                        className="h-14 flex items-center justify-center text-2xl relative transition-transform duration-300 group-hover:scale-105"
-                        style={{ background: t.gradient }}
-                      >
-                        <span className="drop-shadow-sm">{t.emoji}</span>
-                        {selected && (
-                          <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-white text-saffron-600 flex items-center justify-center text-[9px] font-bold shadow-md">
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-2 bg-theme-fg/5 flex-1 flex flex-col justify-center">
-                        <p className="text-[11px] font-semibold text-theme-fg truncate">{t.label}</p>
-                        <p className="text-[9px] text-theme-fg/40 mt-0.5 capitalize">{t.borderStyle} border</p>
-                      </div>
-                    </button>
+                      onLockedClick={() => {
+                        toast.error(`${t.label} needs the Standard plan.`);
+                        window.open(upgradeWhatsappLink, '_blank');
+                      }}
+                    />
                   );
                 })}
-              </div>
+              </WallpaperGallery>
+              <CustomDesignNote />
             </div>
 
             {/* 3. Customizable Lines & WhatsApp Message */}
@@ -974,7 +1272,7 @@ export default function SettingsPage() {
                               amount: 501,
                               receiptNumber: 'SGM-2026-0001',
                               organizationName: form.name || org?.name || 'श्री गणेश मंडळ',
-                              receiptUrl: 'https://pavti.app/receipt/demo-id',
+                              receiptUrl: 'https://pavtibook.com/receipt/sample-id',
                               date: new Date().toLocaleDateString('en-IN'),
                               category: 'GENERAL',
                               socialLinksText: formatSocialLinksText(form.socialLinks),
@@ -995,6 +1293,157 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* 5. Interactive Devotional Pavti — separate tab, own card.
+          Deliberately not folded into Receipt Design: this is an optional
+          web-view experience, not part of the official pavti (that's the
+          PDF/print/WhatsApp text handled in the Design tab). Keeping it
+          apart is what makes the "which pavti actually gets generated"
+          question answerable at a glance. */}
+      {activeTab === 'interactive' && (
+      <div className="glass-card p-6 sm:p-8">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+            <Sparkles size={18} />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-theme-fg">{sl.tabInteractive}</h3>
+            <p className="text-xs text-theme-fg/50">Interactive Devotional Pavti (इंटेरॅक्टिव्ह डिजिटल पावती) — 4-Slide Darshan Experience</p>
+          </div>
+        </div>
+        <div className="mb-6 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/15 flex items-start gap-2.5">
+          <Sparkles size={15} className="text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-theme-fg/70 leading-relaxed">{sl.interactiveNote}</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wider font-semibold text-theme-fg/70">
+              4-Slide cinematic devotional experience (3D Wax Seal Envelope ➔ Darshan with Diya ➔ Digital Pavti ➔ Ashirwad)
+            </span>
+            <button
+              type="button"
+              onClick={() => setPreviewTemplateId(form.receiptTemplateSettings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON')}
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-900/20 transition-all hover:scale-[1.02] shrink-0"
+            >
+              <Eye size={13} />
+              <span>सध्याची निवड पहा (Preview Current)</span>
+            </button>
+          </div>
+
+          {/* Template Chooser — wallpaper-style gallery; each card shows the actual envelope design and has its own Play button for a full-screen preview of that template specifically, independent of which one is selected. */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] uppercase font-semibold tracking-wider text-theme-fg/50">
+              निवडा पावती टेम्पलेट (Choose Interactive Template):
+            </span>
+            <WallpaperGallery>
+              {INTERACTIVE_PAVTI_TEMPLATES.map((tmpl) => (
+                <InteractiveTemplateCard
+                  key={tmpl.id}
+                  template={tmpl}
+                  selected={(form.receiptTemplateSettings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON') === tmpl.id}
+                  onSelect={() => setForm((p: any) => ({
+                    ...p,
+                    receiptTemplateSettings: { ...p.receiptTemplateSettings, interactiveTemplate: tmpl.id },
+                  }))}
+                  onPreview={() => setPreviewTemplateId(tmpl.id)}
+                />
+              ))}
+            </WallpaperGallery>
+            <CustomDesignNote />
+          </div>
+
+          {/* Custom Blessing Message */}
+          <div className="space-y-1.5 pt-2">
+            <label className="form-label text-[11px] font-semibold text-theme-fg/80">
+              आशीर्वाद व शुभेच्छा संदेश (Divine Blessing Message on Slide 4):
+            </label>
+            <input
+              value={
+                form.receiptTemplateSettings?.blessingMessage ??
+                'गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो!'
+              }
+              onChange={(e) => {
+                setForm((p: any) => ({
+                  ...p,
+                  receiptTemplateSettings: {
+                    ...p.receiptTemplateSettings,
+                    blessingMessage: e.target.value,
+                  },
+                }));
+              }}
+              className="form-input font-devanagari text-xs"
+              placeholder="गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत!"
+            />
+          </div>
+
+          {/* Custom Idol / Darshan Photo — upload directly, or paste a URL */}
+          <div className="space-y-2">
+            <label className="form-label text-[11px] font-semibold text-theme-fg/80">
+              मंडळ मूर्ती / दर्शन फोटो (Custom Idol / Darshan Photo — Optional):
+            </label>
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-theme-fg/10 bg-theme-fg/[0.02]">
+              {form.receiptTemplateSettings?.customDarshanUrl ? (
+                <img
+                  src={form.receiptTemplateSettings.customDarshanUrl}
+                  alt=""
+                  className="w-14 h-14 rounded-lg object-cover border border-theme-fg/10 shrink-0"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+                  <Sparkles size={20} />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <input
+                  type="file"
+                  id="idol-upload"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleIdolImageChange}
+                />
+                <label
+                  htmlFor="idol-upload"
+                  className="btn-secondary py-2 px-3.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  {uploadingIdol ? 'Uploading...' : 'Upload Photo'}
+                </label>
+                {form.receiptTemplateSettings?.customDarshanUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((p: any) => ({ ...p, receiptTemplateSettings: { ...p.receiptTemplateSettings, customDarshanUrl: '' } }))}
+                    className="ml-2 text-[11px] text-red-400 hover:underline font-medium"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+            <details className="text-[11px]">
+              <summary className="cursor-pointer text-theme-fg/50 hover:text-theme-fg/70 select-none">Or paste an image URL instead</summary>
+              <input
+                value={form.receiptTemplateSettings?.customDarshanUrl ?? ''}
+                onChange={(e) => {
+                  setForm((p: any) => ({
+                    ...p,
+                    receiptTemplateSettings: {
+                      ...p.receiptTemplateSettings,
+                      customDarshanUrl: e.target.value,
+                    },
+                  }));
+                }}
+                className="form-input text-xs mt-1.5"
+                placeholder="https://..."
+              />
+            </details>
+            <p className="text-[10px] text-theme-fg/40">
+              रिकामे ठेवल्यास मूळ आकर्षक श्री गणेश मूर्ती दर्शन दिसेल. आपण आपल्या मंडळाच्या बाप्पाचा फोटोही अपलोड करू शकता.
+            </p>
+          </div>
+        </div>
+      </div>
+      )}
 
       {/* 5. Save Button */}
       <div className="pt-2">
@@ -1009,6 +1458,7 @@ export default function SettingsPage() {
       </div>
 
       {/* 6. Collection Areas */}
+      {activeTab === 'areas' && (
       <div className="glass-card p-6 sm:p-8">
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-theme">
           <h3 className="text-base font-semibold text-theme-fg flex items-center gap-2.5">
@@ -1052,8 +1502,10 @@ export default function SettingsPage() {
           {!areas?.length && <p className="text-xs text-theme-fg/30 text-center py-6">{sl.noAreas}</p>}
         </div>
       </div>
+      )}
 
       {/* 7. Custom Categories */}
+      {activeTab === 'areas' && (
       <div className="glass-card p-6 sm:p-8">
         <div className="flex items-center gap-2.5 mb-2">
           <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
@@ -1105,32 +1557,42 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+      )}
 
-      {/* 8. Social Media Links */}
-      <div className="glass-card p-6 sm:p-8">
-        <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
-          <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
-            <Globe size={18} />
+      {/* Full-screen Interactive Pavti Live Preview Modal — previews whichever
+          template's Play button was pressed, which may not be the currently
+          selected/saved one (browsing vs. applying are separate actions). */}
+      {previewTemplateId && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col">
+          <div className="absolute top-4 right-4 z-[110] flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPreviewTemplateId(null)}
+              className="px-4 py-2 bg-black/70 hover:bg-black border border-amber-400 text-amber-200 text-xs font-bold rounded-full flex items-center gap-1.5 backdrop-blur-md shadow-xl transition-all"
+            >
+              <X size={14} />
+              <span>प्रिव्ह्यू बंद करा (Close Preview)</span>
+            </button>
           </div>
-          <div>
-            <h3 className="text-base font-semibold text-theme-fg">{sl.socialTitle}</h3>
-            <p className="text-xs text-theme-fg/50">{sl.socialDesc}</p>
-          </div>
+          <InteractivePavtiView
+            receipt={{
+              ...previewReceipt,
+              campaign: {
+                ...previewReceipt.campaign,
+                organization: {
+                  ...previewReceipt.campaign.organization,
+                  receiptTemplateSettings: {
+                    ...previewReceipt.campaign.organization.receiptTemplateSettings,
+                    interactiveTemplate: previewTemplateId,
+                  },
+                },
+              },
+            } as any}
+            language={form.receiptTemplateSettings?.language || 'mr'}
+            onSwitchToStandard={() => setPreviewTemplateId(null)}
+          />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {SOCIAL_PLATFORMS.map((p) => (
-            <div key={p.key}>
-              <label className="form-label">{p.emoji} {sl[p.key as 'instagram' | 'facebook' | 'youtube' | 'website']}</label>
-              <input
-                value={form.socialLinks?.[p.key] || ''}
-                onChange={(e) => setForm((prev: any) => ({ ...prev, socialLinks: { ...prev.socialLinks, [p.key]: e.target.value } }))}
-                className="form-input"
-                placeholder={`https://${p.key}.com/...`}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -7,12 +7,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfService } from '../pdf/pdf.service';
-import { WhatsappService } from '../whatsapp/whatsapp.service';
-import { SmsService } from '../sms/sms.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto, UpdateReceiptDto } from './dto/receipt.dto';
-import { amountToWords, generateReceiptNumber, UserRole, ReceiptStatus } from '@pavti/shared';
+import { amountToWords, generateReceiptNumber, UserRole, ReceiptStatus, toCsv, SubscriptionPlan, MAX_RECEIPTS_BY_PLAN } from '@pavti/shared';
 import * as QRCode from 'qrcode';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ReceiptsService {
@@ -21,8 +20,6 @@ export class ReceiptsService {
   constructor(
     private prisma: PrismaService,
     private pdfService: PdfService,
-    private whatsappService: WhatsappService,
-    private smsService: SmsService,
     private storageService: StorageService,
   ) {}
 
@@ -36,6 +33,20 @@ export class ReceiptsService {
     if (!campaign) throw new NotFoundException('Campaign not found');
     if (campaign.status !== 'ACTIVE') {
       throw new BadRequestException('Campaign is not active');
+    }
+
+    // Free-trial cap — the only plan with a receipt limit (paid plans are
+    // unlimited, see MAX_RECEIPTS_BY_PLAN). Counts every receipt the org has
+    // ever created, voided or not, so voiding one doesn't free up a slot.
+    const plan = (campaign.organization.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
+    const receiptLimit = MAX_RECEIPTS_BY_PLAN[plan] ?? 10;
+    if (receiptLimit !== -1) {
+      const existingCount = await this.prisma.receipt.count({ where: { campaign: { orgId } } });
+      if (existingCount >= receiptLimit) {
+        throw new ForbiddenException(
+          `Your ${plan === SubscriptionPlan.FREE ? 'free trial' : plan} plan allows up to ${receiptLimit} receipts. Upgrade your plan to create more.`,
+        );
+      }
     }
 
     // Atomic receipt number generation
@@ -90,36 +101,16 @@ export class ReceiptsService {
       },
     });
 
-    // Generate PDF asynchronously
-    this.generateAndStorePdf(receipt).catch((err) => this.logger.error(`PDF generation failed for receipt ${receiptId}: ${err.message}`));
-
-    // Send WhatsApp if donor phone provided
-    if (dto.sendWhatsapp !== false && dto.donorPhone) {
-      this.whatsappService
-        .sendReceiptNotification(dto.donorPhone, {
-          donorName: dto.donorName,
-          amount: dto.amount,
-          receiptNumber,
-          organizationName: campaign.organization.name,
-          receiptUrl: verifyUrl,
-          category: dto.category,
-          receiptTemplateSettings: (campaign.organization as any)?.receiptTemplateSettings,
-        })
-        .then((result) => this.recordWhatsappResult(receiptId, result))
-        .catch((err) => this.logger.error(`WhatsApp send crashed for receipt ${receiptId}: ${err.message}`));
-    }
-
-    // Send SMS if requested
-    if (dto.sendSms && dto.donorPhone) {
-      this.smsService
-        .sendReceiptSms(dto.donorPhone, {
-          donorName: dto.donorName,
-          amount: dto.amount,
-          receiptNumber,
-          organizationName: campaign.organization.name,
-        })
-        .then((result) => this.recordSmsResult(receiptId, result))
-        .catch((err) => this.logger.error(`SMS send crashed for receipt ${receiptId}: ${err.message}`));
+    // PDF generation only fires once the receipt is actually PAID — a
+    // PENDING/ONLINE receipt (awaiting a Cashfree payment) has nothing
+    // official to hand the donor yet. See
+    // PaymentsService.applyCashfreeWebhook, which calls
+    // ReceiptsService.markOnlinePaymentSuccessInTx + fireReceiptPaidPdf
+    // once payment actually succeeds. WhatsApp is never sent from the
+    // backend at all — sharing is a manual click-to-chat link the frontend
+    // builds itself (see apps/web/src/lib/whatsappShare.ts).
+    if (receipt.status === 'PAID') {
+      this.generateAndStorePdf(receipt).catch((err) => this.logger.error(`PDF generation failed for receipt ${receipt.id}: ${err.message}`));
     }
 
     // Audit log
@@ -130,12 +121,73 @@ export class ReceiptsService {
         action: 'CREATE',
         entity: 'Receipt',
         entityId: receiptId,
-        newValue: { receiptNumber, amount: dto.amount, donorName: dto.donorName },
+        newValue: { receiptNumber, amount: dto.amount, donorName: dto.donorName, status: receipt.status },
         deviceInfo,
       },
     });
 
     return receipt;
+  }
+
+  /**
+   * The DB-write half only — receipt status + audit log, run inside the
+   * SAME transaction as the Payment row's update (see
+   * PaymentsService.applyCashfreeWebhook). Must not generate the PDF
+   * itself: a transaction can still roll back after this returns, and
+   * there's no point rendering a PDF for a status change that never
+   * actually committed. Call fireReceiptPaidPdf() afterward, only once the
+   * transaction has actually committed.
+   *
+   * Returns null if the receipt doesn't exist or is already PAID (nothing
+   * to do — caller should skip generating a PDF in that case too).
+   */
+  async markOnlinePaymentSuccessInTx(tx: Prisma.TransactionClient, receiptId: string) {
+    const receipt = await tx.receipt.findUnique({
+      where: { id: receiptId },
+      include: { campaign: { include: { organization: true } } },
+    });
+    if (!receipt) {
+      this.logger.error(`markOnlinePaymentSuccessInTx: receipt ${receiptId} not found — Payment says paid but the Receipt is gone`);
+      return null;
+    }
+    if (receipt.status === 'PAID') {
+      return null;
+    }
+
+    const updated = await tx.receipt.update({
+      where: { id: receiptId },
+      data: { status: 'PAID' },
+      include: { campaign: { include: { organization: true } } },
+    });
+
+    // collectorId, not a real actor here (webhook has no logged-in user) —
+    // the receipt's own collector is the natural attribution for "on whose
+    // record did this payment land", same rationale as using it for the
+    // CREATE audit log above.
+    await tx.auditLog.create({
+      data: {
+        orgId: updated.campaign.orgId,
+        userId: updated.collectorId,
+        action: 'ONLINE_PAYMENT_CONFIRMED',
+        entity: 'Receipt',
+        entityId: receiptId,
+        newValue: { status: 'PAID' },
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Post-commit half of markOnlinePaymentSuccessInTx — generates the PDF
+   * for a receipt that just became PAID via an online payment. Must only
+   * be called after the DB transaction that flipped the receipt to PAID
+   * has actually committed, never from inside it. WhatsApp sharing for
+   * this receipt is a manual click the collector makes from the UI, same
+   * as for a cash receipt — nothing to fire automatically here.
+   */
+  fireReceiptPaidPdf(receipt: Prisma.ReceiptGetPayload<{ include: { campaign: { include: { organization: true } } } }>) {
+    this.generateAndStorePdf(receipt).catch((err) => this.logger.error(`PDF generation failed for receipt ${receipt.id}: ${err.message}`));
   }
 
   async findAll(orgId: string, query: ReceiptQueryDto, userRole: string, userId: string) {
@@ -192,9 +244,23 @@ export class ReceiptsService {
     };
   }
 
-  async findOne(id: string, orgId: string) {
+  /**
+   * `scopedTo` mirrors findAll's "Collectors can only see their own
+   * receipts" rule — internal callers acting on behalf of ORG_ADMIN/
+   * TREASURER (update/void/updateStatus, all already role-gated to those
+   * two) omit it and can look up any receipt in the org. GET /receipts/:id
+   * and GET /receipts/:id/image are reachable by COLLECTOR too, though, and
+   * without this were letting a collector fetch — by ID — any other
+   * collector's receipt (donor name, phone, address, amount) despite the
+   * list view correctly hiding them. Same data, so the same rule applies.
+   */
+  async findOne(id: string, orgId: string, scopedTo?: { role: string; userId: string }) {
+    const where: any = { id, campaign: { orgId } };
+    if (scopedTo?.role === UserRole.COLLECTOR) {
+      where.collectorId = scopedTo.userId;
+    }
     const receipt = await this.prisma.receipt.findFirst({
-      where: { id, campaign: { orgId } },
+      where,
       include: {
         collector: true,
         campaign: { include: { organization: true } },
@@ -203,6 +269,16 @@ export class ReceiptsService {
     });
     if (!receipt) throw new NotFoundException('Receipt not found');
     return receipt;
+  }
+
+  /**
+   * Live PNG snapshot of the pavti, generated fresh per request (same pattern
+   * as ExpensesService.getVoucherPdf) — this is what "Share via WhatsApp"
+   * actually attaches, since wa.me can only pre-fill text, never a file.
+   */
+  async getReceiptImage(id: string, orgId: string, scopedTo?: { role: string; userId: string }): Promise<Buffer> {
+    const receipt = await this.findOne(id, orgId, scopedTo);
+    return this.pdfService.generateReceiptImage(receipt);
   }
 
   async findPublic(id: string) {
@@ -358,67 +434,6 @@ export class ReceiptsService {
     return updated;
   }
 
-  async resend(id: string, orgId: string) {
-    const receipt = await this.findOne(id, orgId);
-    if (!receipt.donorPhone) {
-      throw new BadRequestException('This receipt has no donor phone number to resend to');
-    }
-
-    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/receipt/${id}`;
-    // Awaited (unlike the fire-and-forget send at creation time) since this is
-    // an explicit user action — they're clicking "Resend" specifically to find
-    // out whether it worked, so the result has to reach them, not just a log.
-    const result = await this.whatsappService.sendReceiptNotification(receipt.donorPhone, {
-      donorName: receipt.donorName,
-      amount: receipt.amount,
-      receiptNumber: receipt.receiptNumber,
-      organizationName: receipt.campaign.organization.name,
-      receiptUrl: verifyUrl,
-      category: receipt.category,
-      receiptTemplateSettings: (receipt.campaign?.organization as any)?.receiptTemplateSettings,
-    });
-    await this.recordWhatsappResult(id, result);
-
-    if (result.skipped) {
-      throw new BadRequestException('WhatsApp delivery isn\'t configured yet — ask your admin to set up WHATSAPP_ACCESS_TOKEN.');
-    }
-    if (!result.success) {
-      throw new BadRequestException(`WhatsApp delivery failed: ${result.error}`);
-    }
-
-    return { message: 'Receipt resent successfully' };
-  }
-
-  /** Persists a WhatsApp send outcome onto the receipt — `skipped` (not
-   *  configured) writes nothing, since there's no attempt to record. */
-  private async recordWhatsappResult(receiptId: string, result: { success: boolean; skipped?: boolean; error?: string }) {
-    if (result.skipped) return;
-    try {
-      await this.prisma.receipt.update({
-        where: { id: receiptId },
-        data: result.success
-          ? { whatsappSent: true, whatsappError: null }
-          : { whatsappSent: false, whatsappError: result.error?.slice(0, 500) },
-      });
-    } catch (err) {
-      this.logger.error(`Failed to record WhatsApp result for receipt ${receiptId}: ${err.message}`);
-    }
-  }
-
-  private async recordSmsResult(receiptId: string, result: { success: boolean; skipped?: boolean; error?: string }) {
-    if (result.skipped) return;
-    try {
-      await this.prisma.receipt.update({
-        where: { id: receiptId },
-        data: result.success
-          ? { smsSent: true, smsError: null }
-          : { smsSent: false, smsError: result.error?.slice(0, 500) },
-      });
-    } catch (err) {
-      this.logger.error(`Failed to record SMS result for receipt ${receiptId}: ${err.message}`);
-    }
-  }
-
   async exportCsv(orgId: string, campaignId?: string): Promise<string> {
     const where: any = { campaign: { orgId }, isVoided: false };
     if (campaignId) where.campaignId = campaignId;
@@ -435,8 +450,8 @@ export class ReceiptsService {
 
     const headers = [
       'Receipt No', 'Date', 'Donor Name', 'Donor Phone', 'Donor Address',
-      'Amount (₹)', 'Amount in Words', 'Category', 'Payment Mode',
-      'Collector', 'Area', 'Campaign', 'WhatsApp Sent', 'SMS Sent',
+      'Amount (₹)', 'Amount in Words', 'Category', 'Payment Mode', 'Status',
+      'Collector', 'Area', 'Campaign',
     ];
 
     const rows = receipts.map((r) => [
@@ -449,14 +464,13 @@ export class ReceiptsService {
       r.amountInWords,
       r.category,
       r.paymentMode,
+      r.status,
       r.collector.name,
       r.area?.name || '',
       r.campaign.name,
-      r.whatsappSent ? 'Yes' : 'No',
-      r.smsSent ? 'Yes' : 'No',
     ]);
 
-    return [headers, ...rows].map((row) => row.join(',')).join('\n');
+    return toCsv(headers, rows);
   }
 
   async findUniqueDonors(orgId: string) {

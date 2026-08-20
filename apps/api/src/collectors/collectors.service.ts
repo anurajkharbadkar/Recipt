@@ -62,7 +62,11 @@ export class CollectorsService {
         email: data.email,
         passwordHash,
         role: data.role || 'COLLECTOR',
-        areaId: data.areaId,
+        // '' ("No specific area" in the picker) must clear the FK, not set
+        // it literally — areaId is a raw scalar column here (not a
+        // `connect`), so an empty string would violate the foreign key
+        // constraint against CollectorArea.
+        areaId: data.areaId || null,
         isActive: true,
       },
       include: { area: true },
@@ -75,9 +79,11 @@ export class CollectorsService {
       name: data.name,
       email: data.email,
       role: data.role,
-      areaId: data.areaId,
+      // Same '' → null normalization as create() — lets an edit explicitly
+      // clear a collector's area instead of silently failing the FK
+      // constraint. `undefined` (field omitted) still leaves it untouched.
+      areaId: data.areaId === undefined ? undefined : (data.areaId || null),
       isActive: data.isActive,
-      permissionsOverride: data.permissionsOverride,
     };
     if (data.password) {
       updateData.passwordHash = await bcrypt.hash(data.password, 12);

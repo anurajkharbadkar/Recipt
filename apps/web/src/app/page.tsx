@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, formatCurrency } from '@pavti/shared';
+import { platformWhatsappLink } from '@/lib/platform';
 import {
   BookOpen, QrCode, MessageCircle, FileText, Globe2, Users2, ShieldCheck,
   BarChart3, Palette, Check, Star, ArrowRight, Smartphone, Wallet,
@@ -23,7 +24,7 @@ const FEATURES = [
 ];
 
 function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
-  const isBasic = plan.id === 'BASIC';
+  const isFree = plan.id === 'FREE';
   const isStandard = plan.id === 'STANDARD';
   const isPremium = plan.id === 'PREMIUM';
 
@@ -34,6 +35,8 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
           ? 'border-2 border-royal-600 bg-gradient-to-b from-white via-white to-royal-50/50 shadow-xl shadow-royal-900/10 lg:-translate-y-2'
           : isPremium
           ? 'border-2 border-gold-400 bg-gradient-to-b from-[#21160E] to-[#120D08] text-[#F4F0E0] shadow-xl shadow-black/25'
+          : isFree
+          ? 'border border-dashed border-theme-fg/25 bg-theme-fg/[0.015] hover:border-theme-fg/40'
           : 'border border-saffron-300/80 bg-white/90 shadow-md hover:border-saffron-500/60'
       }`}
     >
@@ -45,6 +48,11 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
       {isPremium && (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-gold text-[10px] flex items-center gap-1 px-3 py-1 font-bold shadow-sm">
           👑 VIP / TEMPLE TRUST
+        </span>
+      )}
+      {isFree && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-neutral text-[10px] flex items-center gap-1 px-3 py-1 font-bold shadow-sm">
+          NO PAYMENT NEEDED
         </span>
       )}
 
@@ -98,8 +106,25 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
             : 'btn-primary'
         }`}
       >
-        Get Started <ArrowRight size={15} />
+        {isFree ? 'Start Free Trial' : 'Get Started'} <ArrowRight size={15} />
       </Link>
+
+      {/* No payment gateway wired up yet (see PendingPaymentBanner.tsx) — this
+          is the low-friction alternative to filling out the whole signup
+          form just to ask about a plan. Not shown for FREE — there's nothing
+          to request, signup itself is instant. */}
+      {!isFree && (
+        <a
+          href={platformWhatsappLink(`Hi, I'd like to request access to the ${plan.name} plan (${formatCurrency(plan.priceInr)}) for my mandal.`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`w-full flex items-center justify-center gap-1.5 mt-2 py-2 rounded-xl text-xs font-semibold transition-colors ${
+            isPremium ? 'text-gold-300/80 hover:text-gold-200' : 'text-theme-fg/50 hover:text-theme-fg/80'
+          }`}
+        >
+          <MessageCircle size={13} /> Request Access via WhatsApp
+        </a>
+      )}
     </div>
   );
 }
@@ -190,9 +215,9 @@ export default function HomePage() {
       <section id="pricing" className="max-w-6xl mx-auto px-4 md:px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mb-2">Simple, Seasonal Pricing</h2>
-          <p className="text-sm text-theme-fg/50">Pick a plan for the festival — pay once, use all season.</p>
+          <p className="text-sm text-theme-fg/50">Pick a plan for the festival — each one is valid for 1 month from signup.</p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {PRICING_PLANS.map((plan) => <PricingCard key={plan.id} plan={plan} />)}
         </div>
       </section>

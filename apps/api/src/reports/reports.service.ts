@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toCsv } from '@pavti/shared';
 
 @Injectable()
 export class ReportsService {
@@ -11,8 +12,8 @@ export class ReportsService {
     // pendingCollections instead of inflating totalCollections/netBalance.
     const paidReceiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     const pendingReceiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PENDING' };
-    // Expenses count toward the balance as soon as they're logged — approval
-    // is a separate audit workflow, not a gate on whether money was spent.
+    // Expenses are a plain ledger, no approval workflow — every logged
+    // expense counts toward the balance as soon as it's entered.
     const expenseWhere: any = { campaign: { orgId } };
     if (campaignId) {
       paidReceiptWhere.campaignId = campaignId;
@@ -28,8 +29,6 @@ export class ReportsService {
       todayResult,
       pendingCollectionsResult,
       expenseResult,
-      approvedExpenseResult,
-      pendingExpenses,
       activeCollectors,
     ] = await Promise.all([
       this.prisma.receipt.aggregate({ where: paidReceiptWhere, _sum: { amount: true }, _count: true }),
@@ -39,9 +38,7 @@ export class ReportsService {
         _count: true,
       }),
       this.prisma.receipt.aggregate({ where: pendingReceiptWhere, _sum: { amount: true }, _count: true }),
-      this.prisma.expense.aggregate({ where: expenseWhere, _sum: { amount: true } }),
-      this.prisma.expense.aggregate({ where: { ...expenseWhere, isApproved: true }, _sum: { amount: true } }),
-      this.prisma.expense.count({ where: { ...expenseWhere, isApproved: false } }),
+      this.prisma.expense.aggregate({ where: expenseWhere, _sum: { amount: true }, _count: true }),
       this.prisma.user.count({
         where: { orgId, role: 'COLLECTOR', isActive: true },
       }),
@@ -56,10 +53,9 @@ export class ReportsService {
       totalReceipts: totalResult._count,
       todayReceipts: todayResult._count,
       totalExpenses,
-      approvedExpenses: approvedExpenseResult._sum.amount || 0,
+      totalExpenseCount: expenseResult._count,
       netBalance: totalCollections - totalExpenses,
       activeCollectors,
-      pendingExpenses,
       pendingCollections: pendingCollectionsResult._sum.amount || 0,
       pendingCollectionsCount: pendingCollectionsResult._count,
     };
@@ -213,6 +209,109 @@ export class ReportsService {
     return Array.from(dateMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, stats]) => ({ date, income: stats.income, expense: stats.expense }));
+  }
+
+  /**
+   * The formal, committee/audit-facing view of the books: total income by
+   * category vs. total expense by category for the org (or one campaign),
+   * with a net surplus/deficit. This is the data behind both the on-screen
+   * "Income & Expenditure Statement" panel and its PDF export — one source
+   * of truth so the screen and the printed report never disagree.
+   */
+  async getIncomeExpenditureStatement(orgId: string, campaignId?: string) {
+    const receiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const expenseWhere: any = { campaign: { orgId } };
+    if (campaignId) {
+      receiptWhere.campaignId = campaignId;
+      expenseWhere.campaignId = campaignId;
+    }
+
+    const [org, campaign, incomeByCategory, expenseByCategory, receiptDateRange] = await Promise.all([
+      this.prisma.organization.findUnique({ where: { id: orgId } }),
+      campaignId ? this.prisma.campaign.findUnique({ where: { id: campaignId } }) : null,
+      this.prisma.receipt.groupBy({
+        by: ['category'],
+        where: receiptWhere,
+        _sum: { amount: true },
+        _count: true,
+        orderBy: { _sum: { amount: 'desc' } },
+      }),
+      this.prisma.expense.groupBy({
+        by: ['category'],
+        where: expenseWhere,
+        _sum: { amount: true },
+        _count: true,
+        orderBy: { _sum: { amount: 'desc' } },
+      }),
+      this.prisma.receipt.aggregate({
+        where: receiptWhere,
+        _min: { createdAt: true },
+        _max: { createdAt: true },
+      }),
+    ]);
+
+    const income = incomeByCategory.map((c) => ({
+      category: c.category,
+      amount: c._sum.amount || 0,
+      count: c._count,
+    }));
+    const expense = expenseByCategory.map((c) => ({
+      category: c.category,
+      amount: c._sum.amount || 0,
+      count: c._count,
+    }));
+
+    const totalIncome = income.reduce((s, c) => s + c.amount, 0);
+    const totalExpense = expense.reduce((s, c) => s + c.amount, 0);
+
+    return {
+      organization: org
+        ? { name: org.name, nameMarathi: org.nameMarathi, address: org.address, city: org.city, state: org.state, regNumber: org.regNumber, logoUrl: org.logoUrl, brandColor: org.brandColor }
+        : null,
+      campaign: campaign ? { name: campaign.name, year: campaign.year, startDate: campaign.startDate, endDate: campaign.endDate } : null,
+      periodFrom: receiptDateRange._min.createdAt,
+      periodTo: receiptDateRange._max.createdAt,
+      income,
+      expense,
+      totalIncome,
+      totalExpense,
+      netBalance: totalIncome - totalExpense,
+      generatedAt: new Date(),
+    };
+  }
+
+  async getExpenseRegisterCsv(orgId: string, campaignId?: string): Promise<string> {
+    const where: any = { campaign: { orgId } };
+    if (campaignId) where.campaignId = campaignId;
+
+    const expenses = await this.prisma.expense.findMany({
+      where,
+      include: {
+        addedBy: { select: { name: true } },
+        campaign: { select: { name: true } },
+      },
+      orderBy: { expenseDate: 'asc' },
+    });
+
+    const headers = [
+      'Date', 'Category', 'Description', 'Paid To', 'Phone', 'GST Number',
+      'Amount (₹)', 'Payment Mode', 'Added By', 'Campaign',
+    ];
+
+    const rows = expenses.map((e) => [
+      new Date(e.expenseDate).toLocaleDateString('en-IN'),
+      String(e.category).replace(/_/g, ' '),
+      e.description,
+      e.paidTo,
+      e.beneficiaryPhone || '',
+      e.gstNumber || '',
+      e.amount,
+      e.paymentMode,
+      e.addedBy.name,
+      e.campaign.name,
+    ]);
+
+    return toCsv(headers, rows);
   }
 
   async getTopDonors(orgId: string, campaignId?: string, limit = 10) {

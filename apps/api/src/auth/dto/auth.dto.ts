@@ -1,12 +1,12 @@
 import {
-  IsString, IsEmail, IsOptional, IsPhoneNumber, MinLength, IsNumberString, Length, IsEnum, IsIn
+  IsString, IsEmail, IsOptional, IsPhoneNumber, MinLength, IsEnum, IsIn
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SubscriptionPlan } from '@pavti/shared';
 
-// FREE isn't publicly offered (see packages/shared PRICING_PLANS) — only
-// these three are selectable at signup.
-const SELECTABLE_PLANS = [SubscriptionPlan.BASIC, SubscriptionPlan.STANDARD, SubscriptionPlan.PREMIUM];
+// Every SubscriptionPlan is selectable at signup — FREE is the self-serve
+// trial (see packages/shared PRICING_PLANS / MAX_RECEIPTS_BY_PLAN).
+const SELECTABLE_PLANS = Object.values(SubscriptionPlan);
 
 export class RegisterDto {
   @ApiProperty({ example: 'Shree Ganesh Mandal' })
@@ -61,6 +61,15 @@ export class RegisterDto {
 }
 
 export class LoginDto {
+  // Disambiguates which org's User row to check — a phone number is only
+  // unique *within* an org (see Organization.mandalCode's schema comment),
+  // so this is required for every login, not just a fallback for
+  // collisions. Shown to every ORG_ADMIN in Settings to share with staff.
+  @ApiProperty({ example: 'SGMP26', description: "The organization's Mandal Code (see Settings)" })
+  @IsString()
+  @MinLength(4)
+  mandalCode: string;
+
   @ApiProperty({ example: '9876543210' })
   @IsString()
   phone: string;
@@ -70,23 +79,6 @@ export class LoginDto {
   password: string;
 }
 
-export class SendOtpDto {
-  @ApiProperty({ example: '9876543210' })
-  @IsString()
-  @MinLength(10)
-  phone: string;
-}
-
-export class VerifyOtpDto {
-  @ApiProperty({ example: '9876543210' })
-  @IsString()
-  phone: string;
-
-  @ApiProperty({ example: '123456' })
-  @IsNumberString()
-  @Length(6, 6)
-  otp: string;
-}
 
 export class RefreshTokenDto {
   @ApiProperty()

@@ -93,9 +93,9 @@ export default function DashboardPage() {
   });
 
   const labels = {
-    en: { total: 'Total Collections', today: "Today's Collections", receipts: 'Total Receipts', todayR: "Today's Receipts", expenses: 'Total Expenses', balance: 'Net Balance', collectors: 'Active Collectors', pending: 'Expenses Awaiting Approval', newReceipt: 'New Receipt', addExpense: 'Add Expense', memberContribution: 'Member Contribution' },
-    hi: { total: 'कुल संग्रह', today: 'आज का संग्रह', receipts: 'कुल रसीदें', todayR: 'आज की रसीदें', expenses: 'कुल व्यय', balance: 'शुद्ध शेष', collectors: 'सक्रिय संग्राहक', pending: 'स्वीकृति हेतु लंबित व्यय', newReceipt: 'नई रसीद', addExpense: 'व्यय जोड़ें', memberContribution: 'सदस्य योगदान' },
-    mr: { total: 'एकूण संग्रह', today: 'आजचा संग्रह', receipts: 'एकूण पावत्या', todayR: 'आजच्या पावत्या', expenses: 'एकूण खर्च', balance: 'निव्वळ शिल्लक', collectors: 'सक्रिय संग्राहक', pending: 'मंजुरीच्या प्रतीक्षेतील खर्च', newReceipt: 'नवीन पावती', addExpense: 'खर्च जोडा', memberContribution: 'सभासद वर्गणी' },
+    en: { total: 'Total Collections', today: "Today's Collections", receipts: 'Total Receipts', todayR: "Today's Receipts", expenses: 'Total Expenses', balance: 'Net Balance', collectors: 'Active Collectors', pending: 'Pending Collections', newReceipt: 'New Receipt', addExpense: 'Add Expense', memberContribution: 'Member Contribution' },
+    hi: { total: 'कुल संग्रह', today: 'आज का संग्रह', receipts: 'कुल रसीदें', todayR: 'आज की रसीदें', expenses: 'कुल व्यय', balance: 'शुद्ध शेष', collectors: 'सक्रिय संग्राहक', pending: 'लंबित संग्रह', newReceipt: 'नई रसीद', addExpense: 'व्यय जोड़ें', memberContribution: 'सदस्य योगदान' },
+    mr: { total: 'एकूण संग्रह', today: 'आजचा संग्रह', receipts: 'एकूण पावत्या', todayR: 'आजच्या पावत्या', expenses: 'एकूण खर्च', balance: 'निव्वळ शिल्लक', collectors: 'सक्रिय संग्राहक', pending: 'प्रलंबित संग्रह', newReceipt: 'नवीन पावती', addExpense: 'खर्च जोडा', memberContribution: 'सभासद वर्गणी' },
   };
   const l = labels[language] || labels.en;
 
@@ -151,7 +151,7 @@ export default function DashboardPage() {
         <StatCard title={l.receipts} value={(stats.totalReceipts || 0).toLocaleString('en-IN')} icon={Receipt} />
         <StatCard title={l.todayR} value={(stats.todayReceipts || 0).toLocaleString('en-IN')} icon={FileText} />
         <StatCard title={l.collectors} value={stats.activeCollectors || 0} icon={Users} />
-        <StatCard title={l.pending} value={stats.pendingExpenses || 0} icon={FileText} />
+        <StatCard title={l.pending} value={formatCurrency(stats.pendingCollections || 0)} icon={FileText} />
       </div>
 
       {/* Charts Row */}
@@ -213,7 +213,41 @@ export default function DashboardPage() {
             View all <ArrowUpRight size={12} />
           </Link>
         </div>
-        <div className="table-container">
+        {/* Mobile: cards */}
+        <div className="sm:hidden -mx-5 divide-y divide-theme-fg/8">
+          {(recentReceipts?.data || []).map((r: any) => (
+            <Link href={`/receipts/${r.id}`} key={r.id} className="block p-4 space-y-1.5 active:bg-theme-fg/5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-saffron-400 font-mono text-xs">{r.receiptNumber}</p>
+                  <p className="font-semibold text-theme-fg truncate">{r.donorName}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-bold text-emerald-400">{formatCurrency(r.amount)}</p>
+                  {r.isVoided ? (
+                    <span className="badge badge-danger text-[10px] mt-1">Voided</span>
+                  ) : r.status === 'PENDING' ? (
+                    <span className="badge badge-warning text-[10px] mt-1">Pending</span>
+                  ) : r.status === 'CANCELLED' ? (
+                    <span className="badge badge-neutral text-[10px] mt-1">Cancelled</span>
+                  ) : (
+                    <span className="badge badge-success text-[10px] mt-1">Paid</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-theme-fg/60">{r.collector?.name}</span>
+                <span className="text-[11px] text-theme-fg/40">{format(new Date(r.createdAt), 'dd MMM, h:mm a')}</span>
+              </div>
+            </Link>
+          ))}
+          {(!recentReceipts?.data?.length) && (
+            <p className="text-center text-theme-fg/30 py-8 text-sm">No receipts yet. Create your first receipt!</p>
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="table-container hidden sm:block">
           <table className="data-table">
             <thead>
               <tr>
@@ -243,10 +277,12 @@ export default function DashboardPage() {
                   <td>
                     {r.isVoided ? (
                       <span className="badge badge-danger">Voided</span>
-                    ) : r.whatsappSent ? (
-                      <span className="badge badge-success">Sent ✓</span>
+                    ) : r.status === 'PENDING' ? (
+                      <span className="badge badge-warning">Pending</span>
+                    ) : r.status === 'CANCELLED' ? (
+                      <span className="badge badge-neutral">Cancelled</span>
                     ) : (
-                      <span className="badge badge-neutral">Created</span>
+                      <span className="badge badge-success">Paid</span>
                     )}
                   </td>
                 </tr>

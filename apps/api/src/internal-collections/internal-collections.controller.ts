@@ -21,8 +21,10 @@ export class InternalCollectionsController {
     return this.service.declare(user.orgId, user.id, dto);
   }
 
+  // Paid/unpaid-by-name is the same class of sensitive roster data as
+  // Members — ORG_ADMIN/TREASURER only, not COLLECTOR/VIEWER (2026-08 roles audit).
   @Get('roster')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER)
   @ApiOperation({ summary: 'Paid/unpaid roster + totals for a campaign\'s Internal Collection' })
   roster(@CurrentUser('orgId') orgId: string, @Query('campaignId') campaignId: string) {
     return this.service.roster(orgId, campaignId);

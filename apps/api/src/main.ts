@@ -8,7 +8,13 @@ import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true — the Cashfree webhook signature (CashfreeWebhookService)
+  // is computed over the exact raw request bytes, not the parsed/
+  // re-serialized JSON body (key order/whitespace differ, so a re-stringify
+  // would never match). This only adds `req.rawBody` alongside the normal
+  // parsed `req.body` Nest already provides everywhere else — no behavior
+  // change for any other route.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
 
   // Root & Health routes for platform proxies (Railway / Load Balancers)

@@ -18,8 +18,13 @@ interface Organization {
   nameHindi?: string;
   logoUrl?: string;
   brandColor?: string;
+  /** Short login identifier every collector/treasurer needs alongside their phone + password. Shown in Settings. */
+  mandalCode?: string;
   subscriptionPlan: string;
   subscriptionStatus?: string;
+  subscriptionExpiry?: string | Date;
+  /** Total receipts ever created by the org — powers the free-trial "X of 10 used" banner. See OrganizationsService.getMe. */
+  receiptCount?: number;
 }
 
 interface AuthState {

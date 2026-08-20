@@ -5,15 +5,13 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import toast from 'react-hot-toast';
-import { BookOpen, Phone, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, Phone, Lock, ArrowRight, Eye, EyeOff, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<'password' | 'otp'>('password');
+  const [mandalCode, setMandalCode] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const { setAuth } = useAuthStore();
@@ -23,43 +21,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await authApi.login(phone, password);
+      const data = await authApi.login(mandalCode, phone, password);
       setAuth(data);
       toast.success('Welcome back! 🙏');
       router.push('/dashboard');
     } catch (err: any) {
       const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server. Please verify API URL.' : 'Invalid credentials');
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendOtp = async () => {
-    if (!phone || phone.length < 10) { toast.error('Enter a valid phone number'); return; }
-    setLoading(true);
-    try {
-      await authApi.sendOtp(phone);
-      setOtpSent(true);
-      toast.success('OTP sent!');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server.' : 'Failed to send OTP');
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const data = await authApi.verifyOtp(phone, otp);
-      setAuth(data);
-      toast.success('Welcome! 🙏');
-      router.push('/dashboard');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server.' : 'Invalid OTP');
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -86,98 +53,57 @@ export default function LoginPage() {
         </div>
 
         <div className="glass-card p-7 shadow-xl shadow-saffron-900/5">
-          {/* Mode Toggle */}
-          <div className="flex gap-1.5 mb-6 p-1 bg-saffron-100/60 dark:bg-[#120D08] rounded-xl border border-theme/20">
-            {(['password', 'otp'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                  mode === m
-                    ? 'bg-saffron-700 text-white shadow-sm'
-                    : 'text-theme-fg/60 hover:text-theme-fg'
-                }`}
-              >
-                {m === 'password' ? '🔒 Password' : '📱 OTP'}
-              </button>
-            ))}
-          </div>
-
-          {mode === 'password' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="form-label">Mobile Number</label>
-                <div className="relative">
-                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
-                  <input
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    className="form-input pl-9"
-                    placeholder="9876543210"
-                    type="tel"
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="form-label">Mandal Code</label>
+              <div className="relative">
+                <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
+                <input
+                  value={mandalCode}
+                  onChange={e => setMandalCode(e.target.value.toUpperCase())}
+                  className="form-input pl-9 uppercase tracking-wider"
+                  placeholder="e.g. SGMP26"
+                  required
+                />
               </div>
-              <div>
-                <label className="form-label">Password</label>
-                <div className="relative">
-                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
-                  <input
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="form-input pl-9 pr-10"
-                    placeholder="••••••••"
-                    type={showPass ? 'text' : 'password'}
-                    required
-                  />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-fg/30 hover:text-theme-fg/60">
-                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
-                {loading ? <span className="animate-pulse-soft">Signing in...</span> : <><ArrowRight size={16} /> Sign In</>}
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="form-label">Mobile Number</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
-                    <input value={phone} onChange={e => setPhone(e.target.value)} className="form-input pl-9" placeholder="9876543210" type="tel" inputMode="numeric" />
-                  </div>
-                  <button onClick={handleSendOtp} disabled={loading || otpSent} className="btn-secondary px-4 whitespace-nowrap text-sm">
-                    {otpSent ? '✓ Sent' : 'Send OTP'}
-                  </button>
-                </div>
-              </div>
-              {otpSent && (
-                <form onSubmit={handleVerifyOtp} className="space-y-4 animate-slide-up">
-                  <div>
-                    <label className="form-label">Enter 6-digit OTP</label>
-                    <input
-                      value={otp}
-                      onChange={e => setOtp(e.target.value)}
-                      className="form-input text-center text-2xl tracking-[0.5em] font-mono"
-                      placeholder="••••••"
-                      maxLength={6}
-                      inputMode="numeric"
-                    />
-                  </div>
-                  <button type="submit" disabled={loading || otp.length !== 6} className="btn-primary w-full">
-                    {loading ? 'Verifying...' : '✓ Verify & Sign In'}
-                  </button>
-                  <button type="button" onClick={() => { setOtpSent(false); setOtp(''); }} className="btn-ghost w-full text-sm">
-                    Resend OTP
-                  </button>
-                </form>
-              )}
+              <p className="text-[11px] text-theme-fg/35 mt-1">Ask your mandal admin if you don&apos;t have this.</p>
             </div>
-          )}
+            <div>
+              <label className="form-label">Mobile Number</label>
+              <div className="relative">
+                <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
+                <input
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className="form-input pl-9"
+                  placeholder="Enter 10-digit mobile number"
+                  type="tel"
+                  inputMode="numeric"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Password</label>
+              <div className="relative">
+                <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
+                <input
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="form-input pl-9 pr-10"
+                  placeholder="••••••••"
+                  type={showPass ? 'text' : 'password'}
+                  required
+                />
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-fg/30 hover:text-theme-fg/60">
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
+              {loading ? <span className="animate-pulse-soft">Signing in...</span> : <><ArrowRight size={16} /> Sign In</>}
+            </button>
+          </form>
 
           <div className="mt-6 pt-6 border-t border-black/[0.04] text-center">
             <p className="text-sm text-theme-fg/60">
@@ -186,12 +112,6 @@ export default function LoginPage() {
                 Register here
               </Link>
             </p>
-          </div>
-
-          {/* Demo credentials */}
-          <div className="mt-4 p-3.5 bg-black/[0.03] backdrop-blur-sm rounded-xl text-xs text-theme-fg/60">
-            <p className="font-semibold text-theme-fg/80 mb-1">Demo Credentials:</p>
-            <p>📱 9876543210 | 🔑 Admin@123</p>
           </div>
         </div>
       </div>

@@ -12,11 +12,11 @@ import { CollectorsModule } from './collectors/collectors.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ReportsModule } from './reports/reports.module';
 import { PdfModule } from './pdf/pdf.module';
-import { WhatsappModule } from './whatsapp/whatsapp.module';
-import { SmsModule } from './sms/sms.module';
 import { StorageModule } from './storage/storage.module';
 import { MembersModule } from './members/members.module';
 import { InternalCollectionsModule } from './internal-collections/internal-collections.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CashfreeModule } from './payments/cashfree/cashfree.module';
 
 @Module({
   imports: [
@@ -40,16 +40,16 @@ import { InternalCollectionsModule } from './internal-collections/internal-colle
     ExpensesModule,
     ReportsModule,
     PdfModule,
-    WhatsappModule,
-    SmsModule,
     StorageModule,
     MembersModule,
     InternalCollectionsModule,
+    PaymentsModule,
+    CashfreeModule,
   ],
   providers: [
     // Applies the ThrottlerModule limits above to every route by default
-    // (brute-force protection on login/OTP endpoints in particular). Was
-    // configured but never bound — see production_readiness_report.md.
+    // (brute-force protection on login in particular). Was configured but
+    // never bound — see production_readiness_report.md.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

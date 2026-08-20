@@ -21,6 +21,15 @@ export enum SubscriptionStatus {
   EXPIRED = 'EXPIRED',
 }
 
+/**
+ * Every plan is valid for one 30-day period from signup — set as
+ * Organization.subscriptionExpiry by AuthService.register, checked on every
+ * write request by apps/api's SubscriptionGuard, and worth keeping in one
+ * place since it's also what the pricing page/registration form promise the
+ * org they're paying for (2026-08 roles/subscription audit).
+ */
+export const SUBSCRIPTION_PERIOD_DAYS = 30;
+
 // How many campaigns an org may run ACTIVE at once, by plan. Enforced when a
 // campaign transitions to ACTIVE (apps/api CampaignsService.activate) — a
 // campaign can always be created/edited as DRAFT regardless of this limit,
@@ -36,9 +45,8 @@ export const MAX_ACTIVE_CAMPAIGNS_BY_PLAN: Record<SubscriptionPlan, number> = {
 
 // How many staff accounts (COLLECTOR/TREASURER — not the ORG_ADMIN account
 // itself) an org may add, by plan. Enforced in CollectorsService.create.
-// -1 = unlimited (same sentinel SUBSCRIPTION_PLANS already uses for
-// maxUsers/maxReceipts) — PREMIUM was previously capped at 10, which
-// contradicted the plan being sold/intended as unlimited collectors.
+// -1 = unlimited — PREMIUM was previously capped at 10, which contradicted
+// the plan being sold/intended as unlimited collectors.
 export const MAX_COLLECTORS_BY_PLAN: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.FREE]: 5,
   [SubscriptionPlan.BASIC]: 5,
@@ -46,13 +54,74 @@ export const MAX_COLLECTORS_BY_PLAN: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.PREMIUM]: -1,
 };
 
+// How many receipts (pavtis) an org may ever create, by plan — the actual
+// "free trial" cap. Enforced in ReceiptsService.create, counting every
+// receipt the org has ever created (voided or not — voiding one doesn't
+// free up a trial slot). -1 = unlimited, same sentinel as the two limits
+// above. Only FREE is actually capped today; paid plans are unlimited on
+// receipt count (that's what "Unlimited Digital Receipts" on the pricing
+// page promises).
+export const MAX_RECEIPTS_BY_PLAN: Record<SubscriptionPlan, number> = {
+  [SubscriptionPlan.FREE]: 10,
+  [SubscriptionPlan.BASIC]: -1,
+  [SubscriptionPlan.STANDARD]: -1,
+  [SubscriptionPlan.PREMIUM]: -1,
+};
+
+// ─── Donation Split Policy (Cashfree Easy Split) ───────────────────────────
+// The single source of truth for how a donation gets divided between the
+// Mandal and the platform, and who eats Cashfree's gateway fee. Verified
+// live in Sandbox (see Digital_Pavti_Cashfree_EasySplit_Developer_Handover.md):
+// a ₹100 order with order_splits [{vendor_id, percentage: 100}] settles the
+// full ₹100 gross to the Mandal's vendor account, and Cashfree's fee is then
+// deducted from the *platform's own* settlement (feeHandling: 'PLATFORM'),
+// not the Mandal's.
+//
+// Nothing calls this yet — there's no public donation endpoint built (only
+// the sandbox test flow in apps/api/src/payments/cashfree), so this exists
+// purely to record the decision in one typed place instead of a value some
+// future caller would otherwise hardcode inline. When that endpoint gets
+// built, it should read this constant for the split it sends to
+// CashfreeService.createOrder's orderSplits, not repeat the numbers itself.
+//
+// IMPORTANT — feeHandling: 'PLATFORM' assumes Cashfree's current 0% UPI
+// promotional MDR (domestic, ≤₹20L/month GTV, ≥40% UPI mix, valid through
+// 2027-03-31) actually applies to the production account. That must be
+// confirmed in the live Cashfree dashboard/contract, not assumed from their
+// public pricing page, before this policy is treated as costing the
+// platform ₹0 per donation. If the account is on the 1.95%+GST standard
+// rate instead, 'PLATFORM' means the platform loses ~2.3% per donation —
+// see the same handover doc for the fee-handling alternatives ('MANDAL' —
+// reduce vendorShare below 100 — or a donor convenience fee, tracked
+// separately since it changes the checkout amount, not the split).
+export type VendorShareType = 'PERCENTAGE' | 'AMOUNT';
+export type PaymentFeeHandling = 'PLATFORM' | 'MANDAL';
+
+export interface DonationSplitPolicy {
+  /** Always 0 today — Digital Pavti charges no commission on donations,
+   *  only the org's subscription fee. Kept explicit (not just "100 - vendorShare")
+   *  so a future 3-way split (platform commission + Mandal + fee) doesn't
+   *  have to guess this was always meant to be zero. */
+  platformCommissionPercent: number;
+  vendorShareType: VendorShareType;
+  /** 100 under vendorShareType 'PERCENTAGE' == the full gross donation, per
+   *  the verified Sandbox result above. */
+  vendorShare: number;
+  feeHandling: PaymentFeeHandling;
+}
+
+export const DEFAULT_DONATION_SPLIT_POLICY: DonationSplitPolicy = {
+  platformCommissionPercent: 0,
+  vendorShareType: 'PERCENTAGE',
+  vendorShare: 100,
+  feeHandling: 'PLATFORM',
+};
+
 // ─── Pricing (public plan catalog) ─────────────────────────────────────────
 // Single source of truth for the marketing pricing page AND the registration
 // plan picker, so the price/feature list a visitor sees before signing up is
 // guaranteed to match what they're actually offered on the signup form —
 // same "one definition, multiple consumers" approach as RECEIPT_THEMES.
-// There's no FREE tier on offer publicly — FREE stays in the SubscriptionPlan
-// enum only for internal/legacy use.
 export interface PricingPlanFeature {
   label: string;
   description?: string;
@@ -68,17 +137,38 @@ export interface PricingPlan {
   priceNote: string;
   highlighted?: boolean;
   collectorLimit: number;
+  /** -1 = unlimited, matching collectorLimit's convention. */
+  receiptLimit: number;
   features: PricingPlanFeature[];
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
   {
+    id: SubscriptionPlan.FREE,
+    name: 'Free Trial',
+    tagline: 'Try the full app before you commit to a plan',
+    priceInr: 0,
+    priceNote: `Up to ${MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE]} pavtis, valid 1 month — no payment needed`,
+    collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE],
+    receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE],
+    features: [
+      { label: `${MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE]} Digital Receipts`, description: 'Enough to run a small collection drive and see how it feels' },
+      { label: 'Internal Donation Collection' },
+      { label: 'Donation Management & Expense Tracking' },
+      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
+      { label: `${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE]} Collectors` },
+      { label: 'Reports & Analytics' },
+      { label: 'No payment required to start', description: 'Instant access — upgrade only if you need more' },
+    ],
+  },
+  {
     id: SubscriptionPlan.BASIC,
     name: 'Basic',
     tagline: 'For small mandals starting their digital journey',
     priceInr: 499,
-    priceNote: 'For whole Ganpati Utsav 2026',
+    priceNote: 'Valid for 1 month from signup',
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
+    receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC],
     features: [
       { label: 'Digital Receipts', description: 'Generate and share digital pavtis instantly' },
       { label: 'Internal Donation Collection', description: 'Track member subscriptions & mandal contributions' },
@@ -93,15 +183,17 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Standard',
     tagline: 'For growing mandals who want more',
     priceInr: 799,
-    priceNote: 'For whole Ganpati Utsav 2026',
+    priceNote: 'Valid for 1 month from signup',
     highlighted: true,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD],
+    receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.STANDARD],
     features: [
       { label: 'Unlimited Digital Receipts', description: 'Generate and share unlimited digital receipts' },
       { label: 'Internal Donation Collection' },
       { label: 'Donation Management & Expense Tracking' },
       { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
       { label: 'UPI ID on Every Receipt', description: 'Donors pay you directly — fast & hassle-free' },
+      { label: 'Dynamic QR & UPI Intent', description: 'Auto-generated, one-tap payment QR on every receipt — no manual UPI ID entry for the donor', comingSoon: true },
       { label: `Up to ${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD]} Collectors` },
       { label: 'Advanced Reports & Analytics', description: 'Data-driven insights for better decisions' },
       { label: 'Custom Branded Receipt Design', description: 'Pick a premium design that matches your mandal' },
@@ -112,14 +204,16 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Premium',
     tagline: 'For mandals who want the complete festival experience',
     priceInr: 1499,
-    priceNote: 'For whole Ganpati Utsav 2026',
+    priceNote: 'Valid for 1 month from signup',
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
+    receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.PREMIUM],
     features: [
       { label: 'Unlimited Digital Receipts' },
       { label: 'Internal Donation Collection' },
       { label: 'Donation Management & Expense Tracking' },
       { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
       { label: 'UPI ID on Every Receipt' },
+      { label: 'Dynamic QR & UPI Intent', description: 'Auto-generated, one-tap payment QR on every receipt', comingSoon: true },
       { label: `Up to ${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM]} Collectors` },
       { label: 'Advanced Reports & Analytics' },
       { label: 'Custom Branded Receipt Design' },
@@ -225,6 +319,11 @@ export interface ReceiptTemplateSettings {
   donorPrefix?: string;
   footerNote?: string;
   shareMessage?: string;
+  // Interactive Pavti Offering (Devotional 4-Slide Experience)
+  interactivePavtiEnabled?: boolean;
+  interactiveTemplate?: 'GANESHA_ROYAL_MAROON' | 'GANESHA_LANDSCAPE_GOLD' | string;
+  customDarshanUrl?: string;
+  blessingMessage?: string;
 }
 
 export const DEFAULT_SHARE_MESSAGE_TEMPLATES: Record<'mr' | 'hi' | 'en', string> = {
@@ -341,6 +440,7 @@ export interface ShareMessageContext {
   amount?: number | string;
   receiptNumber?: string;
   organizationName?: string;
+  campaignName?: string;
   receiptUrl?: string;
   date?: string;
   category?: string;
@@ -363,6 +463,7 @@ export function formatShareMessage(
     .replace(/\{amount\}/g, formattedAmount)
     .replace(/\{receiptNumber\}/g, ctx.receiptNumber || '')
     .replace(/\{organizationName\}/g, ctx.organizationName || (lang === 'en' ? 'Organization' : lang === 'hi' ? 'संस्था' : 'मंडळ'))
+    .replace(/\{campaignName\}/g, ctx.campaignName || '')
     .replace(/\{receiptUrl\}/g, ctx.receiptUrl || '')
     .replace(/\{date\}/g, ctx.date || new Date().toLocaleDateString('en-IN'))
     .replace(/\{category\}/g, ctx.category || '')
@@ -397,6 +498,37 @@ export function formatSocialLinksText(links?: OrganizationSocialLinks | null): s
     .map((p) => `${p.emoji} ${links[p.key]}`)
     .join('  |  ');
 }
+
+/**
+ * Single source of truth for the field labels printed on a pavti — donor,
+ * address, amount, category, etc. Three separate renderers show this same
+ * data (ReceiptPreview.tsx's on-screen preview, pdf.service.ts's actual PDF,
+ * and InteractivePavtiView.tsx's "Digital Pavti" slide); before this existed
+ * each kept its own copy and they drifted — the interactive slide ended up
+ * with a mobile-number field the PDF never had, and a "देणगी प्रकार" label
+ * over the payment-mode value. One object, one place to fix a label.
+ */
+export const RECEIPT_FIELD_LABELS: Record<'en' | 'hi' | 'mr', {
+  receipt: string; no: string; donor: string; address: string; amount: string; words: string;
+  category: string; mode: string; collector: string; area: string; notes: string;
+  sign: string; scan: string; paid: string; unpaid: string; internalReceipt: string;
+}> = {
+  en: {
+    receipt: 'RECEIPT', no: 'No.', donor: 'Donor Name', address: 'Address', amount: 'Amount', words: 'Amount in Words',
+    category: 'Category', mode: 'Payment Mode', collector: 'Collector', area: 'Area', notes: 'Notes',
+    sign: 'Authorized Signature', scan: 'Scan to verify', paid: 'Paid', unpaid: 'Unpaid', internalReceipt: 'Internal Receipt',
+  },
+  hi: {
+    receipt: 'रसीद', no: 'क्र.', donor: 'दानकर्ता', address: 'पता', amount: 'राशि', words: 'शब्दों में',
+    category: 'श्रेणी', mode: 'भुगतान विधि', collector: 'संग्रहकर्ता', area: 'क्षेत्र', notes: 'टिप्पणी',
+    sign: 'अधिकृत हस्ताक्षर', scan: 'सत्यापन हेतु स्कैन करें', paid: 'प्राप्त', unpaid: 'बकाया', internalReceipt: 'आंतरिक रसीद',
+  },
+  mr: {
+    receipt: 'पावती', no: 'क्र.', donor: 'देणगीदार', address: 'पत्ता', amount: 'रक्कम', words: 'अक्षरी',
+    category: 'प्रकार', mode: 'देय पद्धत', collector: 'संग्राहक', area: 'क्षेत्र', notes: 'टीप',
+    sign: 'अधिकृत स्वाक्षरी', scan: 'सत्यापनासाठी स्कॅन करा', paid: 'प्राप्त', unpaid: 'थकबाकी', internalReceipt: 'अंतर्गत पावती',
+  },
+};
 
 export const LANGUAGE_DEFAULT_LINES: Record<'mr' | 'hi' | 'en', Required<ReceiptLanguageLines>> = {
   mr: {
@@ -572,6 +704,10 @@ export function resolveReceiptSettings(
     donorPrefix,
     footerNote,
     shareMessage,
+    interactivePavtiEnabled: settings?.interactivePavtiEnabled ?? true,
+    interactiveTemplate: settings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON',
+    customDarshanUrl: settings?.customDarshanUrl || '',
+    blessingMessage: settings?.blessingMessage || 'गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो!',
     lines: {
       headerTagline,
       receiptTitle,
@@ -588,77 +724,58 @@ export function resolveReceiptSettings(
 // (apps/web/src/components/receipt/ReceiptPreview.tsx) plus the theme picker
 // (apps/web settings page) — so what an admin sees on screen is guaranteed to
 // match the actual PDF sent to donors, and adding a theme means editing one place.
+/**
+ * Deliberately small palette, not a per-theme layout switch. The card's
+ * *structure* (double gold-and-ink frame, seal medallion amount, hairline
+ * rules) is fixed and shared by every theme — see ReceiptPreview.tsx and
+ * pdf.service.ts's buildReceiptHtml. A theme only supplies the mood: three
+ * colors and a corner motif. That's what keeps a 3-way "wallpaper picker"
+ * honest — each option is a genuinely different feel, not a repaint of the
+ * same swatch seven times.
+ */
 export interface ReceiptThemeStyle {
   id: string;
   label: string;
-  emoji: string;
+  labelMarathi: string;
+  /** One-line mood description shown under the label in the theme gallery. */
+  tagline: string;
+  /** Ink — headings, borders, amount figure, QR modules. Also the header text color, since the header shares the card's one paper background rather than carrying its own color band. */
   primaryColor: string;
-  gradient: string;
-  borderWidth: number;
-  borderStyle: 'solid' | 'double' | 'dashed';
+  /** Warm paper background used consistently across the whole card — header included. Never pure white (that read as a generic SaaS card), and deliberately the *same* tone top to bottom for a calm, single-canvas ledger feel instead of a colored banner. */
+  paperBg: string;
+  /** Amount seal medallion fill — a soft tint close to paperBg, not a contrasting block. */
   amountBg: string;
-  amountBorderColor: string;
-  amountBorderWidth: number;
-  amountBorderStyle: 'solid' | 'dashed';
-  /** Small emoji rendered in the top-right corner of the header. */
-  bannerEmoji?: string;
-  /** BHAGAT_SINGH-only: a saffron/white/green stripe instead of a banner emoji. */
-  tricolorBanner?: boolean;
+  /** Corner ornament, rendered as an inline SVG monoline glyph. */
+  motif: 'lotus' | 'diya' | 'chakra';
 }
+
+/** Shared gold accent for the outer hairline frame — ties all themes to one brand identity regardless of mood. */
+export const RECEIPT_GOLD_ACCENT = '#C9A227';
 
 export const RECEIPT_THEMES: ReceiptThemeStyle[] = [
   {
-    id: 'DEFAULT', label: 'Default Heritage Chocolate & Gold', emoji: '📜',
-    primaryColor: '#592E09', gradient: 'linear-gradient(135deg, #592E09 0%, #71471D 50%, #D2A46D 100%)',
-    borderWidth: 3, borderStyle: 'solid',
-    amountBg: '#FCF3E4', amountBorderColor: '#D2A46D', amountBorderWidth: 2, amountBorderStyle: 'solid',
+    id: 'DEFAULT', label: 'Heritage Maroon & Gold', labelMarathi: 'पारंपरिक मरून व सुवर्ण',
+    tagline: 'Classic ledger warmth — the trusted, traditional choice.',
+    primaryColor: '#6B1D14',
+    paperBg: '#FEFCFA', amountBg: '#FBF6EC', motif: 'diya',
   },
   {
-    id: 'GANESHOTSAV', label: 'Ganeshotsav Special', emoji: '🪔',
-    primaryColor: '#E65100', gradient: 'linear-gradient(135deg, #E65100 0%, #F57C00 50%, #FFB300 100%)',
-    borderWidth: 4, borderStyle: 'double',
-    amountBg: '#FFF8E1', amountBorderColor: '#FFE082', amountBorderWidth: 2, amountBorderStyle: 'dashed',
-    bannerEmoji: '🪔',
+    id: 'FESTIVE', label: 'Festive Saffron & Gold', labelMarathi: 'उत्सवी केशरी व सुवर्ण',
+    tagline: 'Bright and celebratory — for festival season collections.',
+    primaryColor: '#B5490C',
+    paperBg: '#FEFCFA', amountBg: '#FDF3E7', motif: 'lotus',
   },
   {
-    id: 'EID', label: 'Eid Special', emoji: '🌙',
-    primaryColor: '#004D20', gradient: 'linear-gradient(135deg, #004D20 0%, #00873C 100%)',
-    borderWidth: 3, borderStyle: 'solid',
-    amountBg: '#E8F5E9', amountBorderColor: '#A5D6A7', amountBorderWidth: 2, amountBorderStyle: 'solid',
-    bannerEmoji: '🌙',
-  },
-  {
-    id: 'NAVRATRI', label: 'Navratri Special', emoji: '💃',
-    primaryColor: '#9C1B5C', gradient: 'linear-gradient(135deg, #9C1B5C 0%, #C2185B 50%, #E91E8C 100%)',
-    borderWidth: 4, borderStyle: 'double',
-    amountBg: '#FCE4EC', amountBorderColor: '#F48FB1', amountBorderWidth: 2, amountBorderStyle: 'dashed',
-    bannerEmoji: '💃',
-  },
-  {
-    id: 'TEMPLE_GOLD', label: 'Temple Gold', emoji: '🛕',
-    primaryColor: '#7B1E1E', gradient: 'linear-gradient(135deg, #7B1E1E 0%, #A52A2A 50%, #D4A017 100%)',
-    borderWidth: 4, borderStyle: 'double',
-    amountBg: '#FFF9E6', amountBorderColor: '#D4A017', amountBorderWidth: 2, amountBorderStyle: 'solid',
-    bannerEmoji: '🛕',
-  },
-  {
-    id: 'BHAGAT_SINGH', label: 'Tricolor Mandal', emoji: '🇮🇳',
-    primaryColor: '#1A2530', gradient: 'linear-gradient(135deg, #1A2530 0%, #2c3e50 100%)',
-    borderWidth: 3, borderStyle: 'solid',
-    amountBg: '#ECEFF1', amountBorderColor: '#B0BEC5', amountBorderWidth: 2, amountBorderStyle: 'solid',
-    tricolorBanner: true,
-  },
-  {
-    id: 'ELEGANT_TRUST', label: 'Elegant Trust', emoji: '📘',
-    primaryColor: '#0D3B66', gradient: 'linear-gradient(135deg, #0D3B66 0%, #14568C 100%)',
-    borderWidth: 2, borderStyle: 'solid',
-    amountBg: '#F8FAFC', amountBorderColor: '#E2E8F0', amountBorderWidth: 2, amountBorderStyle: 'solid',
+    id: 'MODERN', label: 'Modern Slate & Gold', labelMarathi: 'आधुनिक स्लेट व सुवर्ण',
+    tagline: 'Understated and professional — for a businesslike trust.',
+    primaryColor: '#1E3A5F',
+    paperBg: '#FDFEFE', amountBg: '#F3F6F9', motif: 'chakra',
   },
 ];
 
 export const DEFAULT_RECEIPT_THEME_ID = 'DEFAULT';
 
-/** Resolves a (possibly stale/unknown) stored theme id to a style, falling back to DEFAULT. */
+/** Resolves a (possibly stale/unknown, e.g. one of the retired themes) stored theme id to a style, falling back to DEFAULT. */
 export function resolveReceiptTheme(themeId?: string | null): ReceiptThemeStyle {
   return RECEIPT_THEMES.find((t) => t.id === themeId) || RECEIPT_THEMES[0];
 }
@@ -735,8 +852,6 @@ export interface Receipt {
   paymentMode: PaymentMode;
   notes?: string;
   pdfUrl?: string;
-  whatsappSent: boolean;
-  smsSent: boolean;
   latitude?: number;
   longitude?: number;
   collectionType: CollectionType;
@@ -750,16 +865,15 @@ export interface Receipt {
   organization?: Organization;
 }
 
+// Plain ledger entry — no approval workflow.
 export interface Expense {
   id: string;
   campaignId: string;
   addedById: string;
-  approvedById?: string;
   category: ExpenseCategory;
   amount: number;
   description: string;
   receiptUrl?: string;
-  isApproved: boolean;
   paidTo: string;
   beneficiaryPhone?: string;
   gstNumber?: string;
@@ -901,13 +1015,6 @@ export const USER_ROLE_LABELS: Record<UserRole, Record<Language, string>> = {
   [UserRole.VIEWER]: { en: 'Viewer', hi: 'दर्शक', mr: 'निरीक्षक' },
 };
 
-export const SUBSCRIPTION_PLANS = {
-  [SubscriptionPlan.FREE]: { maxUsers: 2, maxReceipts: 100, priceMonthly: 0 },
-  [SubscriptionPlan.BASIC]: { maxUsers: 2, maxReceipts: 2000, priceMonthly: 399 },
-  [SubscriptionPlan.STANDARD]: { maxUsers: 10, maxReceipts: 10000, priceMonthly: 999 },
-  [SubscriptionPlan.PREMIUM]: { maxUsers: -1, maxReceipts: -1, priceMonthly: 2999 },
-};
-
 // ─── Utility Functions ────────────────────────────────────────────────────────
 
 export function amountToWords(amount: number, language: Language = Language.EN): string {
@@ -953,6 +1060,27 @@ export function generateReceiptNumber(prefix: string, sequence: number): string 
 }
 
 /**
+ * Quotes a CSV field per RFC 4180 — wraps in double quotes and escapes any
+ * embedded quotes whenever the value contains a comma, quote, or newline.
+ * Plain values are left unquoted so exports stay readable. Donor names,
+ * addresses, and expense descriptions are free text entered by staff (e.g.
+ * "Patil, Suresh") and would otherwise silently shift every column after
+ * them when opened in Excel/Sheets.
+ */
+export function csvField(value: unknown): string {
+  const str = value === null || value === undefined ? '' : String(value);
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/** Builds a full CSV document (with header row) from row arrays, quoting every field via {@link csvField}. */
+export function toCsv(headers: string[], rows: unknown[][]): string {
+  return [headers, ...rows].map((row) => row.map(csvField).join(',')).join('\n');
+}
+
+/**
  * Single source of truth for the "date + time" stamp shown on a receipt —
  * used by both the PDF renderer (apps/api pdf.service.ts) and the on-screen
  * preview (apps/web ReceiptPreview.tsx) so they never drift, e.g. "08 Aug
@@ -967,76 +1095,17 @@ export function formatReceiptDateTime(date: Date | string): string {
 
 // ─── Access Management ────────────────────────────────────────────────────────
 
+// The module vocabulary used for nav-visibility / page-guard checks — see
+// inferRouteModule() below and apps/web's useModuleAccessResolver, which is
+// the actual (static, role-based) access check in use. An earlier, more
+// granular per-org/per-user permission system (RolePermission table,
+// User.permissionsOverride, an API-request-to-module inference function)
+// was scaffolded alongside this and never wired to anything; it was removed
+// in the 2026-08 roles audit rather than left as dead schema/code.
 export const PERMISSION_MODULES = [
   'Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings',
 ] as const;
 export type PermissionModule = typeof PERMISSION_MODULES[number];
-
-export interface ModulePermissions {
-  canView: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-  canExport: boolean;
-  canApprove: boolean;
-}
-
-export type PermissionAction = keyof ModulePermissions;
-
-/**
- * Maps an API request (path + HTTP method) to the {module, action} pair used by
- * RolesGuard for both permissionsOverride (per-user) and RolePermission (per-role default)
- * checks. Kept as the single source of truth — previously hand-duplicated in
- * apps/api RolesGuard and apps/web Sidebar.
- */
-export function inferApiModuleAndAction(
-  path: string,
-  method: string,
-): { module: PermissionModule | null; action: PermissionAction | null } {
-  let module: PermissionModule | null = null;
-  let action: PermissionAction | null = null;
-
-  if (path.includes('/receipts')) {
-    module = 'Receipts';
-    if (method === 'GET') action = 'canView';
-    else if (method === 'POST') action = 'canCreate';
-    else if (method === 'PATCH' || method === 'PUT') action = 'canEdit';
-    else if (method === 'DELETE') action = 'canDelete';
-  } else if (path.includes('/expenses')) {
-    module = 'Expenses';
-    if (method === 'GET') action = 'canView';
-    else if (method === 'POST') action = 'canCreate';
-    else if (method === 'PATCH' && path.includes('/approve')) action = 'canApprove';
-    else if (method === 'DELETE') action = 'canDelete';
-  } else if (path.includes('/collectors')) {
-    module = 'Collectors';
-    if (method === 'GET') action = 'canView';
-    else if (method === 'POST') action = 'canCreate';
-    else if (method === 'PATCH' || method === 'PUT') action = 'canEdit';
-    else if (method === 'DELETE') action = 'canDelete';
-  } else if (path.includes('/campaigns')) {
-    module = 'Campaigns';
-    if (method === 'GET') action = 'canView';
-    else if (method === 'POST') action = 'canCreate';
-    else if (method === 'PATCH' || method === 'PUT') action = 'canEdit';
-    else if (method === 'DELETE') action = 'canDelete';
-  } else if (path.includes('/members') || path.includes('/internal-collections')) {
-    module = 'Members';
-    if (method === 'GET') action = 'canView';
-    else if (method === 'POST') action = 'canCreate';
-    else if (method === 'PATCH' || method === 'PUT') action = 'canEdit';
-    else if (method === 'DELETE') action = 'canDelete';
-  } else if (path.includes('/reports')) {
-    module = 'Reports';
-    if (method === 'GET') action = 'canView';
-  } else if (path.includes('/settings') || path.includes('/organizations')) {
-    module = 'Settings';
-    if (method === 'GET') action = 'canView';
-    else action = 'canEdit';
-  }
-
-  return { module, action };
-}
 
 /** Maps a frontend route pathname to a module name, for nav-visibility / page-guard checks. */
 export function inferRouteModule(pathname: string): PermissionModule | 'Dashboard' | null {
@@ -1050,3 +1119,170 @@ export function inferRouteModule(pathname: string): PermissionModule | 'Dashboar
   if (pathname.startsWith('/settings')) return 'Settings';
   return null;
 }
+
+// ─── Interactive Pavti Templates & Devanagari Number Converters ──────────────
+
+export interface InteractivePavtiTemplate {
+  id: string;
+  name: string;
+  nameMarathi: string;
+  description: string;
+  envelopeStyle: 'PORTRAIT_ROYAL' | 'LANDSCAPE_GOLD';
+  primaryColor: string;
+  goldColor: string;
+  previewThumbnail: string;
+  defaultBlessing: string;
+}
+
+export const INTERACTIVE_PAVTI_TEMPLATES: InteractivePavtiTemplate[] = [
+  {
+    id: 'GANESHA_ROYAL_MAROON',
+    name: 'Royal Heritage Maroon & Gold',
+    nameMarathi: 'शाही मरून आणि सुवर्ण पावती',
+    description: 'Classic royal portrait wax-sealed envelope with 3D fracture, glowing Ganpati Darshan, and authentic parchment receipt.',
+    envelopeStyle: 'PORTRAIT_ROYAL',
+    primaryColor: '#5c1220',
+    goldColor: '#c9a24a',
+    previewThumbnail: '🪔',
+    defaultBlessing: 'गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो!',
+  },
+  {
+    id: 'GANESHA_LANDSCAPE_GOLD',
+    name: 'Vedic Landscape Royal Gold',
+    nameMarathi: 'वैदिक लँडस्केप सुवर्ण पावती',
+    description: 'Expansive landscape envelope with ceremonial light burst, flickering Diya flame, and devotional blessing card.',
+    envelopeStyle: 'LANDSCAPE_GOLD',
+    primaryColor: '#3a1a12',
+    goldColor: '#e6d19f',
+    previewThumbnail: '✨',
+    defaultBlessing: 'वक्रतुण्ड महाकाय सूर्यकोटि समप्रभ। निर्विघ्नं कुरु मे देव सर्वकार्येषु सर्वदा॥',
+  },
+];
+
+/**
+ * Converts numbers into accurate Marathi Devanagari words for authentic receipts
+ * e.g. 5001 -> "पाच हजार एक रुपये फक्त"
+ */
+export function numberToMarathiWords(num: number): string {
+  if (!num || isNaN(num) || num <= 0) return 'शून्य रुपये फक्त';
+
+  const units: Record<number, string> = {
+    0: '', 1: 'एक', 2: 'दोन', 3: 'तीन', 4: 'चार', 5: 'पाच', 6: 'सहा', 7: 'सात', 8: 'आठ', 9: 'नऊ',
+    10: 'दहा', 11: 'अकरा', 12: 'बारा', 13: 'तेरा', 14: 'चौदा', 15: 'पंधरा', 16: 'सोळा', 17: 'सतरा', 18: 'अठरा', 19: 'एकोणीस',
+    20: 'वीस', 21: 'एकवीस', 22: 'बावीस', 23: 'तेवीस', 24: 'चोवीस', 25: 'पंचवीस', 26: 'सव्वीस', 27: 'सत्तावीस', 28: 'अठ्ठावीस', 29: 'एकोणतीस',
+    30: 'तीस', 31: 'एकतीस', 32: 'बत्तीस', 33: 'तेहतीस', 34: 'चौतीस', 35: 'पस्तीस', 36: 'छत्तीस', 37: 'सदतीस', 38: 'अडतीस', 39: 'एकोणचाळीस',
+    40: 'चाळीस', 41: 'एक्केचाळीस', 42: 'बेचाळीस', 43: 'त्रेचाळीस', 44: 'चव्वेचाळीस', 45: 'पंचेचाळीस', 46: 'शेहेचाळीस', 47: 'सत्तेचाळीस', 48: 'अठ्ठेचाळीस', 49: 'एकोणपन्नास',
+    50: 'पन्नास', 51: 'एक्कावन्न', 52: 'बावन्न', 53: 'त्रेपन्न', 54: 'चावन्न', 55: 'पंचावन्न', 56: 'छप्पन्न', 57: 'सत्तावन्न', 58: 'अठ्ठावन्न', 59: 'एकोणसाठ',
+    60: 'साठ', 61: 'एकसष्ठ', 62: 'पासष्ठ', 63: 'त्रेसष्ठ', 64: 'चौसष्ठ', 65: 'पासष्ठ', 66: 'सहासष्ठ', 67: 'सदुसष्ठ', 68: 'अडुसष्ठ', 69: 'एकोणसत्तर',
+    70: 'सत्तर', 71: 'एकाहत्तर', 72: 'बाहत्तर', 73: 'त्र्याहत्तर', 74: 'चौर्‍याहत्तर', 75: 'पंच्याहत्तर', 76: 'शहात्तर', 77: 'सत्याहत्तर', 78: 'अठ्ठ्याहत्तर', 79: 'एकोणऐंशी',
+    80: 'ऐंशी', 81: 'एक्याऐंशी', 82: 'ब्याऐंशी', 83: 'त्र्याऐंशी', 84: 'चौऱ्याऐंशी', 85: 'पंच्याऐंशी', 86: 'शहाऐंशी', 87: 'सत्त्याऐंशी', 88: 'अठ्ठ्याऐंशी', 89: 'एकोणनव्वद',
+    90: 'नव्वद', 91: 'एक्याण्णव', 92: 'ब्याण्णव', 93: 'त्र्याण्णव', 94: 'चौऱ्याण्णव', 95: 'पंच्याण्णव', 96: 'शहाण्णव', 97: 'सत्त्याण्णव', 98: 'अठ्ठ्याण्णव', 99: 'नव्याण्णव',
+  };
+
+  let words = '';
+  let n = Math.floor(num);
+
+  if (n >= 10000000) {
+    const crore = Math.floor(n / 10000000);
+    words += (units[crore] || crore.toString()) + ' कोटी ';
+    n %= 10000000;
+  }
+  if (n >= 100000) {
+    const lakh = Math.floor(n / 100000);
+    words += (units[lakh] || lakh.toString()) + ' लाख ';
+    n %= 100000;
+  }
+  if (n >= 1000) {
+    const thousand = Math.floor(n / 1000);
+    words += (units[thousand] || thousand.toString()) + ' हजार ';
+    n %= 1000;
+  }
+  if (n >= 100) {
+    const hundred = Math.floor(n / 100);
+    words += (hundred === 1 ? 'एकशे ' : units[hundred] + 'शे ');
+    n %= 100;
+  }
+  if (n > 0) {
+    words += units[n] + ' ';
+  }
+
+  return words.trim() + ' रुपये फक्त';
+}
+
+/**
+ * Converts numbers into accurate Hindi words
+ * e.g. 5001 -> "पाँच हज़ार एक रुपये मात्र"
+ */
+export function numberToHindiWords(num: number): string {
+  if (!num || isNaN(num) || num <= 0) return 'शून्य रुपये मात्र';
+
+  const units: Record<number, string> = {
+    0: '', 1: 'एक', 2: 'दो', 3: 'तीन', 4: 'चार', 5: 'पाँच', 6: 'छह', 7: 'सात', 8: 'आठ', 9: 'नौ',
+    10: 'दस', 11: 'ग्यारह', 12: 'बारह', 13: 'तेरह', 14: 'चौदह', 15: 'पंद्रह', 16: 'सोलह', 17: 'सत्रह', 18: 'अठारह', 19: 'उन्नीस',
+    20: 'बीस', 21: 'इक्कीस', 22: 'बाईस', 23: 'तेईस', 24: 'चौबीस', 25: 'पच्चीस', 26: 'छब्बीस', 27: 'सत्ताईस', 28: 'अट्ठाईस', 29: 'उनतीस',
+    30: 'तीस', 31: 'इकत्तीस', 32: 'बत्तीस', 33: 'तैंतीस', 34: 'चौंतीस', 35: 'पैंतीस', 36: 'छत्तीस', 37: 'सैंतीस', 38: 'अड़तीस', 39: 'उनतालीस',
+    40: 'चालीस', 41: 'इकतालीस', 42: 'बयालीस', 43: 'तैंतालीस', 44: 'चवालीस', 45: 'पैंतालीस', 46: 'छियालीस', 47: 'सैंतालीस', 48: 'अड़तालीस', 49: 'उनचास',
+    50: 'पचास', 51: 'इक्यावन', 52: 'बावन', 53: 'तिरेपन', 54: 'चौवन', 55: 'पचपन', 56: 'छप्पन', 57: 'सत्तावन', 58: 'अट्ठावन', 59: 'उनसठ',
+    60: 'साठ', 61: 'इकसठ', 62: 'बासठ', 63: 'तिरसठ', 64: 'चौंसठ', 65: 'पैंसठ', 66: 'छियासठ', 67: 'सरसठ', 68: 'अड़सठ', 69: 'उनहत्तर',
+    70: 'सत्तर', 71: 'इकहत्तर', 72: 'बहत्तर', 73: 'तिहत्तर', 74: 'चौहत्तर', 75: 'पचहत्तर', 76: 'छिहत्तर', 77: 'सतहत्तर', 78: 'अठहत्तर', 79: 'उनासी',
+    80: 'अस्सी', 81: 'इक्यासी', 82: 'बयासी', 83: 'तिरासी', 84: 'चौरासी', 85: 'पचासी', 86: 'छियासी', 87: 'सतासी', 88: 'अठासी', 89: 'नवासी',
+    90: 'नब्बे', 91: 'इक्यानवे', 92: 'बानवे', 93: 'तिरानवे', 94: 'चौरानवे', 95: 'पंचानवे', 96: 'छियानवे', 97: 'सत्तानवे', 98: 'अट्ठानवे', 99: 'निन्यानवे',
+  };
+
+  let words = '';
+  let n = Math.floor(num);
+
+  if (n >= 10000000) {
+    const crore = Math.floor(n / 10000000);
+    words += (units[crore] || crore.toString()) + ' करोड़ ';
+    n %= 10000000;
+  }
+  if (n >= 100000) {
+    const lakh = Math.floor(n / 100000);
+    words += (units[lakh] || lakh.toString()) + ' लाख ';
+    n %= 100000;
+  }
+  if (n >= 1000) {
+    const thousand = Math.floor(n / 1000);
+    words += (units[thousand] || thousand.toString()) + ' हज़ार ';
+    n %= 1000;
+  }
+  if (n >= 100) {
+    const hundred = Math.floor(n / 100);
+    words += (hundred === 1 ? 'एक सौ ' : units[hundred] + ' सौ ');
+    n %= 100;
+  }
+  if (n > 0) {
+    words += units[n] + ' ';
+  }
+
+  return words.trim() + ' रुपये मात्र';
+}
+
+/**
+ * Formats amount in words according to language ('mr' | 'hi' | 'en')
+ */
+export function formatAmountInWords(amount: number, lang: 'mr' | 'hi' | 'en' = 'mr'): string {
+  if (lang === 'mr') return numberToMarathiWords(amount);
+  if (lang === 'hi') return numberToHindiWords(amount);
+  
+  // English words fallback
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  
+  function inWords(num: number): string {
+    if ((num = num.toString().length === 1 ? Number('0' + num) : num) === 0) return '';
+    let n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n) return '';
+    let str = '';
+    str += (Number(n[1]) !== 0) ? (a[Number(n[1])] || b[Number(n[1][0])] + ' ' + a[Number(n[1][1])]) + 'Crore ' : '';
+    str += (Number(n[2]) !== 0) ? (a[Number(n[2])] || b[Number(n[2][0])] + ' ' + a[Number(n[2][1])]) + 'Lakh ' : '';
+    str += (Number(n[3]) !== 0) ? (a[Number(n[3])] || b[Number(n[3][0])] + ' ' + a[Number(n[3][1])]) + 'Thousand ' : '';
+    str += (Number(n[4]) !== 0) ? (a[Number(n[4])] || b[Number(n[4][0])] + ' ' + a[Number(n[4][1])]) + 'Hundred ' : '';
+    str += (Number(n[5]) !== 0) ? ((str !== '') ? 'and ' : '') + (a[Number(n[5])] || b[Number(n[5][0])] + ' ' + a[Number(n[5][1])]) : '';
+    return str.trim();
+  }
+  
+  return inWords(Math.floor(amount)) + ' Rupees Only';
+}
+

@@ -1,8 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfService } from '../pdf/pdf.service';
 import { CreateExpenseDto } from './dto/expense.dto';
 
+// Expenses are a straight ledger — logged, viewed, deleted if entered in
+// error. No approval workflow: whoever has access to log an expense
+// (ORG_ADMIN/TREASURER) is already trusted to log it correctly, and a
+// separate approval step was never something Digital Pavti's actual users
+// wanted (see AC-4 / product decision — expenses are ledger entries, not a
+// workflow with pending/approved states).
 @Injectable()
 export class ExpensesService {
   constructor(private prisma: PrismaService, private pdfService: PdfService) {}
@@ -15,7 +21,6 @@ export class ExpensesService {
       where,
       include: {
         addedBy: { select: { id: true, name: true } },
-        approvedBy: { select: { id: true, name: true } },
         campaign: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -49,25 +54,11 @@ export class ExpensesService {
     });
   }
 
-  async approve(id: string, orgId: string, userId: string) {
-    const expense = await this.prisma.expense.findFirst({
-      where: { id, campaign: { orgId } },
-    });
-    if (!expense) throw new NotFoundException('Expense not found');
-    if (expense.isApproved) throw new ForbiddenException('Expense already approved');
-
-    return this.prisma.expense.update({
-      where: { id },
-      data: { isApproved: true, approvedById: userId, approvedAt: new Date() },
-    });
-  }
-
   async delete(id: string, orgId: string) {
     const expense = await this.prisma.expense.findFirst({
       where: { id, campaign: { orgId } },
     });
     if (!expense) throw new NotFoundException('Expense not found');
-    if (expense.isApproved) throw new ForbiddenException('Cannot delete an approved expense');
 
     return this.prisma.expense.delete({ where: { id } });
   }
@@ -77,7 +68,6 @@ export class ExpensesService {
       where: { id, campaign: { orgId } },
       include: {
         addedBy: { select: { id: true, name: true } },
-        approvedBy: { select: { id: true, name: true } },
         campaign: { include: { organization: true } },
       },
     });
