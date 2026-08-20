@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import {
-  PRICING_PLANS, formatCurrency, BRAND_NAME, BRAND_SHORT_NAME, BRAND_TAGLINE,
+  PRICING_PLANS, formatCurrency, formatPlanLimit, BRAND_NAME, BRAND_SHORT_NAME, BRAND_TAGLINE,
   resolvePlanFeatures, FEATURE_CATEGORY_LABELS, type PricingFeatureCategory,
 } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
@@ -55,6 +55,11 @@ const HOW_IT_WORKS = [
 const OCCASIONS = [
   'Ganesh Utsav Mandals', 'Navratri Samitis', 'Bhandara & Community Drives', 'Temple Trusts', 'Housing Society Funds',
 ];
+
+// Free Trial gets pulled out into its own banner (see the Pricing section)
+// instead of sitting in the 3-card grid — this looks it up once rather than
+// re-filtering PRICING_PLANS at render time.
+const FREE_PLAN = PRICING_PLANS.find((p) => p.id === 'FREE');
 
 const FEATURES = [
   { icon: FileText, title: 'Digital Pavti Generation', desc: 'Traditional receipt design with QR code — issue a receipt in seconds instead of writing one by hand.' },
@@ -400,26 +405,50 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works — the familiar Pavti workflow, made concrete in four
-          steps (not asking anyone to learn something new). */}
-      <section id="how" className="max-w-6xl mx-auto px-4 md:px-6 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mb-2">From Collection to Accounted-For, in Four Steps</h2>
-          <p className="text-sm text-theme-fg/50">The same Pavti workflow you already know — just digital, start to finish.</p>
+      {/* About/Trust */}
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-16">
+        <div className="max-w-xl mb-10">
+          <span className="text-xs font-bold uppercase tracking-wider text-saffron-500">About</span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mt-2 leading-tight">Trust Is the Real Currency Mandals Run On</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {HOW_IT_WORKS.map((step, i) => (
-            <div key={step.title} className="glass-card p-5">
-              <div className="flex items-center gap-2.5 mb-3">
-                <span className="text-xs font-bold text-saffron-500/70 font-mono">0{i + 1}</span>
-                <div className="w-9 h-9 rounded-xl bg-saffron-600/15 flex items-center justify-center text-saffron-400">
-                  <step.icon size={16} />
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+          <p className="text-sm text-theme-fg/60 leading-relaxed">
+            Every Mandal collects on trust — from members, from neighbours, from donors who expect their
+            contribution to be recorded and used the way it was promised. A paper receipt book makes that
+            hard to prove after the fact.
+          </p>
+          <p className="text-sm text-theme-fg/60 leading-relaxed">
+            {BRAND_NAME} turns every collection into a digital Pavti, logged the moment it&apos;s issued,
+            with expenses and balances any committee member — or donor — can check. No more reconciling
+            carbon copies after the festival ends.
+          </p>
+        </div>
+      </section>
+
+      {/* How It Works — the familiar Pavti workflow, made concrete in four
+          steps (not asking anyone to learn something new). Divided-grid
+          band, not individual floating cards — reads as one continuous
+          process, not four separate features. */}
+      <section id="how" className="bg-theme-fg/[0.02] border-y border-theme">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-16">
+          <div className="text-center mb-10">
+            <span className="text-xs font-bold uppercase tracking-wider text-saffron-500">How It Works</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mt-2">From Collection to Accounted-For, in Four Steps</h2>
+          </div>
+          {/* gap-px + a border-colored container background is what makes
+              this grid line up correctly at every breakpoint (1/2/4
+              columns) without hand-tracking which index needs a border on
+              which side — nth-child math for a wrapping grid gets wrong
+              fast, this can't. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-theme rounded-2xl overflow-hidden border border-theme">
+            {HOW_IT_WORKS.map((step, i) => (
+              <div key={step.title} className="px-6 py-6 bg-[var(--card-bg)]">
+                <span className="text-xs font-bold text-saffron-500/60 font-mono">0{i + 1}</span>
+                <h3 className="font-semibold text-theme-fg text-sm mt-2 mb-1.5">{step.title}</h3>
+                <p className="text-xs text-theme-fg/50 leading-relaxed">{step.desc}</p>
               </div>
-              <h3 className="font-semibold text-theme-fg text-sm mb-1">{step.title}</h3>
-              <p className="text-xs text-theme-fg/50">{step.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -455,14 +484,38 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing — Free Trial gets its own banner rather than sitting as a
+          4th grid card: it's the low-commitment on-ramp, not a peer of the
+          three paid tiers, and deserves to read that way. The comparison
+          table below still includes it as a full column for anyone who
+          wants the complete picture. */}
       <section id="pricing" className="max-w-6xl mx-auto px-4 md:px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mb-2">Choose the Experience Your Mandal Deserves</h2>
           <p className="text-sm text-theme-fg/50">Go digital this festival season — every plan is priced per season, not a subscription you'll forget about.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-          {PRICING_PLANS.map((plan) => <PricingCard key={plan.id} plan={plan} />)}
+
+        {FREE_PLAN && (
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-2xl bg-saffron-500/[0.06] border border-dashed border-saffron-500/30 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-saffron-500/10 flex items-center justify-center text-saffron-500 shrink-0">
+              <Sparkles size={22} />
+            </div>
+            <div className="flex-1 text-center sm:text-left">
+              <p className="font-bold text-theme-fg text-sm">
+                Not ready to commit? Start with {FREE_PLAN.name} — {FREE_PLAN.marathiDescriptor}
+              </p>
+              <p className="text-xs text-theme-fg/50 mt-0.5">
+                {formatPlanLimit(FREE_PLAN.receiptLimit, 'Digital Pavtis')} · {FREE_PLAN.priceNote}
+              </p>
+            </div>
+            <Link href="/register?plan=free" className="btn-primary px-5 py-2.5 text-sm shrink-0">
+              Start Free Trial <ArrowRight size={14} />
+            </Link>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-stretch">
+          {PRICING_PLANS.filter((plan) => plan.id !== 'FREE').map((plan) => <PricingCard key={plan.id} plan={plan} />)}
         </div>
         <PlanComparisonTable />
       </section>
