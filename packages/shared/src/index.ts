@@ -1,3 +1,16 @@
+// ─── Brand ──────────────────────────────────────────────────────────────────
+// Single source of truth for the platform's own name/tagline (distinct from
+// any org's name, which is user data). Every UI string, API response and
+// metadata field that names the platform should read from here rather than
+// hardcode "e-Pavti Book" — that's what let it drift into "e Pavti Book",
+// "e-Pavti Book" and split-weight lockups across a dozen files before this
+// existed (2026-08 brand pass).
+export const BRAND_NAME = 'e-Pavti Book';
+export const BRAND_SHORT_NAME = 'e-Pavti';
+export const BRAND_TAGLINE = 'Collect. Record. Share.';
+/** The emotional/campaign headline — see BRAND_TAGLINE for the short-form one. */
+export const BRAND_TAGLINE_ALT = 'Your Pavti. Now Digital.';
+
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export enum UserRole {
@@ -68,6 +81,18 @@ export const MAX_RECEIPTS_BY_PLAN: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.PREMIUM]: -1,
 };
 
+/**
+ * Renders a plan limit for display, e.g. on the pricing page — -1 (this
+ * file's "unlimited" sentinel, see MAX_COLLECTORS_BY_PLAN/MAX_RECEIPTS_BY_PLAN
+ * above) becomes "Unlimited", anything else becomes "Up to {n}". Centralizing
+ * this is what stops a pricing bullet from ever literally printing "Up to
+ * -1 Collectors" again (PREMIUM's collector limit is -1, and PRICING_PLANS
+ * used to interpolate it directly).
+ */
+export function formatPlanLimit(n: number, unit: string): string {
+  return n === -1 ? `Unlimited ${unit}` : `Up to ${n} ${unit}`;
+}
+
 // ─── Donation Split Policy (Cashfree Easy Split) ───────────────────────────
 // The single source of truth for how a donation gets divided between the
 // Mandal and the platform, and who eats Cashfree's gateway fee. Verified
@@ -122,105 +147,210 @@ export const DEFAULT_DONATION_SPLIT_POLICY: DonationSplitPolicy = {
 // plan picker, so the price/feature list a visitor sees before signing up is
 // guaranteed to match what they're actually offered on the signup form —
 // same "one definition, multiple consumers" approach as RECEIPT_THEMES.
+/** Groups a feature for the "Compare all plans" table (see
+ *  resolvePlanFeatures/FEATURE_CATEGORY_LABELS below) — purely a display
+ *  taxonomy, doesn't affect the card ladder. Optional: a bullet that isn't a
+ *  categorizable capability (e.g. FREE's "No Payment Needed to Start") just
+ *  doesn't appear in the comparison table. */
+export type PricingFeatureCategory =
+  | 'pavti' | 'collections' | 'donors' | 'payments'
+  | 'expenses' | 'reports' | 'branding' | 'team' | 'support';
+
+export const FEATURE_CATEGORY_LABELS: Record<PricingFeatureCategory, string> = {
+  pavti: 'Digital Pavti',
+  collections: 'Collections',
+  donors: 'Donors',
+  payments: 'Payments',
+  expenses: 'Expenses',
+  reports: 'Reports & Analytics',
+  branding: 'Branding',
+  team: 'Team & Access',
+  support: 'Support',
+};
+
 export interface PricingPlanFeature {
   label: string;
   description?: string;
   /** Feature is listed for transparency about what's coming, but not usable yet. */
   comingSoon?: boolean;
+  category?: PricingFeatureCategory;
+  /** Stable id for the capability this bullet describes (e.g. 'collectors',
+   *  'receipts', 'activeFestivals') — set on any feature whose *value*
+   *  changes between tiers. resolvePlanFeatures uses it to let a higher
+   *  tier's value supersede a lower tier's when computing the cumulative
+   *  set for the comparison table, instead of both stacking up (Standard
+   *  would otherwise show "Up to 5 Collectors" *and* "Up to 10 Collectors"
+   *  side by side — contradictory, not a real limit). Leave unset on a
+   *  bullet that only ever appears once (e.g. "No Payment Needed to
+   *  Start") — nothing to supersede. */
+  key?: string;
 }
 
 export interface PricingPlan {
   id: SubscriptionPlan;
   name: string;
   tagline: string;
+  /** Short value statement above the plan name — "Experience", "Go Digital",
+   *  "Manage Better", "Elevate the Experience" (2026-08 brand pass). The
+   *  progression itself, not just a price ladder. */
+  positioningLine: string;
+  /** Marathi descriptor shown as a secondary line under the plan name —
+   *  personality/positioning layer, not a translation of the feature list
+   *  (which stays English; see PricingCard). */
+  marathiDescriptor: string;
   priceInr: number;
   priceNote: string;
   highlighted?: boolean;
   collectorLimit: number;
   /** -1 = unlimited, matching collectorLimit's convention. */
   receiptLimit: number;
+  /** Name of the tier this one builds on — when set, `features` lists only
+   *  what's *added* on top of that tier ("Everything in {includesFrom},
+   *  plus:") instead of repeating every base feature again. Absent on FREE,
+   *  the base of the ladder. This is what keeps a card from growing one
+   *  full copy of the shared feature set per tier — the actual cause of the
+   *  pricing section's runaway vertical height (2026-08 brand pass). */
+  includesFrom?: string;
   features: PricingPlanFeature[];
 }
 
+// A tiered ladder, not four independent lists: FREE spells out the full
+// base feature set once; every paid tier only lists what it *adds* on top
+// of the one before it (see includesFrom above). Descriptions are reserved
+// for Coming Soon items, which need the explanation — every included
+// feature is a single-line label so a tier's real weight comes through as
+// list *length*, not padding.
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: SubscriptionPlan.FREE,
     name: 'Free Trial',
-    tagline: 'Try the full app before you commit to a plan',
+    tagline: 'Try e-Pavti before committing to a plan',
+    positioningLine: 'Experience',
+    marathiDescriptor: 'अनुभव घ्या',
     priceInr: 0,
-    priceNote: `Up to ${MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE]} pavtis, valid 1 month — no payment needed`,
+    priceNote: `Free for ${SUBSCRIPTION_PERIOD_DAYS} days, no payment needed`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE],
     features: [
-      { label: `${MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE]} Digital Receipts`, description: 'Enough to run a small collection drive and see how it feels' },
-      { label: 'Internal Donation Collection' },
-      { label: 'Donation Management & Expense Tracking' },
-      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
-      { label: `${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE]} Collectors` },
-      { label: 'Reports & Analytics' },
-      { label: 'No payment required to start', description: 'Instant access — upgrade only if you need more' },
+      { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
+      { label: '1 Active Festival/Drive', category: 'collections', key: 'activeFestivals' },
+      { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE], 'Collectors'), category: 'team', key: 'collectors' },
+      { label: 'Internal Collection & Expense Tracking', category: 'collections', key: 'internalCollection' },
+      { label: 'Multi-Role Access', category: 'team', key: 'multiRole' },
+      { label: 'Reports & Analytics', category: 'reports', key: 'reports' },
+      { label: 'No Payment Needed to Start' },
     ],
   },
   {
     id: SubscriptionPlan.BASIC,
     name: 'Basic',
     tagline: 'For small mandals starting their digital journey',
+    positioningLine: 'Go Digital',
+    marathiDescriptor: 'नव्या मंडळासाठी',
     priceInr: 499,
-    priceNote: 'Valid for 1 month from signup',
+    priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC],
+    includesFrom: 'Free Trial',
+    // Collectors and active-festival limits are identical to Free Trial —
+    // the receipt cap lifting is the one real difference this tier buys.
     features: [
-      { label: 'Digital Receipts', description: 'Generate and share digital pavtis instantly' },
-      { label: 'Internal Donation Collection', description: 'Track member subscriptions & mandal contributions' },
-      { label: 'Donation Management & Expense Tracking' },
-      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
-      { label: `${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC]} Collectors` },
-      { label: 'Reports & Analytics' },
+      { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
     ],
   },
   {
     id: SubscriptionPlan.STANDARD,
     name: 'Standard',
     tagline: 'For growing mandals who want more',
+    positioningLine: 'Manage Better',
+    marathiDescriptor: 'मोठ्या मंडळासाठी',
     priceInr: 799,
-    priceNote: 'Valid for 1 month from signup',
+    priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     highlighted: true,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.STANDARD],
+    includesFrom: 'Basic',
+    // Reports & Analytics itself is NOT plan-gated anywhere (backend or
+    // frontend) — every plan already gets the full reports suite, so an
+    // "Advanced Reports & Analytics" bullet here would be a false claim.
+    // UPI ID and custom receipt themes ARE server-enforced Standard+-only
+    // (OrganizationsService.update's STANDARD_PLUS check) — those two are
+    // real. No comingSoon items — a plan card should only list what a
+    // subscriber can actually use today.
     features: [
-      { label: 'Unlimited Digital Receipts', description: 'Generate and share unlimited digital receipts' },
-      { label: 'Internal Donation Collection' },
-      { label: 'Donation Management & Expense Tracking' },
-      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
-      { label: 'UPI ID on Every Receipt', description: 'Donors pay you directly — fast & hassle-free' },
-      { label: 'Dynamic QR & UPI Intent', description: 'Auto-generated, one-tap payment QR on every receipt — no manual UPI ID entry for the donor', comingSoon: true },
-      { label: `Up to ${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD]} Collectors` },
-      { label: 'Advanced Reports & Analytics', description: 'Data-driven insights for better decisions' },
-      { label: 'Custom Branded Receipt Design', description: 'Pick a premium design that matches your mandal' },
+      { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD], 'Collectors'), category: 'team', key: 'collectors' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.STANDARD]} Active Festivals/Drives at Once`, category: 'collections', key: 'activeFestivals' },
+      { label: 'UPI ID on Every Receipt', category: 'payments', key: 'upiId' },
+      { label: 'Custom Branded Receipt Design', category: 'branding', key: 'customBranding' },
     ],
   },
   {
     id: SubscriptionPlan.PREMIUM,
     name: 'Premium',
-    tagline: 'For mandals who want the complete festival experience',
+    tagline: 'For mandals who want the highest limits',
+    positioningLine: 'Elevate the Experience',
+    marathiDescriptor: 'देवस्थान · VIP',
     priceInr: 1499,
-    priceNote: 'Valid for 1 month from signup',
+    priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.PREMIUM],
+    includesFrom: 'Standard',
+    // Everything gated Standard+ (UPI ID, custom themes) is already true at
+    // Standard — Premium's only *enforced* differences today are higher
+    // collector/campaign caps. Not listing anything beyond that here (no
+    // Dedicated Web Page, no other unbuilt extras) — see MAX_COLLECTORS_BY_PLAN
+    // / MAX_ACTIVE_CAMPAIGNS_BY_PLAN for the actual numbers this reflects.
+    // The Interactive/Devotional Pavti Experience isn't plan-gated at all
+    // (every tier already has it — see InteractivePavtiView/
+    // INTERACTIVE_PAVTI_TEMPLATES) so it's not listed as a checkmark feature
+    // here; PricingCard gives Premium a dedicated visual callout for it
+    // instead, without claiming exclusivity that isn't real.
     features: [
-      { label: 'Unlimited Digital Receipts' },
-      { label: 'Internal Donation Collection' },
-      { label: 'Donation Management & Expense Tracking' },
-      { label: 'Multi-Role Access', description: 'Admin, Treasurer, Collector & Viewer roles' },
-      { label: 'UPI ID on Every Receipt' },
-      { label: 'Dynamic QR & UPI Intent', description: 'Auto-generated, one-tap payment QR on every receipt', comingSoon: true },
-      { label: `Up to ${MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM]} Collectors` },
-      { label: 'Advanced Reports & Analytics' },
-      { label: 'Custom Branded Receipt Design' },
-      { label: 'Dedicated Web Page for Your Mandal', description: "History, festival program, dress code, bhandara & visarjan info — your mandal's own page", comingSoon: true },
+      { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM], 'Collectors'), category: 'team', key: 'collectors' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.PREMIUM]} Active Festivals/Drives at Once`, category: 'collections', key: 'activeFestivals' },
     ],
   },
 ];
+
+/**
+ * Walks a plan's `includesFrom` chain and returns its full *cumulative*
+ * feature set (its own features plus everything every tier below it
+ * already has) — what the "Everything in {includesFrom}, plus:" cards
+ * deliberately don't spell out, but a full side-by-side comparison table
+ * needs. Single implementation so the table can't drift from what the
+ * ladder cards actually promise.
+ */
+export function resolvePlanFeatures(planId: SubscriptionPlan): PricingPlanFeature[] {
+  const plan = PRICING_PLANS.find((p) => p.id === planId);
+  if (!plan) return [];
+  const parent = plan.includesFrom
+    ? PRICING_PLANS.find((p) => p.name === plan.includesFrom)
+    : undefined;
+  const inherited = parent ? resolvePlanFeatures(parent.id) : [];
+  const combined = [...inherited, ...plan.features];
+
+  // A later (higher-tier) feature sharing a `key` supersedes an earlier one
+  // describing the same capability — e.g. Standard's "Up to 10 Collectors"
+  // replaces Free/Basic's "Up to 5 Collectors" instead of both showing up
+  // side by side, which would read as a self-contradictory limit. Keyless
+  // features (things that only ever appear once, like FREE's "No Payment
+  // Needed to Start") always pass through untouched. Order is preserved by
+  // each key's *first* appearance, so the ladder still reads top to bottom
+  // the way the individual cards do.
+  const latestByKey = new Map<string, PricingPlanFeature>();
+  for (const f of combined) if (f.key) latestByKey.set(f.key, f);
+  const seenKeys = new Set<string>();
+  const result: PricingPlanFeature[] = [];
+  for (const f of combined) {
+    if (!f.key) {
+      result.push(f);
+    } else if (!seenKeys.has(f.key)) {
+      seenKeys.add(f.key);
+      result.push(latestByKey.get(f.key)!);
+    }
+  }
+  return result;
+}
 
 export enum CollectionType {
   DONATION = 'DONATION',
