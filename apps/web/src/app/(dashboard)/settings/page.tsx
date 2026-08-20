@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
-import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, FlaskConical, Check, Play, Lock, KeyRound, Copy, CheckCheck } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, Check, Play, Lock, KeyRound, Copy, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
@@ -739,35 +739,6 @@ export default function SettingsPage() {
               <p className="text-xs text-theme-fg/50 mt-1">{sl.whatsappManualNote}</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Cashfree Easy Split — sandbox milestone-1 test link, admin-only.
-          Not a real integration toggle yet (no org-facing Cashfree onboarding
-          exists), just a way to reach the manual order-creation test flow
-          without hunting for the URL. See
-          Digital_Pavti_Cashfree_EasySplit_Developer_Handover.md.
-          ORG_ADMIN, not SUPER_ADMIN — no account in this system is ever
-          actually provisioned with SUPER_ADMIN (not in prisma/seed.ts, not
-          in AuthService.register); gating on it alone made this link
-          unreachable by anyone. */}
-      {activeTab === 'bank' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ORG_ADMIN') && (
-        <div className="glass-card p-6 sm:p-8">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
-              <FlaskConical size={18} />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-theme-fg">Online Donations — Cashfree (Sandbox Test)</h3>
-              <p className="text-xs text-theme-fg/50">Internal only — not shown to Mandals. Verifies the Cashfree order/checkout connection.</p>
-            </div>
-          </div>
-          <Link
-            href="/settings/payments-test"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-saffron-500/10 text-saffron-400 text-sm font-medium hover:bg-saffron-500/20 transition-colors"
-          >
-            Open Cashfree sandbox test →
-          </Link>
         </div>
       )}
 
