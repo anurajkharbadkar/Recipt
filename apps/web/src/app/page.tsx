@@ -12,8 +12,49 @@ import { platformWhatsappLink } from '@/lib/platform';
 import {
   QrCode, MessageCircle, FileText, Globe2, Users2, ShieldCheck,
   BarChart3, Palette, Check, Star, ArrowRight, Smartphone, Wallet, Sparkles, ChevronDown,
+  IndianRupee, Share2,
 } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
+import ReceiptPreview from '@/components/receipt/ReceiptPreview';
+
+// Sample data for the hero's receipt visual — a real ReceiptPreview render
+// (same component the actual app uses for its own live preview and the
+// donor-facing verify page), not a hand-drawn mockup, so what a visitor
+// sees here is never out of sync with what the product actually produces.
+// FESTIVE is the closest built-in receipt theme to this marketing page's
+// own saffron palette (see RECEIPT_THEMES).
+const HERO_PREVIEW_RECEIPT = {
+  id: 'preview',
+  receiptNumber: 'SGM-2026-0001',
+  donorName: 'Rajendra Deshmukh',
+  amount: 1100,
+  amountInWords: 'One Thousand One Hundred Rupees Only',
+  category: 'GENERAL',
+  paymentMode: 'UPI',
+  status: 'PAID',
+  collectionType: 'DONATION',
+  createdAt: new Date().toISOString(),
+  collector: { name: 'Amit Joshi' },
+  campaign: {
+    name: 'Ganesh Utsav 2026',
+    organization: {
+      name: 'Shree Ganesh Mandal',
+      nameMarathi: 'श्री गणेश मंडळ',
+      receiptTemplateSettings: { theme: 'FESTIVE', language: 'en' },
+    },
+  },
+};
+
+const HOW_IT_WORKS = [
+  { icon: FileText, title: 'Issue the Pavti', desc: 'Generate a QR-verified digital receipt the moment a donor pays — cash, UPI, or bank transfer.' },
+  { icon: Wallet, title: 'Collect Online', desc: 'Show your UPI ID on every receipt so donors can pay you directly, or record cash and cheque just as fast.' },
+  { icon: IndianRupee, title: 'Log Every Expense', desc: 'Track spends against collections so your balance is always current, not reconciled after the fact.' },
+  { icon: Share2, title: 'Share the Record', desc: 'Committee members and donors see the same transparent, always-current account.' },
+];
+
+const OCCASIONS = [
+  'Ganesh Utsav Mandals', 'Navratri Samitis', 'Bhandara & Community Drives', 'Temple Trusts', 'Housing Society Funds',
+];
 
 const FEATURES = [
   { icon: FileText, title: 'Digital Pavti Generation', desc: 'Traditional receipt design with QR code — issue a receipt in seconds instead of writing one by hand.' },
@@ -300,68 +341,98 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero — text + a real ReceiptPreview render as the signature visual,
+          not a hand-drawn mockup (see HERO_PREVIEW_RECEIPT above). */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden -z-10">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-saffron-600/10 rounded-full blur-3xl animate-pulse-soft" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
         </div>
-        <div className="max-w-4xl mx-auto px-4 md:px-6 pt-16 pb-14 text-center">
-          {/* Level 1 of the message hierarchy: what is it, in one line. */}
-          <span className="inline-block badge badge-saffron text-xs mb-5">
-            Digital Receipt & Collection Management for Mandals, Trusts &amp; NGOs
-          </span>
-          <h1 className="text-3xl sm:text-5xl font-bold text-theme-fg leading-tight mb-5">
-            Your Pavti. <span className="text-saffron-400">Now Digital.</span>
-          </h1>
-          {/* Level 2 (why) + Level 4 (benefit), blended into one subhead. */}
-          <p className="text-sm sm:text-base text-theme-fg/60 max-w-2xl mx-auto mb-7">
-            Replace the paper Pavti book with a faster, simpler digital system — issue QR-verified receipts,
-            deliver them over WhatsApp instantly, and keep every rupee your Mandal, trust or community
-            organization collects fully accounted for. In English, Hindi or Marathi.
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link href="/register" className="btn-primary px-6 py-3">
-              Try {BRAND_SHORT_NAME} <ArrowRight size={16} />
-            </Link>
-            <Link href="#pricing" className="btn-secondary px-6 py-3">View Pricing</Link>
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-16 pb-16 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+          <div className="text-center lg:text-left">
+            {/* Level 1 of the message hierarchy: what is it, in one line. */}
+            <span className="inline-block badge badge-saffron text-xs mb-5">
+              Digital Receipt & Collection Management for Mandals, Trusts &amp; NGOs
+            </span>
+            <h1 className="text-3xl sm:text-5xl font-bold text-theme-fg leading-tight mb-5">
+              Your Pavti. <span className="text-saffron-400">Now Digital.</span>
+            </h1>
+            {/* Level 2 (why) + Level 4 (benefit), blended into one subhead. */}
+            <p className="text-sm sm:text-base text-theme-fg/60 max-w-lg mx-auto lg:mx-0 mb-7">
+              Replace the paper Pavti book with a faster, simpler digital system — issue QR-verified receipts,
+              deliver them over WhatsApp instantly, and keep every rupee your Mandal, trust or community
+              organization collects fully accounted for. In English, Hindi or Marathi.
+            </p>
+            <div className="flex items-center justify-center lg:justify-start gap-3 flex-wrap">
+              <Link href="/register" className="btn-primary px-6 py-3">
+                Try {BRAND_SHORT_NAME} <ArrowRight size={16} />
+              </Link>
+              <Link href="#pricing" className="btn-secondary px-6 py-3">View Pricing</Link>
+            </div>
+            {/* Level 3: the collection cycle in three words — the core brand
+                idea (doc §2/§4) made literal. */}
+            <div className="flex items-center justify-center lg:justify-start gap-1.5 mt-7 flex-wrap">
+              {[
+                { icon: Wallet, label: 'Collect' },
+                { icon: FileText, label: 'Record' },
+                { icon: MessageCircle, label: 'Share' },
+              ].map((step, i, arr) => (
+                <div key={step.label} className="flex items-center gap-1.5">
+                  <span className="badge badge-saffron">
+                    <step.icon size={12} /> {step.label}
+                  </span>
+                  {i < arr.length - 1 && <ArrowRight size={11} className="text-theme-fg/25" />}
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-center lg:justify-start gap-6 mt-6 text-xs text-theme-fg/40 flex-wrap">
+              <span className="flex items-center gap-1.5"><ShieldCheck size={13} /> Secure & Reliable</span>
+              <span className="flex items-center gap-1.5"><Smartphone size={13} /> Easy to Use</span>
+              <span className="flex items-center gap-1.5"><MessageCircle size={13} /> Dedicated Support</span>
+            </div>
           </div>
-          {/* Level 3: the collection cycle in three words — the core brand
-              idea (doc §2/§4) made literal. */}
-          <div className="flex items-center justify-center gap-1.5 mt-7 flex-wrap">
-            {[
-              { icon: Wallet, label: 'Collect' },
-              { icon: FileText, label: 'Record' },
-              { icon: MessageCircle, label: 'Share' },
-            ].map((step, i, arr) => (
-              <div key={step.label} className="flex items-center gap-1.5">
-                <span className="badge badge-saffron">
-                  <step.icon size={12} /> {step.label}
-                </span>
-                {i < arr.length - 1 && <ArrowRight size={11} className="text-theme-fg/25" />}
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-center gap-6 mt-6 text-xs text-theme-fg/40 flex-wrap">
-            <span className="flex items-center gap-1.5"><ShieldCheck size={13} /> Secure & Reliable</span>
-            <span className="flex items-center gap-1.5"><Smartphone size={13} /> Easy to Use</span>
-            <span className="flex items-center gap-1.5"><MessageCircle size={13} /> Dedicated Support</span>
+
+          <div className="flex justify-center lg:justify-end">
+            <div className="-rotate-2 hover:rotate-0 transition-transform duration-300 w-full max-w-[320px]">
+              <ReceiptPreview receipt={HERO_PREVIEW_RECEIPT} />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Brand Story — "From Pavti to Digital" (doc §13). Not asking anyone
-          to learn something new: the familiar Pavti workflow, evolved. */}
-      <section className="max-w-4xl mx-auto px-4 md:px-6 pb-16">
-        <div className="glass-card p-6 sm:p-8">
-          <div className="text-center mb-6">
-            <h2 className="text-lg sm:text-xl font-bold text-theme-fg mb-1">From Pavti to Digital</h2>
-            <p className="text-xs text-theme-fg/50">We&apos;re not replacing the Pavti you know — we&apos;re evolving it.</p>
-          </div>
-          <div className="space-y-3.5">
-            <BrandStoryFlow label="The old way" steps={['Write', 'Tear', 'Hand over', 'Count', 'Calculate', 'Reconcile', 'Store']} muted />
-            <BrandStoryFlow label={`The ${BRAND_SHORT_NAME} way`} steps={['Collect', 'Record', 'Verify', 'Receipt', 'Track', 'Report']} />
-          </div>
+      {/* How It Works — the familiar Pavti workflow, made concrete in four
+          steps (not asking anyone to learn something new). */}
+      <section id="how" className="max-w-6xl mx-auto px-4 md:px-6 py-16">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mb-2">From Collection to Accounted-For, in Four Steps</h2>
+          <p className="text-sm text-theme-fg/50">The same Pavti workflow you already know — just digital, start to finish.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {HOW_IT_WORKS.map((step, i) => (
+            <div key={step.title} className="glass-card p-5">
+              <div className="flex items-center gap-2.5 mb-3">
+                <span className="text-xs font-bold text-saffron-500/70 font-mono">0{i + 1}</span>
+                <div className="w-9 h-9 rounded-xl bg-saffron-600/15 flex items-center justify-center text-saffron-400">
+                  <step.icon size={16} />
+                </div>
+              </div>
+              <h3 className="font-semibold text-theme-fg text-sm mb-1">{step.title}</h3>
+              <p className="text-xs text-theme-fg/50">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Occasions — broadens the "who this is for" read at a glance;
+          e-Pavti isn't scoped to one festival or one kind of organization. */}
+      <section id="occasions" className="max-w-6xl mx-auto px-4 md:px-6 pb-16">
+        <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-start">
+          <span className="text-xs font-semibold text-theme-fg/40 uppercase tracking-wide shrink-0">Built for —</span>
+          {OCCASIONS.map((o) => (
+            <span key={o} className="text-xs px-3.5 py-2 rounded-full border border-theme-fg/10 bg-theme-fg/[0.02] text-theme-fg/60">
+              {o}
+            </span>
+          ))}
         </div>
       </section>
 
@@ -396,39 +467,75 @@ export default function HomePage() {
         <PlanComparisonTable />
       </section>
 
+      {/* CTA band — the closing conversion moment the page was missing;
+          same dark treatment as the Premium tier so it reads as "the
+          serious version" of the page rather than a bolted-on banner. */}
+      <section className="bg-navy-900 dark:bg-[#120D08]">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-16 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-saffron-400">Get Started</span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mt-2 mb-3">Bring Your Next Collection Online</h2>
+          <p className="text-sm text-white/60 max-w-lg mx-auto mb-8">
+            Set up your Mandal&apos;s digital Pavti book before the next festival season — start free,
+            or talk to us on WhatsApp and we&apos;ll help you pick the right plan.
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link href="/register" className="btn-primary px-6 py-3">
+              Try {BRAND_SHORT_NAME} Free <ArrowRight size={16} />
+            </Link>
+            <a
+              href={platformWhatsappLink(`Hi, I'd like to set up ${BRAND_NAME} for my mandal.`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost px-6 py-3 border border-white/30 text-white hover:bg-white hover:text-navy-900"
+            >
+              <MessageCircle size={16} /> Chat on WhatsApp
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="border-t border-theme py-8">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-theme-fg/40">
-          <span>© {new Date().getFullYear()} {BRAND_NAME} · {BRAND_TAGLINE}</span>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="hover:text-theme-fg">Sign In</Link>
-            <Link href="/register" className="hover:text-theme-fg">Register</Link>
+      <footer className="border-t border-theme py-12">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="flex flex-col sm:flex-row justify-between gap-10">
+            <div className="max-w-xs">
+              <div className="flex items-center gap-2.5 mb-3">
+                <LogoMark size={28} className="rounded-lg" />
+                <span className="font-bold text-theme-fg text-sm">{BRAND_NAME}</span>
+              </div>
+              <p className="text-xs text-theme-fg/45">
+                Digital receipts and honest accounts for Mandals, utsav samitis, temple trusts and community organizations.
+              </p>
+            </div>
+            <div className="flex gap-12 flex-wrap">
+              <div>
+                <h4 className="text-[11px] font-semibold uppercase tracking-wide text-saffron-500 mb-3">Product</h4>
+                <div className="flex flex-col gap-2 text-xs text-theme-fg/50">
+                  <a href="#how" className="hover:text-theme-fg">How it works</a>
+                  <a href="#pricing" className="hover:text-theme-fg">Pricing</a>
+                  <a href="#occasions" className="hover:text-theme-fg">Who it&apos;s for</a>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-semibold uppercase tracking-wide text-saffron-500 mb-3">Account</h4>
+                <div className="flex flex-col gap-2 text-xs text-theme-fg/50">
+                  <Link href="/login" className="hover:text-theme-fg">Sign In</Link>
+                  <Link href="/register" className="hover:text-theme-fg">Register</Link>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-semibold uppercase tracking-wide text-saffron-500 mb-3">Reach Us</h4>
+                <div className="flex flex-col gap-2 text-xs text-theme-fg/50">
+                  <a href={platformWhatsappLink(`Hi, I have a question about ${BRAND_NAME}.`)} target="_blank" rel="noopener noreferrer" className="hover:text-theme-fg">WhatsApp Us</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-10 pt-6 border-t border-theme text-xs text-theme-fg/40">
+            © {new Date().getFullYear()} {BRAND_NAME} · {BRAND_TAGLINE}
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-// The old manual Pavti workflow next to the e-Pavti one — same steps-and-
-// arrows treatment for both so the comparison reads at a glance, with the
-// muted variant only for what's being replaced.
-function BrandStoryFlow({ label, steps, muted }: { label: string; steps: string[]; muted?: boolean }) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3.5">
-      <span className={`text-[11px] font-semibold uppercase tracking-wider shrink-0 sm:w-32 ${muted ? 'text-theme-fg/35' : 'text-saffron-400'}`}>
-        {label}
-      </span>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {steps.map((step, i) => (
-          <div key={step} className="flex items-center gap-1.5">
-            <span className={`badge ${muted ? 'badge-neutral' : 'badge-saffron'}`}>{step}</span>
-            {i < steps.length - 1 && (
-              <ArrowRight size={10} className={muted ? 'text-theme-fg/15' : 'text-theme-fg/25'} />
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
