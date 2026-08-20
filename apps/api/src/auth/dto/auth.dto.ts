@@ -61,14 +61,18 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  // Disambiguates which org's User row to check — a phone number is only
-  // unique *within* an org (see Organization.mandalCode's schema comment),
-  // so this is required for every login, not just a fallback for
-  // collisions. Shown to every ORG_ADMIN in Settings to share with staff.
-  @ApiProperty({ example: 'SGMP26', description: "The organization's Mandal Code (see Settings)" })
+  // Disambiguates which org's User row to check when the login is a
+  // COLLECTOR/TREASURER — their phone is only unique *within* an org (see
+  // Organization.mandalCode's schema comment). Optional because the
+  // ORG_ADMIN doesn't need it: their phone always equals their org's own
+  // (globally-unique) Organization.phone, set at registration and never
+  // editable since — see AuthService.login for the resolution this splits
+  // into. Shown to every ORG_ADMIN in Settings to share with staff.
+  @ApiPropertyOptional({ example: 'SGMP26', description: "The organization's Mandal Code — required for Collector/Treasurer login, not for the Mandal Admin (see Settings)" })
+  @IsOptional()
   @IsString()
   @MinLength(4)
-  mandalCode: string;
+  mandalCode?: string;
 
   @ApiProperty({ example: '9876543210' })
   @IsString()

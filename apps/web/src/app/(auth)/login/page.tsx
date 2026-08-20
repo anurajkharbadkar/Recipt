@@ -1,16 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import toast from 'react-hot-toast';
-import { Phone, Lock, ArrowRight, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Phone, Lock, ArrowRight, Eye, EyeOff, KeyRound, ShieldCheck, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import LogoMark from '@/components/brand/LogoMark';
 import { BRAND_NAME } from '@pavti/shared';
 
+// Not sensitive — closer to a workspace slug than a secret — so it's safe
+// to remember locally for returning staff who'd otherwise retype it every
+// shift. Admin tab doesn't use this at all (no mandal code to remember).
+const LAST_MANDAL_CODE_KEY = 'pavti-last-mandal-code';
+
+type LoginMode = 'admin' | 'staff';
+
 export default function LoginPage() {
+  // Two explicit modes, not a smart auto-detect fallback — the Mandal
+  // Admin's phone alone already resolves their org unambiguously
+  // (Organization.phone is globally unique and never diverges from the
+  // founding admin's own phone — see AuthService.findOrgAdminByPhone), but
+  // a Collector/Treasurer's phone is only unique *within* their org, so
+  // they still need the Mandal Code to disambiguate. Picking upfront beats
+  // submit → get rejected → asked for more info.
+  const [mode, setMode] = useState<LoginMode>('admin');
   const [mandalCode, setMandalCode] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -19,11 +34,17 @@ export default function LoginPage() {
   const { setAuth } = useAuthStore();
   const router = useRouter();
 
+  useEffect(() => {
+    const saved = localStorage.getItem(LAST_MANDAL_CODE_KEY);
+    if (saved) setMandalCode(saved);
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await authApi.login(mandalCode, phone, password);
+      const data = await authApi.login(phone, password, mode === 'staff' ? mandalCode : undefined);
+      if (mode === 'staff' && mandalCode) localStorage.setItem(LAST_MANDAL_CODE_KEY, mandalCode);
       setAuth(data);
       toast.success('Welcome back! 🙏');
       router.push('/dashboard');
@@ -53,21 +74,51 @@ export default function LoginPage() {
         </div>
 
         <div className="glass-card p-7 shadow-xl shadow-saffron-900/5">
+          {/* Mode toggle — picking upfront instead of a smart auto-detect
+              fallback that would mean submit, get rejected, then get asked
+              for more info. Mandal Admin doesn't need the code at all: see
+              AuthService.findOrgAdminByPhone. */}
+          <div className="grid grid-cols-2 gap-1.5 p-1.5 bg-saffron-100/60 dark:bg-navy-800 rounded-2xl border border-theme/20 mb-5">
+            {([
+              { key: 'admin' as const, label: 'Mandal Admin', icon: ShieldCheck },
+              { key: 'staff' as const, label: 'Collector / Treasurer', icon: Users2 },
+            ]).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setMode(t.key)}
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                  mode === t.key
+                    ? 'bg-saffron-700 text-white shadow-sm'
+                    : 'text-theme-fg/70 hover:text-theme-fg hover:bg-white/50 dark:hover:bg-white/5'
+                }`}
+              >
+                <t.icon size={13} className={mode === t.key ? 'text-white' : 'text-saffron-700 dark:text-saffron-300'} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="form-label">Mandal Code</label>
-              <div className="relative">
-                <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
-                <input
-                  value={mandalCode}
-                  onChange={e => setMandalCode(e.target.value.toUpperCase())}
-                  className="form-input pl-9 uppercase tracking-wider"
-                  placeholder="e.g. SGMP26"
-                  required
-                />
+            {mode === 'staff' && (
+              <div>
+                <label className="form-label">Mandal Code</label>
+                <div className="relative">
+                  <KeyRound size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
+                  <input
+                    value={mandalCode}
+                    onChange={e => setMandalCode(e.target.value.toUpperCase())}
+                    className="form-input pl-9 uppercase tracking-wider"
+                    placeholder="e.g. SGMP26"
+                    required
+                  />
+                </div>
+                <p className="text-[11px] text-theme-fg/35 mt-1">Ask your mandal admin if you don&apos;t have this.</p>
               </div>
-              <p className="text-[11px] text-theme-fg/35 mt-1">Ask your mandal admin if you don&apos;t have this.</p>
-            </div>
+            )}
+            {mode === 'admin' && (
+              <p className="text-[11px] text-theme-fg/35 -mb-1.5">Use the mobile number your Mandal registered with — no Mandal Code needed.</p>
+            )}
             <div>
               <label className="form-label">Mobile Number</label>
               <div className="relative">

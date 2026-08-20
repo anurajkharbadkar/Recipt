@@ -52,7 +52,11 @@ apiClient.interceptors.response.use(
 // Auth
 export const authApi = {
   register: (data: any) => apiClient.post('/auth/register', data).then(r => r.data),
-  login: (mandalCode: string, phone: string, password: string) => apiClient.post('/auth/login', { mandalCode, phone, password }).then(r => r.data),
+  // mandalCode is omitted entirely (not sent as '') for the Mandal Admin
+  // tab — the backend's optional-mandalCode branch keys off the field being
+  // absent, not empty (see LoginDto/AuthService.login).
+  login: (phone: string, password: string, mandalCode?: string) =>
+    apiClient.post('/auth/login', mandalCode ? { mandalCode, phone, password } : { phone, password }).then(r => r.data),
   getMe: () => apiClient.get('/auth/me').then(r => r.data),
 };
 

@@ -88,23 +88,16 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    // A phone number is only unique *within* an org (User's real constraint
-    // is @@unique([orgId, phone])) — two mandals can easily end up with
-    // staff sharing a number. Scoping by mandalCode first is what makes this
-    // findFirst actually deterministic instead of returning "whichever org
-    // Postgres happens to return first" the moment that collision occurs.
-    const mandalCode = dto.mandalCode.trim().toUpperCase();
-    const user = await this.prisma.user.findFirst({
-      where: {
-        phone: dto.phone,
-        isActive: true,
-        organization: { mandalCode },
-      },
-      include: { organization: true },
-    });
+    const user = dto.mandalCode
+      ? await this.findUserByMandalCode(dto.mandalCode, dto.phone)
+      : await this.findOrgAdminByPhone(dto.phone);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials — check your Mandal Code, phone and password');
+      throw new UnauthorizedException(
+        dto.mandalCode
+          ? 'Invalid credentials — check your Mandal Code, phone and password'
+          : 'No Mandal Admin account found for this phone number — Collectors and Treasurers need to sign in with their Mandal Code instead',
+      );
     }
 
     if (!user.passwordHash) {
@@ -123,6 +116,39 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.role, user.orgId);
     return { user, organization: user.organization, ...tokens };
+  }
+
+  // Staff path (COLLECTOR/TREASURER, and ORG_ADMIN if they choose to use
+  // it too): a phone number is only unique *within* an org (User's real
+  // constraint is @@unique([orgId, phone])) — two mandals can easily end
+  // up with staff sharing a number. Scoping by mandalCode first is what
+  // makes this findFirst actually deterministic instead of returning
+  // "whichever org Postgres happens to return first" the moment that
+  // collision occurs.
+  private async findUserByMandalCode(mandalCodeInput: string, phone: string) {
+    const mandalCode = mandalCodeInput.trim().toUpperCase();
+    return this.prisma.user.findFirst({
+      where: { phone, isActive: true, organization: { mandalCode } },
+      include: { organization: true },
+    });
+  }
+
+  // Mandal Admin shortcut (2026-08 login-ease pass): Organization.phone is
+  // genuinely globally unique (@unique in the schema, enforced at
+  // registration) — and the ORG_ADMIN created at registration always gets
+  // phone = that same org phone, with no UI anywhere to change either one
+  // since. So for the founding admin specifically, phone alone already
+  // resolves their org with zero ambiguity — no mandal code needed. This
+  // does NOT extend to collectors/treasurers added later: their phones
+  // are only unique within their own org, which is exactly the ambiguity
+  // findUserByMandalCode exists to resolve.
+  private async findOrgAdminByPhone(phone: string) {
+    const organization = await this.prisma.organization.findUnique({ where: { phone } });
+    if (!organization) return null;
+    return this.prisma.user.findFirst({
+      where: { orgId: organization.id, role: UserRole.ORG_ADMIN, isActive: true },
+      include: { organization: true },
+    });
   }
 
   async refreshToken(dto: RefreshTokenDto) {
