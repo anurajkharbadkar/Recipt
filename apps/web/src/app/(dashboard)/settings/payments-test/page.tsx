@@ -3,12 +3,18 @@
 // Sandbox milestone-1 test page for the Cashfree integration (see
 // Digital_Pavti_Cashfree_EasySplit_Developer_Handover.md). Not the real
 // donor-facing donation flow — that doesn't exist yet. This exists purely
-// so a SUPER_ADMIN can prove NestJS -> Cashfree -> Checkout works end to
-// end, using the Cashfree Sandbox's documented test UPI VPAs.
+// so an admin can prove NestJS -> Cashfree -> Checkout works end to end,
+// using the Cashfree Sandbox's documented test UPI VPAs.
 //
-// Reachable at /settings/payments-test, linked from the Settings page for
-// SUPER_ADMIN only — not in the sidebar nav, since it isn't a product
-// feature.
+// Reachable at /settings/payments-test — no role check *in this file*, but
+// it doesn't need one: every /settings/* route (this one included, via
+// inferRouteModule) is already gated to SUPER_ADMIN/ORG_ADMIN by
+// DashboardLayout's canView('Settings') check (see
+// apps/web/src/hooks/useModuleAccess.ts) before this component ever
+// renders. Linked from the Settings page's Bank tab for the same two
+// roles; not in the sidebar nav, since it isn't a product feature — every
+// real ORG_ADMIN (i.e. every paying customer's own admin) can still reach
+// it directly by URL, which is worth knowing before this ships live.
 
 import { useState } from 'react';
 import Script from 'next/script';

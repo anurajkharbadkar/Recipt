@@ -46,21 +46,28 @@ async function bootstrap() {
     ? corsOrigin.split(',').map((o: string) => o.trim())
     : [corsOrigin, 'http://localhost:3000', 'http://localhost:3010'];
 
+  // The `else` branch here used to unconditionally `callback(null, true)`,
+  // which made every check above it dead code — the allowlist was never
+  // actually enforced, every origin was let through regardless of
+  // CORS_ORIGIN. Combined with `credentials: true`, that's a real
+  // misconfiguration worth fixing before this handles production traffic,
+  // even though this app sends auth via a Bearer header (not cookies) so
+  // there's no session to silently steal. This now actually enforces the
+  // allowlist — app.epavtibook.com is hardcoded below as a permanent entry
+  // (same treatment as localhost) so the real production frontend keeps
+  // working even if CORS_ORIGIN is ever unset/misconfigured on Railway;
+  // CORS_ORIGIN itself should still be set there too, for any additional
+  // origin (a staging domain, etc.) beyond this hardcoded pair.
   app.enableCors({
     origin: (origin, callback) => {
-      if (
-        !origin ||
+      const isAllowed =
+        !origin || // same-origin/non-browser callers (curl, server-to-server, Postman) send no Origin header
         corsOrigin === '*' ||
-        allowedOrigins.includes('*') ||
         allowedOrigins.includes(origin) ||
         /\.vercel\.app$/.test(origin) ||
-        /^https?:\/\/localhost(:\d+)?$/.test(origin)
-      ) {
-        callback(null, true);
-      } else {
-        // Fallback allow for web client
-        callback(null, true);
-      }
+        /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+        /^https:\/\/(app\.)?epavtibook\.com$/.test(origin);
+      callback(isAllowed ? null : new Error(`Origin ${origin} not allowed by CORS`), isAllowed);
     },
     credentials: true,
   });
