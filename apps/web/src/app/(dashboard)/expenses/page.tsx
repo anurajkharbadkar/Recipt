@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { expensesApi, campaignsApi, orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { Plus, CheckCircle, Trash2, FileDown } from 'lucide-react';
+import { Plus, Trash2, FileDown } from 'lucide-react';
 import { formatCurrency, EXPENSE_CATEGORY_LABELS, PAYMENT_MODE_LABELS, PaymentMode } from '@pavti/shared';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -20,19 +20,19 @@ const CATEGORY_EMOJI: Record<string, string> = {
 
 const labels = {
   en: {
-    approved: 'Approved Expenses', pending: 'Pending Approval', logExpense: 'Log Expense',
+    total: 'Total Expenses', logExpense: 'Log Expense',
     campaign: 'Campaign', selectCampaign: 'Select campaign...', category: 'Category', amount: 'Amount (₹)',
     date: 'Date', vendor: 'Vendor / Recipient Name', paymentMode: 'Payment Mode', recipientPhone: 'Recipient Phone',
     gst: 'GST Number (Optional)', description: 'Description', saving: 'Saving...', noExpenses: 'No expenses logged yet',
   },
   hi: {
-    approved: 'स्वीकृत व्यय', pending: 'लंबित अनुमोदन', logExpense: 'व्यय नोंदवा',
+    total: 'कुल व्यय', logExpense: 'व्यय नोंदवा',
     campaign: 'अभियान', selectCampaign: 'अभियान चुनें...', category: 'श्रेणी', amount: 'राशि (₹)',
     date: 'तारीख', vendor: 'विक्रेता / प्राप्तकर्ता का नाम', paymentMode: 'भुगतान मोड', recipientPhone: 'प्राप्तकर्ता का फोन',
     gst: 'GST नंबर (वैकल्पिक)', description: 'विवरण', saving: 'सहेजा जा रहा है...', noExpenses: 'अभी तक कोई व्यय नहीं जोड़ा गया',
   },
   mr: {
-    approved: 'मंजूर खर्च', pending: 'प्रलंबित मंजुरी', logExpense: 'खर्च नोंदवा',
+    total: 'एकूण खर्च', logExpense: 'खर्च नोंदवा',
     campaign: 'मोहीम', selectCampaign: 'मोहीम निवडा...', category: 'प्रकार', amount: 'रक्कम (₹)',
     date: 'दिनांक', vendor: 'विक्रेता / प्राप्तकर्त्याचे नाव', paymentMode: 'देय पद्धत', recipientPhone: 'प्राप्तकर्त्याचा फोन',
     gst: 'GST क्रमांक (पर्यायी)', description: 'तपशील', saving: 'जतन होत आहे...', noExpenses: 'अद्याप कोणताही खर्च नोंदवला नाही',
@@ -97,11 +97,6 @@ function ExpensesPageInner() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to add expense'),
   });
 
-  const approveMutation = useMutation({
-    mutationFn: expensesApi.approve,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expenses'] }); toast.success('Expense approved!'); },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: expensesApi.delete,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expenses'] }); toast.success('Expense deleted'); },
@@ -116,8 +111,7 @@ function ExpensesPageInner() {
     onError: () => toast.error('Failed to generate voucher'),
   });
 
-  const totalApproved = (expenses || []).filter((e: any) => e.isApproved).reduce((s: number, e: any) => s + e.amount, 0);
-  const totalPending = (expenses || []).filter((e: any) => !e.isApproved).reduce((s: number, e: any) => s + e.amount, 0);
+  const totalExpenses = (expenses || []).reduce((s: number, e: any) => s + e.amount, 0);
 
   return (
     <div className="space-y-6">
@@ -131,15 +125,9 @@ function ExpensesPageInner() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-5">
-          <p className="form-label">{l.approved}</p>
-          <p className="text-xl font-bold text-red-400">{formatCurrency(totalApproved)}</p>
-        </div>
-        <div className="glass-card p-5">
-          <p className="form-label">{l.pending}</p>
-          <p className="text-xl font-bold text-saffron-400">{formatCurrency(totalPending)}</p>
-        </div>
+      <div className="glass-card p-5">
+        <p className="form-label">{l.total}</p>
+        <p className="text-xl font-bold text-red-400">{formatCurrency(totalExpenses)}</p>
       </div>
 
       {showForm && (
@@ -195,7 +183,7 @@ function ExpensesPageInner() {
             </div>
             <div>
               <label className="form-label">{l.recipientPhone}</label>
-              <input value={form.beneficiaryPhone} onChange={e => setForm(p => ({ ...p, beneficiaryPhone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" inputMode="tel" />
+              <input value={form.beneficiaryPhone} onChange={e => setForm(p => ({ ...p, beneficiaryPhone: e.target.value }))} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="tel" />
             </div>
             <div>
               <label className="form-label">{l.gst}</label>
@@ -239,11 +227,6 @@ function ExpensesPageInner() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-red-400">{formatCurrency(e.amount)}</p>
-                      {e.isApproved ? (
-                        <span className="badge badge-success text-[10px] mt-1">✓ Approved</span>
-                      ) : (
-                        <span className="badge badge-warning text-[10px] mt-1">Pending</span>
-                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -257,16 +240,9 @@ function ExpensesPageInner() {
                       <button onClick={() => voucherMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-saffron-500/10 text-theme-fg/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
                         <FileDown size={17} />
                       </button>
-                      {!e.isApproved && (
-                        <button onClick={() => approveMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-emerald-500/10 text-theme-fg/40 hover:text-emerald-400 transition-colors">
-                          <CheckCircle size={17} />
-                        </button>
-                      )}
-                      {!e.isApproved && (
-                        <button onClick={() => deleteMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
-                          <Trash2 size={17} />
-                        </button>
-                      )}
+                      <button onClick={() => deleteMutation.mutate(e.id)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
+                        <Trash2 size={17} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -288,7 +264,6 @@ function ExpensesPageInner() {
                     <th>Payment Mode</th>
                     <th>Date</th>
                     <th>Added By</th>
-                    <th>Status</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -309,27 +284,13 @@ function ExpensesPageInner() {
                       <td className="text-theme-fg/40 text-xs">{format(new Date(e.expenseDate), 'dd MMM yyyy')}</td>
                       <td className="text-theme-fg/60 text-sm">{e.addedBy?.name}</td>
                       <td>
-                        {e.isApproved ? (
-                          <span className="badge badge-success">✓ Approved</span>
-                        ) : (
-                          <span className="badge badge-warning">Pending</span>
-                        )}
-                      </td>
-                      <td>
                         <div className="flex gap-1">
                           <button onClick={() => voucherMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-saffron-500/10 text-theme-fg/40 hover:text-saffron-400 transition-colors" title="Download Voucher">
                             <FileDown size={14} />
                           </button>
-                          {!e.isApproved && (
-                            <button onClick={() => approveMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-emerald-500/10 text-theme-fg/40 hover:text-emerald-400 transition-colors">
-                              <CheckCircle size={14} />
-                            </button>
-                          )}
-                          {!e.isApproved && (
-                            <button onClick={() => deleteMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          <button onClick={() => deleteMutation.mutate(e.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-theme-fg/40 hover:text-red-400 transition-colors">
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>

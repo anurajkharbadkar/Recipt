@@ -52,9 +52,7 @@ apiClient.interceptors.response.use(
 // Auth
 export const authApi = {
   register: (data: any) => apiClient.post('/auth/register', data).then(r => r.data),
-  login: (phone: string, password: string) => apiClient.post('/auth/login', { phone, password }).then(r => r.data),
-  sendOtp: (phone: string) => apiClient.post('/auth/otp/send', { phone }).then(r => r.data),
-  verifyOtp: (phone: string, otp: string) => apiClient.post('/auth/otp/verify', { phone, otp }).then(r => r.data),
+  login: (mandalCode: string, phone: string, password: string) => apiClient.post('/auth/login', { mandalCode, phone, password }).then(r => r.data),
   getMe: () => apiClient.get('/auth/me').then(r => r.data),
 };
 
@@ -67,6 +65,12 @@ export const orgsApi = {
     const form = new FormData();
     form.append('logo', file);
     return apiClient.post('/organizations/me/logo', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+  },
+  /** Uploads a custom idol/darshan photo for the Interactive Pavti — returns { url }, not persisted server-side (saved via the normal Settings form). */
+  uploadIdolImage: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post('/organizations/me/idol-image', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data as { url: string });
   },
   getAreas: () => apiClient.get('/organizations/areas').then(r => r.data),
   createArea: (data: any) => apiClient.post('/organizations/areas', data).then(r => r.data),
@@ -95,10 +99,11 @@ export const receiptsApi = {
   create: (data: any) => apiClient.post('/receipts', data).then(r => r.data),
   update: (id: string, data: any) => apiClient.patch(`/receipts/${id}`, data).then(r => r.data),
   void: (id: string, reason: string) => apiClient.patch(`/receipts/${id}/void`, { reason }).then(r => r.data),
-  resend: (id: string) => apiClient.post(`/receipts/${id}/resend`).then(r => r.data),
   exportCsv: (campaignId?: string) => apiClient.get('/receipts/export/csv', { params: { campaignId }, responseType: 'blob' }).then(r => r.data),
   donors: () => apiClient.get('/receipts/donors').then(r => r.data),
   updateStatus: (id: string, status: string) => apiClient.patch(`/receipts/${id}/status`, { status }).then(r => r.data),
+  /** PNG snapshot of the pavti — what actually gets attached on a WhatsApp share (see lib/whatsappShare.ts). */
+  getImage: (id: string) => apiClient.get(`/receipts/${id}/image`, { responseType: 'blob' }).then(r => r.data as Blob),
 };
 
 // Collectors
@@ -114,7 +119,6 @@ export const collectorsApi = {
 export const expensesApi = {
   list: (campaignId?: string) => apiClient.get('/expenses', { params: { campaignId } }).then(r => r.data),
   create: (data: any) => apiClient.post('/expenses', data).then(r => r.data),
-  approve: (id: string) => apiClient.patch(`/expenses/${id}/approve`).then(r => r.data),
   delete: (id: string) => apiClient.delete(`/expenses/${id}`).then(r => r.data),
   downloadVoucher: (id: string) => apiClient.get(`/expenses/${id}/voucher`, { responseType: 'blob' }).then(r => r.data),
 };
@@ -129,6 +133,9 @@ export const reportsApi = {
   topDonors: (campaignId?: string) => apiClient.get('/reports/top-donors', { params: { campaignId } }).then(r => r.data),
   collectionType: (campaignId?: string) => apiClient.get('/reports/collection-type', { params: { campaignId } }).then(r => r.data),
   incomeExpenseTrend: (campaignId?: string, days?: number) => apiClient.get('/reports/income-expense-trend', { params: { campaignId, days } }).then(r => r.data),
+  incomeExpenditure: (campaignId?: string) => apiClient.get('/reports/income-expenditure', { params: { campaignId } }).then(r => r.data),
+  downloadIncomeExpenditurePdf: (campaignId?: string) => apiClient.get('/reports/income-expenditure/pdf', { params: { campaignId }, responseType: 'blob' }).then(r => r.data),
+  downloadExpensesCsv: (campaignId?: string) => apiClient.get('/reports/expenses/csv', { params: { campaignId }, responseType: 'blob' }).then(r => r.data),
 };
 
 // Members (सभासद नोंदणी — org member registry)
@@ -144,4 +151,14 @@ export const membersApi = {
 export const internalCollectionsApi = {
   declare: (data: any) => apiClient.post('/internal-collections/declare', data).then(r => r.data),
   roster: (campaignId: string) => apiClient.get('/internal-collections/roster', { params: { campaignId } }).then(r => r.data),
+};
+
+// Cashfree — sandbox test surface only (see Digital_Pavti_Cashfree_EasySplit_Developer_Handover.md).
+// Not the eventual public donation flow; every call here needs the staff
+// bearer token apiClient already attaches.
+export const cashfreeApi = {
+  createOrder: (data: { amount: number; customerId: string; customerPhone: string; customerEmail?: string }) =>
+    apiClient.post('/payments/cashfree/orders', data).then(r => r.data),
+  getOrder: (orderId: string) => apiClient.get(`/payments/cashfree/orders/${orderId}`).then(r => r.data),
+  getOrderPayments: (orderId: string) => apiClient.get(`/payments/cashfree/orders/${orderId}/payments`).then(r => r.data),
 };

@@ -64,6 +64,10 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
         devanagari: ['var(--font-noto)', 'Noto Sans Devanagari', 'sans-serif'],
+        // Pavti/receipt headings only — an elegant display serif for the
+        // "official ledger" identity, deliberately not used anywhere else
+        // in the app chrome (see ReceiptPreview.tsx, pdf.service.ts).
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       backgroundImage: {
         'gradient-brand': 'linear-gradient(135deg, #502000 0%, #603000 50%, #C89B3C 100%)',

@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collectorsApi, orgsApi, membersApi, campaignsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import {
   Plus, Phone, MapPin, ToggleLeft, ToggleRight,
-  Users2, ListPlus, Trash2, UserCog, Wallet,
+  Users2, ListPlus, Trash2, UserCog, Wallet, Pencil, X, KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import { formatCurrency, USER_ROLE_LABELS, UserRole, COLLECTION_TYPE_LABELS, CollectionType } from '@pavti/shared';
 import toast from 'react-hot-toast';
@@ -21,20 +22,38 @@ const staffLabels = {
   en: {
     desc: 'People with logins who collect donations and issue receipts.', add: 'Add Collector', newTitle: 'New Collector',
     fullName: 'Full Name', phone: 'Phone', email: 'Email (Optional)', role: 'Role', area: 'Assigned Area', noArea: 'No specific area',
-    defaultPassword: 'Default password will be their phone number', adding: 'Adding...',
+    defaultPassword: 'Leave password blank to default it to their phone number', adding: 'Adding...',
     empty: 'No collectors yet. Add your first collector!',
+    setPassword: 'Set Password (Optional)', edit: 'Edit', editTitle: 'Edit Collector', save: 'Save Changes', saving: 'Saving...',
+    resetPassword: 'Reset Password (leave blank to keep it unchanged)', activeLabel: 'Active — can log in and collect',
+    phoneLocked: "Phone can't be changed here — contact support if it's wrong.",
+    mandalReminder: (code: string) =>
+      `Collectors log in with the Mandal Code ${code ? `“${code}”` : ''}, their phone number, and their password.`,
+    mandalReminderLink: 'Find it in Settings →',
   },
   hi: {
     desc: 'लॉगिन वाले लोग जो दान एकत्र करते हैं और रसीदें जारी करते हैं।', add: 'संग्रहकर्ता जोड़ें', newTitle: 'नया संग्रहकर्ता',
     fullName: 'पूरा नाम', phone: 'फोन', email: 'ईमेल (वैकल्पिक)', role: 'भूमिका', area: 'नियुक्त क्षेत्र', noArea: 'कोई विशेष क्षेत्र नहीं',
-    defaultPassword: 'डिफ़ॉल्ट पासवर्ड उनका फोन नंबर होगा', adding: 'जोड़ा जा रहा है...',
+    defaultPassword: 'पासवर्ड खाली छोड़ें तो डिफ़ॉल्ट उनका फोन नंबर होगा', adding: 'जोड़ा जा रहा है...',
     empty: 'अभी तक कोई संग्रहकर्ता नहीं। अपना पहला संग्रहकर्ता जोड़ें!',
+    setPassword: 'पासवर्ड सेट करें (वैकल्पिक)', edit: 'संपादित करें', editTitle: 'संग्रहकर्ता संपादित करें', save: 'बदलाव सहेजें', saving: 'सहेजा जा रहा है...',
+    resetPassword: 'पासवर्ड रीसेट करें (अपरिवर्तित रखने हेतु खाली छोड़ें)', activeLabel: 'सक्रिय — लॉगिन व संग्रह कर सकते हैं',
+    phoneLocked: 'फोन यहां बदला नहीं जा सकता — गलत होने पर सहायता से संपर्क करें।',
+    mandalReminder: (code: string) =>
+      `संग्रहकर्ता मंडल कोड ${code ? `“${code}”` : ''}, उनके फोन नंबर व पासवर्ड से लॉगिन करते हैं।`,
+    mandalReminderLink: 'सेटिंग्स में देखें →',
   },
   mr: {
     desc: 'लॉगिन असलेले संग्राहक व कर्मचारी.', add: 'संग्राहक जोडा', newTitle: 'नवीन संग्राहक',
     fullName: 'पूर्ण नाव', phone: 'फोन', email: 'ईमेल (पर्यायी)', role: 'भूमिका', area: 'नियुक्त क्षेत्र', noArea: 'विशिष्ट क्षेत्र नाही',
-    defaultPassword: 'डीफॉल्ट पासवर्ड त्यांचा फोन नंबर असेल', adding: 'जोडत आहे...',
+    defaultPassword: 'पासवर्ड रिकामा ठेवल्यास डीफॉल्ट त्यांचा फोन नंबर असेल', adding: 'जोडत आहे...',
     empty: 'अद्याप कोणताही संग्राहक नाही. पहिला संग्राहक जोडा!',
+    setPassword: 'पासवर्ड सेट करा (पर्यायी)', edit: 'संपादित करा', editTitle: 'संग्राहक संपादित करा', save: 'बदल जतन करा', saving: 'जतन होत आहे...',
+    resetPassword: 'पासवर्ड रीसेट करा (न बदलण्यासाठी रिकामे ठेवा)', activeLabel: 'सक्रिय — लॉगिन व संकलन करू शकतात',
+    phoneLocked: 'फोन इथे बदलता येणार नाही — चुकीचा असल्यास सपोर्टशी संपर्क करा.',
+    mandalReminder: (code: string) =>
+      `संग्राहक मंडल कोड ${code ? `“${code}”` : ''}, त्यांचा फोन नंबर व पासवर्ड वापरून लॉगिन करतात.`,
+    mandalReminderLink: 'सेटिंग्जमध्ये पहा →',
   },
 };
 
@@ -45,7 +64,9 @@ const staffLabels = {
 
 function StaffTab() {
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', role: 'COLLECTOR', areaId: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', password: '', role: 'COLLECTOR', areaId: '' });
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [editingCollector, setEditingCollector] = useState<any>(null);
   const { language } = useAuthStore();
   const sl = staffLabels[language] || staffLabels.en;
   const common = useCommonLabels();
@@ -53,13 +74,14 @@ function StaffTab() {
 
   const { data: collectors, isLoading } = useQuery({ queryKey: ['collectors'], queryFn: collectorsApi.list });
   const { data: areas } = useQuery({ queryKey: ['areas'], queryFn: orgsApi.getAreas });
+  const { data: org } = useQuery({ queryKey: ['org'], queryFn: orgsApi.getMe });
 
   const createMutation = useMutation({
-    mutationFn: collectorsApi.create,
+    mutationFn: (data: typeof formData) => collectorsApi.create({ ...data, password: data.password || undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collectors'] });
       setShowForm(false);
-      setFormData({ name: '', phone: '', email: '', role: 'COLLECTOR', areaId: '' });
+      setFormData({ name: '', phone: '', email: '', password: '', role: 'COLLECTOR', areaId: '' });
       toast.success('Collector added!');
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to add collector'),
@@ -70,6 +92,16 @@ function StaffTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['collectors'] }),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: any) => collectorsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collectors'] });
+      setEditingCollector(null);
+      toast.success('Collector updated!');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update collector'),
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -77,6 +109,16 @@ function StaffTab() {
         <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
           <Plus size={15} /> {sl.add}
         </button>
+      </div>
+
+      {/* Reminder: how staff actually log in — directly answers "how will
+          they login for same mandal" by pointing at the Mandal Code. */}
+      <div className="flex items-start sm:items-center gap-2.5 p-3.5 rounded-xl bg-saffron-500/[0.06] border border-saffron-500/20 flex-wrap">
+        <KeyRound size={15} className="text-saffron-500 shrink-0 mt-0.5 sm:mt-0" />
+        <p className="text-xs text-theme-fg/65 flex-1 min-w-[200px]">{sl.mandalReminder(org?.mandalCode)}</p>
+        <Link href="/settings" className="text-xs font-semibold text-saffron-600 hover:underline shrink-0">
+          {sl.mandalReminderLink}
+        </Link>
       </div>
 
       {showForm && (
@@ -89,7 +131,7 @@ function StaffTab() {
             </div>
             <div>
               <label className="form-label">{sl.phone} *</label>
-              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" inputMode="tel" />
+              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="tel" />
             </div>
             <div>
               <label className="form-label">{sl.email}</label>
@@ -108,6 +150,21 @@ function StaffTab() {
                 <option value="">{sl.noArea}</option>
                 {(areas || []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="form-label">{sl.setPassword}</label>
+              <div className="relative">
+                <input
+                  value={formData.password}
+                  onChange={e => setFormData(p => ({ ...p, password: e.target.value }))}
+                  className="form-input pr-10"
+                  placeholder="••••••••"
+                  type={showNewPassword ? 'text' : 'password'}
+                />
+                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-fg/30 hover:text-theme-fg/60">
+                  {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
           </div>
           <p className="text-xs text-theme-fg/30 mt-3">{sl.defaultPassword}</p>
@@ -136,6 +193,7 @@ function StaffTab() {
               collector={c}
               language={language}
               onToggle={(id: string, active: boolean) => toggleMutation.mutate({ id, isActive: active })}
+              onEdit={() => setEditingCollector(c)}
             />
           ))}
           {!collectors?.length && (
@@ -145,11 +203,118 @@ function StaffTab() {
           )}
         </div>
       )}
+
+      {editingCollector && (
+        <EditCollectorModal
+          collector={editingCollector}
+          areas={areas}
+          language={language}
+          sl={sl}
+          common={common}
+          isSaving={updateMutation.isPending}
+          onClose={() => setEditingCollector(null)}
+          onSave={(data) => updateMutation.mutate({ id: editingCollector.id, data })}
+        />
+      )}
     </div>
   );
 }
 
-function CollectorCard({ collector: c, language, onToggle }: any) {
+function EditCollectorModal({ collector, areas, language, sl, common, isSaving, onClose, onSave }: any) {
+  const [form, setForm] = useState({
+    name: collector.name || '',
+    email: collector.email || '',
+    role: collector.role || 'COLLECTOR',
+    areaId: collector.areaId || '',
+    isActive: collector.isActive,
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSave = () => {
+    const { password, ...rest } = form;
+    onSave(password ? { ...rest, password } : rest);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onClose}>
+      <div className="glass-card p-6 w-full max-w-md animate-slide-up" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-theme-fg">{sl.editTitle}</h3>
+          <button onClick={onClose} className="min-w-[36px] min-h-[36px] flex items-center justify-center text-theme-fg/40 hover:text-theme-fg rounded-lg hover:bg-theme-fg/5">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="form-label">{sl.fullName} *</label>
+            <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="form-input" />
+          </div>
+          <div>
+            <label className="form-label"><Phone size={11} className="inline mr-1" /> {sl.phone}</label>
+            <input value={collector.phone} className="form-input opacity-60 cursor-not-allowed" disabled />
+            <p className="text-[11px] text-theme-fg/35 mt-1">{sl.phoneLocked}</p>
+          </div>
+          <div>
+            <label className="form-label">{sl.email}</label>
+            <input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="form-input" type="email" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">{sl.role}</label>
+              <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} className="form-select">
+                <option value="COLLECTOR">{USER_ROLE_LABELS[UserRole.COLLECTOR][language]}</option>
+                <option value="TREASURER">{USER_ROLE_LABELS[UserRole.TREASURER][language]}</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">{sl.area}</label>
+              <select value={form.areaId} onChange={e => setForm(p => ({ ...p, areaId: e.target.value }))} className="form-select">
+                <option value="">{sl.noArea}</option>
+                {(areas || []).map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
+            className="flex items-center gap-2 text-xs text-theme-fg/60"
+          >
+            {form.isActive ? <ToggleRight size={20} className="text-saffron-400" /> : <ToggleLeft size={20} />}
+            {sl.activeLabel}
+          </button>
+
+          <div className="pt-3 border-t border-theme-fg/10">
+            <label className="form-label"><KeyRound size={11} className="inline mr-1" /> {sl.resetPassword}</label>
+            <div className="relative">
+              <input
+                value={form.password}
+                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                className="form-input pr-10"
+                placeholder="••••••••"
+                type={showPassword ? 'text' : 'password'}
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-fg/30 hover:text-theme-fg/60">
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="btn-secondary flex-1">{common.cancel}</button>
+          <button onClick={handleSave} disabled={!form.name || isSaving} className="btn-primary flex-1">
+            {isSaving ? sl.saving : sl.save}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CollectorCard({ collector: c, language, onToggle, onEdit }: any) {
   const { data: stats } = useQuery({ queryKey: ['collector-stats', c.id], queryFn: () => collectorsApi.getStats(c.id) });
 
   return (
@@ -165,6 +330,9 @@ function CollectorCard({ collector: c, language, onToggle }: any) {
           </div>
         </div>
         <div className="flex items-center gap-1.5 -mr-2 -mt-1">
+          <button onClick={onEdit} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors">
+            <Pencil size={16} />
+          </button>
           <button onClick={() => onToggle(c.id, !c.isActive)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors">
             {c.isActive ? <ToggleRight size={22} className="text-saffron-400" /> : <ToggleLeft size={22} />}
           </button>
@@ -298,7 +466,7 @@ function RegisteredMembersTab() {
             </div>
             <div>
               <label className="form-label"><Phone size={11} className="inline mr-1" /> {ml.phone}</label>
-              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="9876543210" type="tel" inputMode="tel" />
+              <input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="tel" />
             </div>
             <div>
               <label className="form-label"><MapPin size={11} className="inline mr-1" /> {ml.address}</label>

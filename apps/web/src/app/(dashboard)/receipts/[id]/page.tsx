@@ -2,14 +2,15 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { receiptsApi } from '@/lib/api';
+import { shareReceiptViaWhatsApp, prefetchReceiptImage } from '@/lib/whatsappShare';
 import { useAuthStore } from '@/store/auth.store';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
-import { ArrowLeft, Share2, Printer, XCircle, RefreshCw, Download } from 'lucide-react';
+import { ArrowLeft, Share2, Printer, XCircle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { formatCurrency, formatShareMessage, resolveReceiptSettings } from '@pavti/shared';
+import { formatCurrency } from '@pavti/shared';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const LANGUAGE_OPTIONS: { code: 'en' | 'hi' | 'mr'; label: string }[] = [
   { code: 'en', label: 'EN' },
@@ -25,6 +26,7 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
   // this one receipt in whichever language the donor needs, without switching
   // the language the rest of the portal is shown in.
   const [receiptLanguage, setReceiptLanguage] = useState<'en' | 'hi' | 'mr'>(language);
+  const [sharing, setSharing] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -33,14 +35,13 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
     queryFn: () => receiptsApi.get(params.id),
   });
 
-  const resendMutation = useMutation({
-    mutationFn: () => receiptsApi.resend(params.id),
-    onSuccess: () => {
-      toast.success('Receipt resent via WhatsApp!');
-      queryClient.invalidateQueries({ queryKey: ['receipt', params.id] });
-    },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to resend'),
-  });
+  // Fetch the pavti image in the background as soon as the receipt is on
+  // screen, not when Share is clicked — see prefetchReceiptImage's comment
+  // in lib/whatsappShare.ts for why waiting until the click loses the Web
+  // Share API's user-gesture window.
+  useEffect(() => {
+    if (receipt?.donorPhone) prefetchReceiptImage(params.id);
+  }, [receipt?.donorPhone, params.id]);
 
   const voidMutation = useMutation({
     mutationFn: () => receiptsApi.void(params.id, voidReason),
@@ -62,25 +63,24 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
     onError: () => toast.error('Failed to update status'),
   });
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!receipt?.donorPhone) { toast.error('No phone number on this receipt'); return; }
-    const url = `${window.location.origin}/receipt/${params.id}`;
-    const org = (receipt.campaign?.organization || organization) as any;
-    const settings = resolveReceiptSettings(org?.receiptTemplateSettings, receiptLanguage);
-    const msgText = formatShareMessage(
-      settings.shareMessage,
-      {
+    setSharing(true);
+    try {
+      await shareReceiptViaWhatsApp({
+        donorPhone: receipt.donorPhone,
         donorName: receipt.donorName,
         amount: receipt.amount,
         receiptNumber: receipt.receiptNumber,
-        organizationName: org?.name || 'संस्था',
-        receiptUrl: url,
-        date: new Date(receipt.createdAt).toLocaleDateString('en-IN'),
+        receiptId: params.id,
         category: receipt.category,
-      },
-      settings.language,
-    );
-    window.open(`https://wa.me/91${receipt.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
+        createdAt: receipt.createdAt,
+        organization: (receipt.campaign?.organization || organization) as any,
+        language: receiptLanguage,
+      });
+    } finally {
+      setSharing(false);
+    }
   };
 
   const handlePrint = () => {
@@ -115,8 +115,8 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
         </div>
         <div className="flex gap-2">
           {receipt.donorPhone && (
-            <button onClick={handleShare} className="btn-secondary text-sm gap-1.5 px-3 py-2">
-              <Share2 size={14} /> WhatsApp
+            <button onClick={handleShare} disabled={sharing} className="btn-secondary text-sm gap-1.5 px-3 py-2">
+              {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} WhatsApp
             </button>
           )}
           <button onClick={handlePrint} className="btn-ghost p-2">
@@ -160,23 +160,13 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
             { label: 'Campaign', value: receipt.campaign?.name },
             { label: 'Collector', value: receipt.collector?.name },
             { label: 'Area', value: receipt.area?.name || '—' },
-            {
-              label: 'WhatsApp',
-              value: receipt.whatsappSent ? '✅ Sent' : receipt.whatsappError ? '⚠️ Failed' : '❌ Not sent',
-              title: receipt.whatsappError,
-            },
-            {
-              label: 'SMS',
-              value: receipt.smsSent ? '✅ Sent' : receipt.smsError ? '⚠️ Failed' : '❌ Not sent',
-              title: receipt.smsError,
-            },
             { label: 'Amount', value: formatCurrency(receipt.amount) },
             { label: 'Type', value: receipt.collectionType || 'DONATION' },
             { label: 'Status', value: receipt.status || 'PAID' },
-          ].map(({ label, value, title }) => (
+          ].map(({ label, value }) => (
             <div key={label}>
               <p className="text-xs text-theme-fg/30">{label}</p>
-              <p className="text-theme-fg/80 font-medium" title={title}>{value}</p>
+              <p className="text-theme-fg/80 font-medium">{value}</p>
             </div>
           ))}
         </div>
@@ -192,11 +182,6 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
               className="btn-primary flex-1 text-sm bg-emerald-600 hover:bg-emerald-700 shadow-glow-emerald border-none text-white flex items-center justify-center gap-1.5"
             >
               {statusMutation.isPending ? 'Updating...' : '✓ Mark as Paid'}
-            </button>
-          )}
-          {receipt.donorPhone && (
-            <button onClick={() => resendMutation.mutate()} disabled={resendMutation.isPending} className="btn-secondary flex-1 text-sm">
-              <RefreshCw size={14} /> Resend WhatsApp
             </button>
           )}
           {canVoid && (

@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { receiptsApi } from '@/lib/api';
+import { shareReceiptViaWhatsApp, prefetchReceiptImage } from '@/lib/whatsappShare';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
-import { Plus, Search, Download, Filter, Eye, Share2, XCircle, Users, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { Plus, Search, Download, Filter, Eye, Share2, XCircle, Users, ChevronDown, ChevronUp, Zap, Loader2 } from 'lucide-react';
 import {
-  formatCurrency, formatShareMessage, formatSocialLinksText, resolveReceiptSettings,
+  formatCurrency,
   RECEIPT_CATEGORIES_LABELS, PAYMENT_MODE_LABELS, RECEIPT_STATUS_LABELS, COLLECTION_TYPE_LABELS,
   DonationCategory, PaymentMode, ReceiptStatus, CollectionType,
 } from '@pavti/shared';
@@ -23,6 +24,7 @@ export default function ReceiptsPage() {
   const [status, setStatus] = useState<string>('');
   const [showDonors, setShowDonors] = useState(false);
   const [donorFilter, setDonorFilter] = useState('');
+  const [sharingId, setSharingId] = useState<string | null>(null);
   const { activeCampaignId, language, user, organization } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -60,26 +62,23 @@ export default function ReceiptsPage() {
     },
   });
 
-  const handleShare = (r: any) => {
+  const handleShare = async (r: any) => {
     if (!r.donorPhone) return;
-    const url = `${window.location.origin}/receipt/${r.id}`;
-    const org = organization as any;
-    const settings = resolveReceiptSettings(org?.receiptTemplateSettings);
-    const msgText = formatShareMessage(
-      settings.shareMessage,
-      {
+    setSharingId(r.id);
+    try {
+      await shareReceiptViaWhatsApp({
+        donorPhone: r.donorPhone,
         donorName: r.donorName,
         amount: r.amount,
         receiptNumber: r.receiptNumber,
-        organizationName: org?.name || 'संस्था',
-        receiptUrl: url,
-        date: new Date(r.createdAt).toLocaleDateString('en-IN'),
+        receiptId: r.id,
         category: r.category,
-        socialLinksText: formatSocialLinksText(org?.socialLinks),
-      },
-      settings.language,
-    );
-    window.open(`https://wa.me/91${r.donorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`);
+        createdAt: r.createdAt,
+        organization: organization as any,
+      });
+    } finally {
+      setSharingId(null);
+    }
   };
 
   return (
@@ -89,13 +88,22 @@ export default function ReceiptsPage() {
           {language === 'mr' ? 'पावत्या' : language === 'hi' ? 'रसीदें' : 'Receipts'}
         </h1>
         <div className="flex gap-2">
-          <button onClick={() => exportMutation.mutate()} className="btn-secondary text-sm" disabled={exportMutation.isPending}>
-            <Download size={15} /> CSV
-          </button>
-          <Link href="/receipts/new" className="btn-primary text-sm">
-            <Plus size={15} />
-            {language === 'mr' ? 'नवीन' : 'New'}
-          </Link>
+          {/* Matches the backend exactly — GET /receipts/export/csv is
+              ORG_ADMIN/TREASURER only, POST /receipts excludes VIEWER.
+              Showing either to a role that will just get a 403 back is worse
+              than not showing it, especially "New" — a VIEWER filling out
+              the whole multi-step form only to be rejected at submit. */}
+          {['ORG_ADMIN', 'TREASURER'].includes(user?.role || '') && (
+            <button onClick={() => exportMutation.mutate()} className="btn-secondary text-sm" disabled={exportMutation.isPending}>
+              <Download size={15} /> CSV
+            </button>
+          )}
+          {user?.role !== 'VIEWER' && (
+            <Link href="/receipts/new" className="btn-primary text-sm">
+              <Plus size={15} />
+              {language === 'mr' ? 'नवीन' : 'New'}
+            </Link>
+          )}
         </div>
       </div>
 
@@ -240,8 +248,8 @@ export default function ReceiptsPage() {
                         <Eye size={17} />
                       </Link>
                       {r.donorPhone && (
-                        <button onClick={() => handleShare(r)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
-                          <Share2 size={17} />
+                        <button onClick={() => handleShare(r)} onMouseEnter={() => prefetchReceiptImage(r.id)} onTouchStart={() => prefetchReceiptImage(r.id)} disabled={sharingId === r.id} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
+                          {sharingId === r.id ? <Loader2 size={17} className="animate-spin" /> : <Share2 size={17} />}
                         </button>
                       )}
                     </div>
@@ -268,7 +276,6 @@ export default function ReceiptsPage() {
                     <th>Collector</th>
                     <th>Date</th>
                     <th>Payment</th>
-                    <th>Delivery</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -290,7 +297,9 @@ export default function ReceiptsPage() {
                       <td className="text-theme-fg/70 text-sm">{r.collector?.name}</td>
                       <td className="text-theme-fg/40 text-xs">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</td>
                       <td>
-                        {r.status === 'PENDING' ? (
+                        {r.isVoided ? (
+                          <span className="badge badge-danger">Voided</span>
+                        ) : r.status === 'PENDING' ? (
                           <span className="badge badge-warning">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
                         ) : r.status === 'CANCELLED' ? (
                           <span className="badge badge-neutral">⚫ {RECEIPT_STATUS_LABELS[ReceiptStatus.CANCELLED][language]}</span>
@@ -299,24 +308,13 @@ export default function ReceiptsPage() {
                         )}
                       </td>
                       <td>
-                        {r.isVoided ? (
-                          <span className="badge badge-danger">Voided</span>
-                        ) : r.whatsappSent ? (
-                          <span className="badge badge-success">Sent</span>
-                        ) : r.whatsappError ? (
-                          <span className="badge badge-danger" title={r.whatsappError}>⚠ Failed</span>
-                        ) : (
-                          <span className="badge badge-neutral">Not sent</span>
-                        )}
-                      </td>
-                      <td>
                         <div className="flex gap-1">
                           <Link href={`/receipts/${r.id}`} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-theme-fg/8 text-theme-fg/50 hover:text-theme-fg transition-colors">
                             <Eye size={14} />
                           </Link>
                           {r.donorPhone && (
-                            <button onClick={() => handleShare(r)} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
-                              <Share2 size={14} />
+                            <button onClick={() => handleShare(r)} onMouseEnter={() => prefetchReceiptImage(r.id)} onTouchStart={() => prefetchReceiptImage(r.id)} disabled={sharingId === r.id} className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
+                              {sharingId === r.id ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
                             </button>
                           )}
                         </div>

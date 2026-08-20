@@ -4,9 +4,10 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import { PRICING_PLANS, formatCurrency } from '@pavti/shared';
+import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
+import { platformWhatsappLink } from '@/lib/platform';
 import toast from 'react-hot-toast';
-import { BookOpen, ArrowRight, ArrowLeft, Check, Star } from 'lucide-react';
+import { BookOpen, ArrowRight, ArrowLeft, Check, Star, MessageCircle, KeyRound, Copy, CheckCheck } from 'lucide-react';
 import Link from 'next/link';
 
 function RegisterForm() {
@@ -14,6 +15,12 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  // Shown once, right after signup — this is the only time an admin is
+  // guaranteed to be looking at the screen when their Mandal Code exists.
+  // It's always in Settings afterward, but nobody reads Settings on day
+  // one, and every collector they add needs this to actually log in.
+  const [newMandalCode, setNewMandalCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const preselected = searchParams.get('plan')?.toUpperCase();
   const [form, setForm] = useState({
@@ -26,7 +33,10 @@ function RegisterForm() {
     address: '',
     city: '',
     state: 'Maharashtra',
-    subscriptionPlan: PRICING_PLANS.some((p) => p.id === preselected) ? preselected! : PRICING_PLANS[1].id,
+    // Explicit lookup rather than a hardcoded array index — PRICING_PLANS[1]
+    // used to be STANDARD before FREE was added as the first card, and would
+    // have silently defaulted new signups to BASIC otherwise.
+    subscriptionPlan: PRICING_PLANS.some((p) => p.id === preselected) ? preselected! : SubscriptionPlan.STANDARD,
   });
 
   const set = (patch: Partial<typeof form>) => setForm((p) => ({ ...p, ...patch }));
@@ -42,7 +52,7 @@ function RegisterForm() {
       const data = await authApi.register(form);
       setAuth(data);
       toast.success('Account created! 🙏');
-      router.push('/dashboard');
+      setNewMandalCode(data.organization?.mandalCode || null);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Registration failed. Please check your details.');
     } finally {
@@ -51,6 +61,39 @@ function RegisterForm() {
   };
 
   const selectedPlan = PRICING_PLANS.find((p) => p.id === form.subscriptionPlan);
+
+  const handleCopyCode = () => {
+    if (!newMandalCode) return;
+    navigator.clipboard.writeText(newMandalCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (newMandalCode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="glass-card p-8 max-w-sm w-full text-center">
+          <div className="w-14 h-14 rounded-2xl bg-saffron-500/10 flex items-center justify-center mx-auto mb-4">
+            <KeyRound size={26} className="text-saffron-500" />
+          </div>
+          <h2 className="text-lg font-bold text-theme-fg mb-1">Your Mandal Code</h2>
+          <p className="text-xs text-theme-fg/50 mb-5">
+            Every collector or treasurer you add needs this — along with their own phone number and password — to log in. Share it with them, and keep it somewhere you won&apos;t lose (it&apos;s also always in Settings).
+          </p>
+          <button
+            onClick={handleCopyCode}
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-xl bg-saffron-500/10 border-2 border-dashed border-saffron-500/40 hover:border-saffron-500/60 transition-colors mb-5"
+          >
+            <span className="text-2xl font-extrabold tracking-[0.2em] text-saffron-600">{newMandalCode}</span>
+            {copied ? <CheckCheck size={18} className="text-emerald-500" /> : <Copy size={16} className="text-theme-fg/40" />}
+          </button>
+          <button onClick={() => router.push('/dashboard')} className="btn-primary w-full">
+            Continue to Dashboard <ArrowRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-10 px-4 relative overflow-hidden">
@@ -106,7 +149,7 @@ function RegisterForm() {
               </div>
               <div>
                 <label className="form-label">Mobile Number *</label>
-                <input value={form.phone} onChange={e => set({ phone: e.target.value })} className="form-input" placeholder="9876543210" type="tel" inputMode="numeric" required />
+                <input value={form.phone} onChange={e => set({ phone: e.target.value })} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="numeric" required />
               </div>
               <div>
                 <label className="form-label">Email (optional)</label>
@@ -122,10 +165,15 @@ function RegisterForm() {
           {/* Plan Picker */}
           <div className="glass-card p-6">
             <h3 className="text-sm font-semibold text-theme-fg mb-1">Choose Your Plan</h3>
-            <p className="text-xs text-theme-fg/40 mb-4">You can start using the app right away — your plan activates once payment is confirmed.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <p className="text-xs text-theme-fg/40 mb-4">
+              {form.subscriptionPlan === SubscriptionPlan.FREE
+                ? "Free — no payment needed, you're active immediately."
+                : 'You can start using the app right away — your plan activates once payment is confirmed.'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {PRICING_PLANS.map((plan) => {
                 const selected = form.subscriptionPlan === plan.id;
+                const isFree = plan.id === 'FREE';
                 const isStandard = plan.id === 'STANDARD';
                 const isPremium = plan.id === 'PREMIUM';
 
@@ -140,9 +188,13 @@ function RegisterForm() {
                           ? 'border-royal-600 bg-royal-50/60 shadow-md shadow-royal-900/10'
                           : isPremium
                           ? 'border-gold-400 bg-[#1E140C] text-[#F4F0E0] shadow-md shadow-black/20'
+                          : isFree
+                          ? 'border-theme-fg/40 bg-theme-fg/[0.04] shadow-sm'
                           : 'border-saffron-600 bg-saffron-100/60 shadow-md shadow-saffron-900/10'
                         : isPremium
                         ? 'border-[#301000]/20 bg-[#1E140C]/30 text-theme-fg hover:border-gold-400/40'
+                        : isFree
+                        ? 'border-dashed border-theme-fg/20 hover:border-theme-fg/40'
                         : 'border-theme hover:border-saffron-500/40'
                     }`}
                   >
@@ -156,18 +208,23 @@ function RegisterForm() {
                         👑 VIP
                       </span>
                     )}
+                    {isFree && (
+                      <span className="absolute -top-2.5 right-3 badge-neutral text-[9px] flex items-center gap-0.5 font-bold">
+                        Instant
+                      </span>
+                    )}
                     <div className="flex items-center gap-2 mb-1">
                       {selected && (
                         <Check
                           size={14}
-                          className={isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-saffron-700'}
+                          className={isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : isFree ? 'text-theme-fg/70' : 'text-saffron-700'}
                         />
                       )}
                       <span className={`font-bold ${isPremium && selected ? 'text-gold-300' : 'text-theme-fg'}`}>{plan.name}</span>
                     </div>
                     <div
                       className={`text-xl font-extrabold ${
-                        isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : 'text-saffron-700'
+                        isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : isFree ? 'text-theme-fg/70' : 'text-saffron-700'
                       }`}
                     >
                       {formatCurrency(plan.priceInr)}
@@ -180,8 +237,35 @@ function RegisterForm() {
           </div>
 
           <button type="submit" disabled={!canSubmit || loading} className="btn-primary w-full">
-            {loading ? 'Creating account...' : <>Create Account & Continue <ArrowRight size={16} /></>}
+            {loading ? 'Creating account...' : form.subscriptionPlan === SubscriptionPlan.FREE
+              ? <>Start Free Trial <ArrowRight size={16} /></>
+              : <>Create Account & Continue <ArrowRight size={16} /></>}
           </button>
+
+          {/* Nothing to request for FREE — signup itself is instant. */}
+          {form.subscriptionPlan !== SubscriptionPlan.FREE && (
+          <div className="flex items-center gap-3 text-[11px] text-theme-fg/30">
+            <div className="flex-1 h-px bg-theme-fg/10" />
+            or
+            <div className="flex-1 h-px bg-theme-fg/10" />
+          </div>
+          )}
+
+          {/* No payment gateway wired up yet (see PendingPaymentBanner.tsx) —
+              this skips the form entirely for someone who'd rather just ask
+              about a plan first. Not shown for FREE — nothing to request. */}
+          {form.subscriptionPlan !== SubscriptionPlan.FREE && (
+          <a
+            href={platformWhatsappLink(
+              `Hi, I'd like to request access to the ${selectedPlan?.name || ''} plan (${selectedPlan ? formatCurrency(selectedPlan.priceInr) : ''}) for my mandal.`,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary w-full flex items-center justify-center gap-2"
+          >
+            <MessageCircle size={16} /> Request Access via WhatsApp Instead
+          </a>
+          )}
 
           <div className="text-center">
             <Link href="/login" className="text-sm text-theme-fg/40 hover:text-theme-fg inline-flex items-center gap-1">
