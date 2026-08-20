@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Res } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ExpensesService } from './expenses.service';
@@ -30,6 +30,8 @@ export class ExpensesController {
   }
 
   @Get(':id/voucher')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
   @ApiOperation({ summary: 'Download expense payment voucher PDF' })
   async getVoucher(
     @Param('id') id: string,
@@ -40,13 +42,6 @@ export class ExpensesController {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename=voucher-${id}.pdf`);
     return res.send(pdf);
-  }
-
-  @Patch(':id/approve')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ORG_ADMIN)
-  approve(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.service.approve(id, user.orgId, user.id);
   }
 
   @Delete(':id')

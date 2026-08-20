@@ -1,11 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, CategoryKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { WhatsappService } from '../whatsapp/whatsapp.service';
-import { SmsService } from '../sms/sms.service';
 import { UpdateOrganizationDto } from './dto/organization.dto';
-import { UserRole } from '@pavti/shared';
+import { UserRole, SubscriptionPlan, DEFAULT_RECEIPT_THEME_ID } from '@pavti/shared';
+
+// STANDARD/PREMIUM-exclusive per the pricing page ("UPI ID on Every Receipt",
+// "Custom Branded Receipt Design") — BASIC/FREE previously got both for free
+// since nothing checked plan here (2026-08 roles/subscription audit).
+const STANDARD_PLUS: SubscriptionPlan[] = [SubscriptionPlan.STANDARD, SubscriptionPlan.PREMIUM];
 
 // Bank transfer details are sensitive — only admins/treasurers who actually
 // reconcile funds need them. COLLECTOR/VIEWER accounts are often low-trust
@@ -18,42 +21,68 @@ export class OrganizationsService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
-    private whatsapp: WhatsappService,
-    private sms: SmsService,
   ) {}
 
   /**
-   * Lets Settings show real integration status instead of an admin only
-   * discovering "WhatsApp isn't configured" the first time a donor never
-   * receives their receipt. Booleans only — never echoes back the actual
-   * credential values.
+   * Lets Settings show real integration status. WhatsApp/SMS are gone from
+   * here on purpose — WhatsApp sharing is a manual click-to-chat link (no
+   * API, nothing to "configure"), and SMS was removed entirely. Storage is
+   * the only integration left with an actual configured/not-configured
+   * state worth surfacing.
    */
   getIntegrationsStatus() {
     return {
-      whatsapp: this.whatsapp.isConfigured(),
-      sms: this.sms.isConfigured(),
       storage: this.storage.isR2Configured() ? 'r2' : 'local',
     };
   }
 
   async getMe(orgId: string, role?: UserRole) {
-    const org = await this.prisma.organization.findUnique({
-      where: { id: orgId },
-      include: {
-        campaigns: { where: { status: 'ACTIVE' }, take: 1 },
-        _count: { select: { users: true, campaigns: true } },
-      },
-    });
+    const [org, receiptCount] = await Promise.all([
+      this.prisma.organization.findUnique({
+        where: { id: orgId },
+        include: {
+          campaigns: { where: { status: 'ACTIVE' }, take: 1 },
+          _count: { select: { users: true, campaigns: true } },
+        },
+      }),
+      // No direct Organization -> Receipt relation (receipts belong to
+      // Campaign), so this can't ride along in the query above via _count —
+      // cheap enough as its own indexed count. Powers the free-trial
+      // progress banner ("X of 10 pavtis used"); harmless for paid plans,
+      // which just don't show it.
+      this.prisma.receipt.count({ where: { campaign: { orgId } } }),
+    ]);
     if (!org) throw new NotFoundException('Organization not found');
 
     if (role && !BANK_FIELDS_RESTRICTED_TO.includes(role)) {
       const { bankAccountNumber, bankIfsc, bankBranch, ...safe } = org;
-      return safe;
+      return { ...safe, receiptCount };
     }
-    return org;
+    return { ...org, receiptCount };
   }
 
   async update(orgId: string, dto: UpdateOrganizationDto) {
+    const current = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { subscriptionPlan: true, upiId: true, receiptTemplateSettings: true },
+    });
+    const plan = (current?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
+
+    if (!STANDARD_PLUS.includes(plan)) {
+      // Only block a genuine change to a gated value — re-saving an
+      // unrelated field (e.g. the footer note) shouldn't fail just because
+      // the org's already-saved theme/UPI ID predates a downgrade, or the
+      // request happens to resend the same value it already has.
+      if (dto.upiId && dto.upiId !== current?.upiId) {
+        throw new ForbiddenException('A UPI ID on receipts is a Standard-plan feature. Upgrade your plan to add one.');
+      }
+      const requestedTheme = (dto.receiptTemplateSettings as any)?.theme;
+      const currentTheme = (current?.receiptTemplateSettings as any)?.theme || DEFAULT_RECEIPT_THEME_ID;
+      if (requestedTheme && requestedTheme !== DEFAULT_RECEIPT_THEME_ID && requestedTheme !== currentTheme) {
+        throw new ForbiddenException('Custom receipt themes are a Standard-plan feature. Upgrade your plan to use this design.');
+      }
+    }
+
     return this.prisma.organization.update({
       where: { id: orgId },
       // receiptTemplateSettings is a validated-as-object-but-otherwise-freeform
@@ -74,6 +103,24 @@ export class OrganizationsService {
       where: { id: orgId },
       data: { logoUrl },
     });
+  }
+
+  /**
+   * Uploads an image for the Interactive Devotional Pavti's custom idol/
+   * darshan photo (settings > Interactive tab). Deliberately doesn't touch
+   * the DB — unlike the logo, this URL lives inside the `receiptTemplateSettings`
+   * JSON blob that the settings form already owns end-to-end, so it's only
+   * persisted when the admin hits "Save Settings", same as every other
+   * pavti customization field. This endpoint just gets the file onto
+   * storage and hands back its URL.
+   */
+  async uploadIdolImage(orgId: string, file: Express.Multer.File) {
+    const url = await this.storage.uploadFile(
+      `idols/${orgId}-${Date.now()}.png`,
+      file.buffer,
+      file.mimetype,
+    );
+    return { url };
   }
 
   async getAreas(orgId: string) {

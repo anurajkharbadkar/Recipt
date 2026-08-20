@@ -56,6 +56,19 @@ export class OrganizationsController {
     return this.service.uploadLogo(orgId, file);
   }
 
+  @Post('me/idol-image')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload a custom idol/darshan photo for the Interactive Devotional Pavti' })
+  uploadIdolImage(
+    @CurrentUser('orgId') orgId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.service.uploadIdolImage(orgId, file);
+  }
+
   @Get('areas')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)

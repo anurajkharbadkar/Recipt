@@ -10,15 +10,12 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
-import { SmsService } from '../sms/sms.service';
 import {
   RegisterDto,
   LoginDto,
-  SendOtpDto,
-  VerifyOtpDto,
   RefreshTokenDto,
 } from './dto/auth.dto';
-import { UserRole, SubscriptionStatus } from '@pavti/shared';
+import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS } from '@pavti/shared';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +23,6 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private smsService: SmsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -40,6 +36,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const slug = this.generateSlug(dto.organizationName);
+    const mandalCode = await this.generateMandalCode();
 
     const org = await this.prisma.organization.create({
       data: {
@@ -47,16 +44,25 @@ export class AuthService {
         nameMarathi: dto.organizationNameMarathi,
         nameHindi: dto.organizationNameHindi,
         slug,
+        mandalCode,
         address: dto.address,
         city: dto.city,
         state: dto.state || 'Maharashtra',
         phone: dto.phone,
         email: dto.email,
         subscriptionPlan: dto.subscriptionPlan,
-        // No payment gateway wired up yet — the org gets access immediately
-        // (see the dashboard's pending-payment banner) and an admin flips
-        // this to ACTIVE once the seasonal fee is actually received.
-        subscriptionStatus: SubscriptionStatus.PENDING_PAYMENT,
+        // FREE has nothing to pay, so it's ACTIVE immediately — no pending-
+        // payment nag banner, no manual confirmation step. Every paid plan
+        // still gets full access right away too (no gateway wired up yet),
+        // but stays PENDING_PAYMENT until an admin confirms the seasonal fee
+        // was actually received and flips it.
+        subscriptionStatus: dto.subscriptionPlan === SubscriptionPlan.FREE
+          ? SubscriptionStatus.ACTIVE
+          : SubscriptionStatus.PENDING_PAYMENT,
+        // Every plan is a 30-day period from signup, enforced by
+        // SubscriptionGuard regardless of whether payment was ever
+        // confirmed — PENDING_PAYMENT isn't a free pass past this date.
+        subscriptionExpiry: new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000),
         users: {
           create: {
             name: dto.adminName,
@@ -82,20 +88,27 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    // A phone number is only unique *within* an org (User's real constraint
+    // is @@unique([orgId, phone])) — two mandals can easily end up with
+    // staff sharing a number. Scoping by mandalCode first is what makes this
+    // findFirst actually deterministic instead of returning "whichever org
+    // Postgres happens to return first" the moment that collision occurs.
+    const mandalCode = dto.mandalCode.trim().toUpperCase();
     const user = await this.prisma.user.findFirst({
       where: {
         phone: dto.phone,
         isActive: true,
+        organization: { mandalCode },
       },
       include: { organization: true },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid credentials — check your Mandal Code, phone and password');
     }
 
     if (!user.passwordHash) {
-      throw new BadRequestException('This account uses OTP login. Please use OTP to sign in.');
+      throw new BadRequestException('This account has no password set — contact your admin.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -106,57 +119,6 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
-    });
-
-    const tokens = await this.generateTokens(user.id, user.role, user.orgId);
-    return { user, organization: user.organization, ...tokens };
-  }
-
-  async sendOtp(dto: SendOtpDto) {
-    const user = await this.prisma.user.findFirst({
-      where: { phone: dto.phone, isActive: true },
-    });
-
-    if (!user) {
-      // Return success anyway to prevent phone enumeration
-      return { message: 'OTP sent if account exists' };
-    }
-
-    const otp = this.generateOtp();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { otpCode: otp, otpExpiry },
-    });
-
-    await this.smsService.sendOtp(dto.phone, otp);
-
-    return { message: 'OTP sent successfully' };
-  }
-
-  async verifyOtp(dto: VerifyOtpDto) {
-    const user = await this.prisma.user.findFirst({
-      where: { phone: dto.phone, isActive: true },
-      include: { organization: true },
-    });
-
-    if (!user || !user.otpCode || !user.otpExpiry) {
-      throw new UnauthorizedException('Invalid or expired OTP');
-    }
-
-    if (user.otpExpiry < new Date()) {
-      throw new UnauthorizedException('OTP has expired');
-    }
-
-    if (user.otpCode !== dto.otp) {
-      throw new UnauthorizedException('Invalid OTP');
-    }
-
-    // Clear OTP
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { otpCode: null, otpExpiry: null, lastLoginAt: new Date() },
     });
 
     const tokens = await this.generateTokens(user.id, user.role, user.orgId);
@@ -221,10 +183,6 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
-
   private generateSlug(name: string): string {
     const base = name
       .toLowerCase()
@@ -233,5 +191,27 @@ export class AuthService {
       .replace(/-+/g, '-')
       .trim();
     return `${base}-${uuidv4().substring(0, 6)}`;
+  }
+
+  // Short (6-char), memorable, unique login identifier a collector types
+  // alongside their phone + password — see Organization.mandalCode's schema
+  // comment for why this exists (phone alone is only unique *within* an
+  // org). Excludes 0/O and 1/I/L — characters that are easy to mix up when
+  // read off a phone screen or handwritten note. Retries on the (very
+  // unlikely, ~32^6 space) chance of a collision.
+  private readonly MANDAL_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+  private async generateMandalCode(): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      let code = '';
+      for (let i = 0; i < 6; i++) {
+        code += this.MANDAL_CODE_CHARS[Math.floor(Math.random() * this.MANDAL_CODE_CHARS.length)];
+      }
+      const existing = await this.prisma.organization.findUnique({ where: { mandalCode: code } });
+      if (!existing) return code;
+    }
+    // Practically unreachable (10 consecutive collisions in a ~1B-code
+    // space) — fail loudly rather than silently hand out a duplicate.
+    throw new Error('Could not generate a unique mandal code after 10 attempts');
   }
 }

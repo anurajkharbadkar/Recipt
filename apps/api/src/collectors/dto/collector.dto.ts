@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEmail, IsEnum, IsBoolean, MinLength, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsEnum, IsBoolean, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@pavti/shared';
 
@@ -65,9 +65,4 @@ export class UpdateCollectorDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  @ApiPropertyOptional({ description: 'Per-collector module permission overrides' })
-  @IsOptional()
-  @IsObject()
-  permissionsOverride?: Record<string, unknown>;
 }

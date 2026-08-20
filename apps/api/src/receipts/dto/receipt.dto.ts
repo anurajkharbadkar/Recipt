@@ -1,5 +1,5 @@
 import {
-  IsString, IsNumber, IsOptional, IsEnum, IsNotEmpty, Min, IsBoolean, IsLatitude, IsLongitude
+  IsString, IsNumber, IsOptional, IsEnum, IsNotEmpty, Min, IsLatitude, IsLongitude
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -68,16 +68,6 @@ export class CreateReceiptDto {
   @IsLongitude()
   @Type(() => Number)
   longitude?: number;
-
-  @ApiPropertyOptional({ description: 'Send WhatsApp to donor', default: true })
-  @IsOptional()
-  @IsBoolean()
-  sendWhatsapp?: boolean;
-
-  @ApiPropertyOptional({ description: 'Send SMS to donor', default: false })
-  @IsOptional()
-  @IsBoolean()
-  sendSms?: boolean;
 
   @ApiPropertyOptional({ enum: CollectionType, default: CollectionType.DONATION })
   @IsOptional()

@@ -1,6 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Response } from 'express';
 import { ReportsService } from './reports.service';
+import { PdfService } from '../pdf/pdf.service';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -11,7 +13,7 @@ import { UserRole } from '@pavti/shared';
 @ApiBearerAuth()
 @Controller('reports')
 export class ReportsController {
-  constructor(private service: ReportsService) {}
+  constructor(private service: ReportsService, private pdfService: PdfService) {}
 
   @Get('summary')
   @UseGuards(RolesGuard)
@@ -87,5 +89,44 @@ export class ReportsController {
     @Query('limit') limit?: string,
   ) {
     return this.service.getTopDonors(orgId, campaignId, parseInt(limit || '10'));
+  }
+
+  @Get('income-expenditure')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
+  @ApiOperation({ summary: 'Income & Expenditure statement data (category-wise income vs. expense)' })
+  getIncomeExpenditure(@CurrentUser('orgId') orgId: string, @Query('campaignId') campaignId?: string) {
+    return this.service.getIncomeExpenditureStatement(orgId, campaignId);
+  }
+
+  @Get('income-expenditure/pdf')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
+  @ApiOperation({ summary: 'Download the Income & Expenditure statement as a printable PDF' })
+  async getIncomeExpenditurePdf(
+    @CurrentUser('orgId') orgId: string,
+    @Query('campaignId') campaignId: string,
+    @Res() res: Response,
+  ) {
+    const statement = await this.service.getIncomeExpenditureStatement(orgId, campaignId);
+    const pdf = await this.pdfService.generateIncomeExpenditureStatementPdf(statement);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=income-expenditure-statement.pdf');
+    return res.send(pdf);
+  }
+
+  @Get('expenses/csv')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
+  @ApiOperation({ summary: 'Export the expense register as CSV' })
+  async getExpensesCsv(
+    @CurrentUser('orgId') orgId: string,
+    @Query('campaignId') campaignId: string,
+    @Res() res: Response,
+  ) {
+    const csv = await this.service.getExpenseRegisterCsv(orgId, campaignId);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=expense-register.csv');
+    return res.send(csv);
   }
 }

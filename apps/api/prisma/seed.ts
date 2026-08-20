@@ -10,6 +10,20 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
+  // Belt-and-suspenders on top of removing this from Railway's startCommand
+  // (see railway.json) — seeding was never the actual cause of the data
+  // loss (it's upsert/skipDuplicates, non-destructive), but a production
+  // seed run should always be a deliberate act, never something that can
+  // happen by accident (e.g. someone running `pnpm db:seed` locally with
+  // production env vars loaded, or a future CI script resurrecting this).
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_CONFIRM !== 'yes') {
+    console.error(
+      '❌ Refusing to seed: NODE_ENV=production and SEED_CONFIRM is not set to "yes".\n' +
+      '   If you really mean to seed a production database, re-run with SEED_CONFIRM=yes.',
+    );
+    process.exit(1);
+  }
+
   console.log('🌱 Seeding database...');
 
   // Create Demo Organization
@@ -21,6 +35,7 @@ async function main() {
       nameMarathi: 'श्री गणेश मंडळ, पुणे',
       nameHindi: 'श्री गणेश मंडल, पुणे',
       slug: 'shree-ganesh-mandal-pune',
+      mandalCode: 'SGMP26',
       address: '123, Tilak Road, Sadashiv Peth',
       city: 'Pune',
       state: 'Maharashtra',
@@ -179,10 +194,10 @@ async function main() {
   await prisma.expense.createMany({
     skipDuplicates: true,
     data: [
-      { campaignId: campaign.id, addedById: treasurer.id, approvedById: admin.id, category: 'DECORATION', amount: 85000, description: 'Flower decoration and lighting', isApproved: true, approvedAt: new Date() },
-      { campaignId: campaign.id, addedById: treasurer.id, approvedById: admin.id, category: 'SOUND_SYSTEM', amount: 45000, description: 'Sound system rental for 10 days', isApproved: true, approvedAt: new Date() },
-      { campaignId: campaign.id, addedById: treasurer.id, category: 'FOOD', amount: 30000, description: 'Prasad distribution expenses', isApproved: false },
-      { campaignId: campaign.id, addedById: treasurer.id, approvedById: admin.id, category: 'PRINTING', amount: 5000, description: 'Banner and pamphlet printing', isApproved: true, approvedAt: new Date() },
+      { campaignId: campaign.id, addedById: treasurer.id, category: 'DECORATION', amount: 85000, description: 'Flower decoration and lighting' },
+      { campaignId: campaign.id, addedById: treasurer.id, category: 'SOUND_SYSTEM', amount: 45000, description: 'Sound system rental for 10 days' },
+      { campaignId: campaign.id, addedById: treasurer.id, category: 'FOOD', amount: 30000, description: 'Prasad distribution expenses' },
+      { campaignId: campaign.id, addedById: treasurer.id, category: 'PRINTING', amount: 5000, description: 'Banner and pamphlet printing' },
     ],
   });
 

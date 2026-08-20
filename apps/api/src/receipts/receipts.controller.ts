@@ -66,7 +66,19 @@ export class ReceiptsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a single receipt by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.receiptsService.findOne(id, user.orgId);
+    return this.receiptsService.findOne(id, user.orgId, { role: user.role, userId: user.id });
+  }
+
+  @Get(':id/image')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Download a PNG snapshot of the pavti (used for the WhatsApp image + caption share)' })
+  async getImage(@Param('id') id: string, @CurrentUser() user: any, @Res() res: Response) {
+    const image = await this.receiptsService.getReceiptImage(id, user.orgId, { role: user.role, userId: user.id });
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `inline; filename=pavti-${id}.png`);
+    return res.send(image);
   }
 
   @Patch(':id')
@@ -93,15 +105,6 @@ export class ReceiptsController {
     @CurrentUser() user: any,
   ) {
     return this.receiptsService.void(id, dto, user.id, user.orgId);
-  }
-
-  @Post(':id/resend')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Resend WhatsApp/SMS for a receipt' })
-  resend(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.receiptsService.resend(id, user.orgId);
   }
 
   @Get('donors')

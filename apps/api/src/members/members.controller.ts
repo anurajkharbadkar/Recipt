@@ -14,8 +14,11 @@ import { UserRole } from '@pavti/shared';
 export class MembersController {
   constructor(private service: MembersService) {}
 
+  // Roster reveals who has/hasn't paid their subscription — more sensitive
+  // than the plain staff directory, so unlike Collectors this stays
+  // ORG_ADMIN/TREASURER only (2026-08 roles audit).
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER)
   @ApiOperation({ summary: 'List registered members (सभासद नोंदणी)' })
   findAll(@CurrentUser('orgId') orgId: string) {
     return this.service.findAll(orgId);
