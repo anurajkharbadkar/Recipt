@@ -6,6 +6,7 @@ dist/
 out/
 build/
 coverage/
+*.tsbuildinfo
 
 # Logs and databases
 *.log

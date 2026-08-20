@@ -5,7 +5,7 @@
     "buildCommand": "pnpm build"
   },
   "deploy": {
-    "startCommand": "pnpm --filter @pavti/api prisma migrate deploy && pnpm --filter @pavti/api db:seed && NODE_ENV=production pnpm --filter @pavti/api start",
+    "startCommand": "pnpm --filter @pavti/api prisma migrate deploy && PUPPETEER_EXECUTABLE_PATH=$(which chromium) NODE_ENV=production pnpm --filter @pavti/api start",
     "restartPolicyType": "ON_FAILURE"
   }
 }

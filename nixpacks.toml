@@ -1,0 +1,21 @@
+# Puppeteer (apps/api/src/pdf/pdf.service.ts) needs a real Chromium binary
+# *and* its system shared libraries (libnss3, libatk, libgbm, etc.) to launch
+# at all. Nixpacks' default Node build has neither — Puppeteer's own bundled
+# Chromium download has no OS-level libs to run against in that image, which
+# is why PDF/pavti-image generation can fail in production with a bare
+# "spawn ENOENT" / "error while loading shared libraries" even though it
+# works fine locally on a normal desktop OS. Installing the `chromium` nix
+# package pulls in a working binary AND its full dependency closure together;
+# railway.json points PUPPETEER_EXECUTABLE_PATH at whatever that resolves to
+# on PATH at container start (the exact /nix/store/... hash isn't stable
+# across builds, so it's resolved at runtime via `which chromium`, not
+# hardcoded here).
+[phases.setup]
+nixPkgs = ["chromium"]
+
+[variables]
+# Skip Puppeteer's own Chromium download during `pnpm install` — the nix
+# package above is what actually gets used (see PUPPETEER_EXECUTABLE_PATH
+# in railway.json), so downloading a second, unused copy just wastes build
+# time and can itself fail in constrained build environments.
+PUPPETEER_SKIP_DOWNLOAD = "true"
