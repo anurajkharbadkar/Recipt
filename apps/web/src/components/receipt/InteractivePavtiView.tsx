@@ -19,6 +19,22 @@ interface InteractivePavtiViewProps {
   onSwitchToStandard?: () => void;
   /** Start with sound muted — callers that embed the view (e.g. landing page demo) should set this true. */
   defaultMuted?: boolean;
+  /**
+   * The real use of this component (/receipt/[id]) wants a full-screen
+   * takeover — position: fixed, 100vw/100vh — regardless of whatever page
+   * structure happens to surround it. That breaks completely when embedded
+   * in a small, sized container instead (e.g. the landing page's phone-
+   * frame demo): `position: fixed` still computes relative to the browser
+   * viewport, not the parent box, so the widget renders as a full-viewport
+   * overlay and the parent's `overflow: hidden` clips away everything
+   * except whichever fixed-positioned element (the mute button, in
+   * practice) happens to land inside the small visible rectangle — the
+   * rest is silently cropped out. Set this to have the widget instead fill
+   * its actual parent (position: relative, 100%/100%) — see the
+   * .embedded CSS overrides below. Confirmed live on the landing page's
+   * hero demo (2026-08-22).
+   */
+  embedded?: boolean;
 }
 
 export default function InteractivePavtiView({
@@ -26,6 +42,7 @@ export default function InteractivePavtiView({
   language = 'mr',
   onSwitchToStandard,
   defaultMuted = false,
+  embedded = false,
 }: InteractivePavtiViewProps) {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [isEnvelopeOpen, setIsEnvelopeOpen] = useState<boolean>(false);
@@ -89,7 +106,12 @@ export default function InteractivePavtiView({
 
     const handleScroll = () => {
       const scrollPos = container.scrollTop;
-      const height = window.innerHeight;
+      // The container's own height, not window.innerHeight — each slide is
+      // sized to fill its parent (100% in embedded mode, which happens to
+      // equal the full viewport in the real full-page use since .app-shell
+      // itself is 100vh there), so this is the correct measure in both
+      // modes rather than assuming the container always equals the window.
+      const height = container.clientHeight;
       const activeIdx = Math.round(scrollPos / height);
       if (activeIdx !== currentSlide && activeIdx >= 0 && activeIdx <= 3) {
         setCurrentSlide(activeIdx);
@@ -126,7 +148,7 @@ export default function InteractivePavtiView({
   };
 
   return (
-    <div className={`interactive-pavti-root ${isLandscapeTemplate ? 'theme-landscape' : 'theme-portrait'}`}>
+    <div className={`interactive-pavti-root ${isLandscapeTemplate ? 'theme-landscape' : 'theme-portrait'} ${embedded ? 'embedded' : ''}`}>
       <style jsx global>{`
         .interactive-pavti-root {
           --maroon: #5c1220;
@@ -158,6 +180,26 @@ export default function InteractivePavtiView({
           --maroon-black: #170406;
           --gold: #d4af37;
           --gold-light: #fbeea8;
+        }
+
+        /* See the embedded prop's own comment above — fills the actual
+           parent box instead of taking over the whole viewport. Every
+           other rule in this file keyed to 100vw/100vh or position: fixed
+           needs its own .embedded override here too, not just the root. */
+        .interactive-pavti-root.embedded {
+          position: relative;
+          inset: auto;
+          width: 100%;
+          height: 100%;
+        }
+        .interactive-pavti-root.embedded .app-shell,
+        .interactive-pavti-root.embedded .pavti-slide {
+          width: 100%;
+          height: 100%;
+        }
+        .interactive-pavti-root.embedded .nav-dots,
+        .interactive-pavti-root.embedded .top-action-bar {
+          position: absolute;
         }
 
         .app-shell {

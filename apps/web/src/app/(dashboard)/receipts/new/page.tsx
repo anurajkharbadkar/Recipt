@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   DonationCategory, PaymentMode, CollectionType, ReceiptStatus,
-  RECEIPT_CATEGORIES_LABELS, PAYMENT_MODE_LABELS, RECEIPT_STATUS_LABELS, COLLECTION_TYPE_LABELS,
+  RECEIPT_CATEGORIES_LABELS, PAYMENT_MODE_LABELS, RECEIPT_STATUS_LABELS,
 } from '@pavti/shared';
 import {
   User, Phone, MapPin, IndianRupee, Tag, CreditCard, FileText,
@@ -206,26 +206,12 @@ export default function NewReceiptPage() {
         {step === 0 && (
           <div className="space-y-4 animate-slide-up">
           <div className="glass-card p-6 space-y-5">
-            <div>
-              <label className="form-label">Collection Type</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setValue('collectionType', CollectionType.DONATION)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.DONATION ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/8 hover:text-theme-fg'}`}
-                >
-                  🤝 {COLLECTION_TYPE_LABELS[CollectionType.DONATION][language]}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setValue('collectionType', CollectionType.INTERNAL)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${watch('collectionType') === CollectionType.INTERNAL ? 'bg-saffron-600 text-white shadow-glow-saffron' : 'bg-theme-fg/5 text-theme-fg/50 border border-theme-fg/8 hover:text-theme-fg'}`}
-                >
-                  🏢 {COLLECTION_TYPE_LABELS[CollectionType.INTERNAL][language]}
-                </button>
-              </div>
-            </div>
-
+            {/* Collection Type is always DONATION here — Internal
+                Collection (member contributions) has its own dedicated
+                flow now (Members > Contributions > declare), which handles
+                bulk-declaring against real Member records instead of a
+                one-off receipt. Keeping that option here duplicated the
+                same outcome through a worse path (2026-08-22). */}
             <div>
               <label className="form-label">
                 {language === 'mr' ? 'मोहीम' : 'Campaign'} *
@@ -486,7 +472,6 @@ export default function NewReceiptPage() {
               <h3 className="text-sm font-semibold text-theme-fg/60 uppercase tracking-wider mb-4">Review Receipt</h3>
               <div className="space-y-3">
                 {[
-                  { label: 'Type', value: COLLECTION_TYPE_LABELS[getValues('collectionType')][language] },
                   { label: 'Donor', value: getValues('donorName') },
                   { label: 'Phone', value: getValues('donorPhone') || '—' },
                   { label: 'Amount', value: `₹${Number(getValues('amount') || 0).toLocaleString('en-IN')}` },

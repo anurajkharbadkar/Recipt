@@ -594,6 +594,7 @@ export default function HomePage() {
                   receipt={HERO_PREVIEW_RECEIPT}
                   language="mr"
                   defaultMuted={true}
+                  embedded={true}
                 />
               </div>
               {/* Scroll hint */}

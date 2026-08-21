@@ -291,7 +291,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     tagline: 'For mandals who want the highest limits',
     positioningLine: 'Elevate the Experience',
     marathiDescriptor: 'देवस्थान · VIP',
-    priceInr: 1499,
+    priceInr: 1999,
     priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.PREMIUM],
@@ -1128,7 +1128,7 @@ export const RECEIPT_STATUS_LABELS: Record<ReceiptStatus, Record<Language, strin
 // the displayed copy changes.
 export const COLLECTION_TYPE_LABELS: Record<CollectionType, Record<Language, string>> = {
   [CollectionType.DONATION]: { en: 'Donation', hi: 'दान', mr: 'देणगी' },
-  [CollectionType.INTERNAL]: { en: 'Member Contribution', hi: 'सदस्य योगदान', mr: 'सभासद वर्गणी' },
+  [CollectionType.INTERNAL]: { en: 'Internal Collection', hi: 'आंतरिक योगदान', mr: 'अंतर्गत वर्गणी' },
 };
 
 export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, Record<Language, string>> = {
