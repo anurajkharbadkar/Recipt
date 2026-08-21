@@ -75,7 +75,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-theme">
         <div className="flex items-center gap-3">
-          <LogoMark size={40} className="rounded-xl shadow-glow-saffron" />
+          <LogoMark size={40} className="rounded-xl" />
           <div>
             <div className="font-bold text-sm">{BRAND_NAME}</div>
             <div className="text-[10px] text-saffron-400 font-devanagari">ई पावती बुक</div>

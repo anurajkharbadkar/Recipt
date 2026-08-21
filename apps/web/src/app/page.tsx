@@ -10,7 +10,7 @@ import {
 import { platformWhatsappLink } from '@/lib/platform';
 import { ChevronDown, MessageCircle, ArrowRight } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
-import ReceiptPreview from '@/components/receipt/ReceiptPreview';
+import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
 
 // Sample receipt — same structure the real portal uses when issuing a pavti.
 // FESTIVE theme is the closest built-in design to the landing page's saffron
@@ -19,6 +19,7 @@ const HERO_PREVIEW_RECEIPT = {
   id: 'preview',
   receiptNumber: 'SGM-2026-0001',
   donorName: 'Rajendra Deshmukh',
+  donorNameMarathi: 'राजेंद्र देशमुख',
   amount: 1100,
   amountInWords: 'One Thousand One Hundred Rupees Only',
   category: 'GENERAL',
@@ -26,16 +27,27 @@ const HERO_PREVIEW_RECEIPT = {
   status: 'PAID',
   collectionType: 'DONATION',
   createdAt: new Date().toISOString(),
-  collector: { name: 'Amit Joshi' },
+  collector: { name: 'Amit Joshi', nameMarathi: 'अमित जोशी' },
+  area: { name: 'Kasba Peth', nameMarathi: 'कसबा पेठ' },
   campaign: {
+    id: 'demo-campaign',
     name: 'Ganesh Utsav 2026',
+    nameMarathi: 'गणेशोत्सव २०२६',
     organization: {
-      name: 'Shree Ganesh Mandal',
-      nameMarathi: 'श्री गणेश मंडळ',
-      receiptTemplateSettings: { theme: 'FESTIVE', language: 'en' },
+      id: 'demo-org',
+      name: 'Shree Ganesh Mandal, Pune',
+      nameMarathi: 'श्री गणेश मंडळ, पुणे',
+      city: 'Pune',
+      upiId: 'ganesh.mandal@upi',
+      receiptTemplateSettings: {
+        theme: 'FESTIVE',
+        language: 'mr',
+        interactiveTemplate: 'GANESHA_PORTRAIT_SAFFRON',
+        shareMessage: 'नमस्कार! {{donorName}} यांनी {{organizationName}} ला ₹{{amount}} ची देणगी दिली. पावती पाहण्यासाठी: {{receiptUrl}}',
+      },
     },
   },
-};
+} as any;
 
 // ---------------------------------------------------------------------------
 // Static page data
@@ -564,15 +576,32 @@ export default function HomePage() {
           </Reveal>
 
           <Reveal dir="left" delay={200} className="flex justify-center lg:justify-end">
-            <div
-              className="w-full max-w-[340px] drop-shadow-2xl"
-              style={{ animation: 'floatCard 6s ease-in-out infinite' }}
-            >
-              {/* qrPath: this receipt is a synthetic demo (id: 'preview'),
-                  not a real row — without an override its QR code would
-                  scan to a live receipt-not-found page. /register is a
-                  real, working destination for a curious visitor. */}
-              <ReceiptPreview receipt={HERO_PREVIEW_RECEIPT} qrPath="/register" />
+            {/* ── Interactive Pavti Demo ─────────────────────────────────────
+                Visitors see the real cinematic 4-slide experience that their
+                donors will receive. Sound is muted by default — they can
+                unmute inside the viewer. The wrapper constrains it to a
+                phone-frame so it doesn't dominate the hero layout. */}
+            <div className="relative w-full max-w-[340px]">
+              {/* Demo label */}
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-saffron-700 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-saffron-900/30 whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
+                Live Demo — try it!
+              </div>
+              {/* Phone frame */}
+              <div
+                className="rounded-[2rem] overflow-hidden border-2 border-saffron-900/20 shadow-2xl shadow-saffron-900/20"
+                style={{ height: '580px', position: 'relative' }}
+              >
+                <InteractivePavtiView
+                  receipt={HERO_PREVIEW_RECEIPT}
+                  language="mr"
+                  defaultMuted={true}
+                />
+              </div>
+              {/* Scroll hint */}
+              <p className="text-center text-[10px] text-saffron-900/35 dark:text-saffron-100/30 mt-2.5">
+                Scroll inside to explore all 4 slides
+              </p>
             </div>
           </Reveal>
         </header>

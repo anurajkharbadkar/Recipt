@@ -20,12 +20,30 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// A 401 from these two means "your credentials were rejected" (wrong
+// password, unknown phone, bad mandal code), not "your session expired" —
+// there was never a session to expire. Auto-logout-and-redirect on those
+// would bounce the login page to itself before handleLogin's own catch
+// block ever gets to show *why* — the browser navigation tears the page
+// down first, so the real backend message (already a well-written, non-
+// technical one — see AuthService.login) never had a chance to render.
+const SKIP_AUTH_RECOVERY = ['/auth/login', '/auth/register'];
+
+// Exported (not just inlined in the interceptor below) so this is unit-
+// testable on its own — a regression here silently reintroduces the "wrong
+// password reloads the login page with no message" bug, which nothing
+// short of actually submitting the login form would otherwise catch.
+export function isAuthRecoveryExemptUrl(url: string | undefined): boolean {
+  return !!url && SKIP_AUTH_RECOVERY.some((path) => url.includes(path));
+}
+
 // Response interceptor — auto refresh JWT
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const isAuthEndpoint = isAuthRecoveryExemptUrl(original?.url);
+    if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
       const refreshToken = useAuthStore.getState().refreshToken;
       if (refreshToken) {

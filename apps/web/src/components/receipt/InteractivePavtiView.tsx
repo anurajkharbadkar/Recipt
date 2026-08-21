@@ -17,16 +17,19 @@ interface InteractivePavtiViewProps {
   receipt: Receipt;
   language?: 'mr' | 'hi' | 'en';
   onSwitchToStandard?: () => void;
+  /** Start with sound muted — callers that embed the view (e.g. landing page demo) should set this true. */
+  defaultMuted?: boolean;
 }
 
 export default function InteractivePavtiView({
   receipt,
   language = 'mr',
   onSwitchToStandard,
+  defaultMuted = false,
 }: InteractivePavtiViewProps) {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [isEnvelopeOpen, setIsEnvelopeOpen] = useState<boolean>(false);
-  const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
+  const [isSoundMuted, setIsSoundMuted] = useState<boolean>(defaultMuted);
 
   const appContainerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<(HTMLElement | null)[]>([]);

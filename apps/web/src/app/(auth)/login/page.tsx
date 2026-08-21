@@ -68,7 +68,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <LogoMark size={64} className="rounded-2xl shadow-glow-saffron mx-auto mb-4 block" />
+          <LogoMark size={64} className="rounded-2xl mx-auto mb-4 block" />
           <h1 className="text-2xl font-bold text-theme-fg">{BRAND_NAME}</h1>
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">ई पावती बुक</p>
         </div>

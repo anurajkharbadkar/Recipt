@@ -8,13 +8,42 @@ import { collectorsApi, orgsApi, membersApi, campaignsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import {
-  Plus, Phone, MapPin, ToggleLeft, ToggleRight,
+  Plus, Phone, MapPin,
   Users2, ListPlus, Trash2, UserCog, Wallet, Pencil, X, KeyRound, Eye, EyeOff,
 } from 'lucide-react';
 import { formatCurrency, USER_ROLE_LABELS, UserRole, COLLECTION_TYPE_LABELS, CollectionType } from '@pavti/shared';
 import toast from 'react-hot-toast';
 import InternalCollectionManager from '@/components/internal-collection/InternalCollectionManager';
 import { useCommonLabels } from '@/lib/i18n';
+
+// ─── Polished pill toggle switch ────────────────────────────────────────────
+function ToggleSwitch({ active, onChange, title }: { active: boolean; onChange: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={active}
+      title={title}
+      onClick={onChange}
+      className="relative inline-flex items-center shrink-0 w-10 h-[22px] rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron-500/50"
+      style={{
+        background: active
+          ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+          : 'rgba(var(--theme-fg-rgb, 60,40,20), 0.15)',
+        boxShadow: active ? '0 0 0 1px rgba(34,197,94,0.3)' : '0 0 0 1px rgba(0,0,0,0.08) inset',
+      }}
+    >
+      <span
+        className="absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm"
+        style={{
+          transform: active ? 'translateX(18px)' : 'translateX(0)',
+          transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.20)',
+        }}
+      />
+    </button>
+  );
+}
 
 const ACCESS_MODULES = ['Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings'];
 
@@ -88,8 +117,27 @@ function StaffTab() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: any) => collectorsApi.update(id, { isActive }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['collectors'] }),
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      collectorsApi.update(id, { isActive }),
+    onMutate: async ({ id, isActive }) => {
+      // Cancel in-flight fetches so they don't overwrite our optimistic update.
+      await queryClient.cancelQueries({ queryKey: ['collectors'] });
+      const previous = queryClient.getQueryData(['collectors']);
+      // Immediately flip the flag in the cache — UI responds instantly.
+      queryClient.setQueryData(['collectors'], (old: any[]) =>
+        old?.map((c) => (c.id === id ? { ...c, isActive } : c)),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Roll back on server error so the UI stays truthful.
+      queryClient.setQueryData(['collectors'], ctx?.previous);
+      toast.error('Failed to update status — please try again');
+    },
+    onSettled: () => {
+      // Background re-sync to catch any server-side side-effects.
+      queryClient.invalidateQueries({ queryKey: ['collectors'] });
+    },
   });
 
   const updateMutation = useMutation({
@@ -277,14 +325,13 @@ function EditCollectorModal({ collector, areas, language, sl, common, isSaving, 
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
-            className="flex items-center gap-2 text-xs text-theme-fg/60"
-          >
-            {form.isActive ? <ToggleRight size={20} className="text-saffron-400" /> : <ToggleLeft size={20} />}
-            {sl.activeLabel}
-          </button>
+          <div className="flex items-center gap-3">
+            <ToggleSwitch
+              active={form.isActive}
+              onChange={() => setForm(p => ({ ...p, isActive: !p.isActive }))}
+            />
+            <span className="text-xs text-theme-fg/60">{sl.activeLabel}</span>
+          </div>
 
           <div className="pt-3 border-t border-theme-fg/10">
             <label className="form-label"><KeyRound size={11} className="inline mr-1" /> {sl.resetPassword}</label>
@@ -333,9 +380,11 @@ function CollectorCard({ collector: c, language, onToggle, onEdit }: any) {
           <button onClick={onEdit} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors">
             <Pencil size={16} />
           </button>
-          <button onClick={() => onToggle(c.id, !c.isActive)} className="min-w-[44px] min-h-[44px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors">
-            {c.isActive ? <ToggleRight size={22} className="text-saffron-400" /> : <ToggleLeft size={22} />}
-          </button>
+          <ToggleSwitch
+              active={c.isActive}
+              onChange={() => onToggle(c.id, !c.isActive)}
+              title={c.isActive ? 'Deactivate' : 'Activate'}
+            />
         </div>
       </div>
 
@@ -426,8 +475,23 @@ function RegisteredMembersTab() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: any) => membersApi.update(id, { isActive }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      membersApi.update(id, { isActive }),
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: ['members'] });
+      const previous = queryClient.getQueryData(['members']);
+      queryClient.setQueryData(['members'], (old: any[]) =>
+        old?.map((m) => (m.id === id ? { ...m, isActive } : m)),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      queryClient.setQueryData(['members'], ctx?.previous);
+      toast.error('Failed to update status — please try again');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -513,9 +577,11 @@ function RegisteredMembersTab() {
                   </div>
                 </div>
                 <div className="flex items-center shrink-0 -mr-2 -mt-1">
-                  <button onClick={() => toggleMutation.mutate({ id: m.id, isActive: !m.isActive })} className="min-w-[40px] min-h-[40px] flex items-center justify-center text-theme-fg/30 hover:text-saffron-400 transition-colors" title={m.isActive ? ml.deactivate : ml.activate}>
-                    {m.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                  </button>
+                  <ToggleSwitch
+                    active={m.isActive}
+                    onChange={() => toggleMutation.mutate({ id: m.id, isActive: !m.isActive })}
+                    title={m.isActive ? ml.deactivate : ml.activate}
+                  />
                   <button onClick={() => deleteMutation.mutate(m.id)} className="min-w-[40px] min-h-[40px] flex items-center justify-center text-theme-fg/30 hover:text-red-400 transition-colors" title={ml.remove}>
                     <Trash2 size={14} />
                   </button>

@@ -8,6 +8,8 @@ import * as express from 'express';
 import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { BRAND_NAME } from '@pavti/shared';
+import { EmptyStringToUndefinedPipe } from './common/pipes/empty-string-to-undefined.pipe';
+import { validationExceptionFactory } from './common/validation-exception.factory';
 
 async function bootstrap() {
   // rawBody: true — the Cashfree webhook signature (CashfreeWebhookService)
@@ -76,13 +78,22 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // Validation
+  // Validation — EmptyStringToUndefinedPipe runs first (global pipes run in
+  // array order), so a blank optional field ('') reads as "not provided" to
+  // every DTO's @IsOptional() the same way omitting the key entirely would,
+  // instead of tripping whatever stricter validator it's paired with
+  // (@IsEmail(), @MinLength(), ...) — see that pipe's own comment for the
+  // live bug this closes. validationExceptionFactory then formats whatever
+  // *does* fail into one readable string instead of NestJS's default
+  // unjoined message array (see that file's comment).
   app.useGlobalPipes(
+    new EmptyStringToUndefinedPipe(),
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 

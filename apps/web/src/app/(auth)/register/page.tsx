@@ -106,7 +106,7 @@ function RegisterForm() {
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex mx-auto mb-4">
-            <LogoMark size={64} className="rounded-2xl shadow-glow-saffron" />
+            <LogoMark size={64} className="rounded-2xl" />
           </Link>
           <h1 className="text-2xl font-bold text-theme-fg">Register Your Mandal</h1>
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">आपल्या मंडळाची नोंदणी करा</p>
