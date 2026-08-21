@@ -31,6 +31,20 @@ export class CashfreeService {
   constructor(private readonly config: ConfigService) {}
 
   /**
+   * Extracts the useful part of a failed Cashfree call for logging — the
+   * response body Cashfree actually sent (error.response.data), where the
+   * real "why" lives (bad field, auth failure, ...), falling back to the
+   * bare Error message. Every catch block below used to be `catch (error:
+   * any)` reaching for `error.response?.data` on faith; this narrows from
+   * `unknown` (the correct catch-clause type) via axios's own isAxiosError
+   * guard instead.
+   */
+  private describeError(error: unknown): unknown {
+    if (axios.isAxiosError(error)) return error.response?.data ?? error.message;
+    return error instanceof Error ? error.message : error;
+  }
+
+  /**
    * False when the CASHFREE_* env vars aren't set. Checked instead of using
    * `ConfigService.getOrThrow` in the constructor, which would crash the
    * whole API at boot (every module's providers are instantiated at
@@ -117,13 +131,13 @@ export class CashfreeService {
         },
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Cashfree's error body (error.response.data) is where the actually
       // useful "why" lives (bad request field, auth failure, etc.) — log it
       // so a failed sandbox test is debuggable, but never log the secret
       // itself (handover doc section 31).
       this.logger.error(
-        `Cashfree createOrder failed for orderId=${params.orderId}: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree createOrder failed for orderId=${params.orderId}: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -140,9 +154,9 @@ export class CashfreeService {
         `/orders/${encodeURIComponent(orderId)}`,
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree getOrder failed for orderId=${orderId}: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree getOrder failed for orderId=${orderId}: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -170,9 +184,9 @@ export class CashfreeService {
       // Cashfree returns a bare array here, not wrapped in { payments: [...] }
       // — CashfreeOrderPaymentsResponse only exists to name the shape.
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree getOrderPayments failed for orderId=${orderId}: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree getOrderPayments failed for orderId=${orderId}: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -207,9 +221,9 @@ export class CashfreeService {
         { headers: this.orderPaySessionHeaders() },
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree generateUpiQr failed: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree generateUpiQr failed: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -230,9 +244,9 @@ export class CashfreeService {
         { headers: this.orderPaySessionHeaders() },
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree generateUpiIntent failed: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree generateUpiIntent failed: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -252,9 +266,9 @@ export class CashfreeService {
         `/easy-split/vendors/${encodeURIComponent(vendorId)}`,
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree getVendor failed for vendorId=${vendorId}: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree getVendor failed for vendorId=${vendorId}: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -284,9 +298,9 @@ export class CashfreeService {
         { headers: { 'x-idempotency-key': randomUUID() } },
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree createSplit failed for orderId=${params.orderId}: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree createSplit failed for orderId=${params.orderId}: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }
@@ -299,9 +313,9 @@ export class CashfreeService {
         `/easy-split/orders/${encodeURIComponent(orderId)}`,
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(
-        `Cashfree getSplitDetails failed for orderId=${orderId}: ${JSON.stringify(error.response?.data ?? error.message)}`,
+        `Cashfree getSplitDetails failed for orderId=${orderId}: ${JSON.stringify(this.describeError(error))}`,
       );
       throw error;
     }

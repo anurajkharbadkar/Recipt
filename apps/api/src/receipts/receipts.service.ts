@@ -191,7 +191,7 @@ export class ReceiptsService {
   }
 
   async findAll(orgId: string, query: ReceiptQueryDto, userRole: string, userId: string) {
-    const where: any = {
+    const where: Prisma.ReceiptWhereInput = {
       campaign: { orgId },
     };
 
@@ -255,7 +255,7 @@ export class ReceiptsService {
    * list view correctly hiding them. Same data, so the same rule applies.
    */
   async findOne(id: string, orgId: string, scopedTo?: { role: string; userId: string }) {
-    const where: any = { id, campaign: { orgId } };
+    const where: Prisma.ReceiptWhereInput = { id, campaign: { orgId } };
     if (scopedTo?.role === UserRole.COLLECTOR) {
       where.collectorId = scopedTo.userId;
     }
@@ -327,7 +327,7 @@ export class ReceiptsService {
     const existing = await this.findOne(id, orgId);
     if (existing.isVoided) throw new BadRequestException('Cannot edit a voided receipt');
 
-    const data: any = {};
+    const data: Prisma.ReceiptUpdateInput = {};
     if (dto.donorName !== undefined) data.donorName = dto.donorName;
     if (dto.donorPhone !== undefined) data.donorPhone = dto.donorPhone;
     if (dto.donorAddress !== undefined) data.donorAddress = dto.donorAddress;
@@ -358,7 +358,13 @@ export class ReceiptsService {
         entity: 'Receipt',
         entityId: id,
         oldValue: { donorName: existing.donorName, amount: existing.amount, category: existing.category, paymentMode: existing.paymentMode, notes: existing.notes },
-        newValue: data,
+        // `data` is only ever built from the scalar `if (dto.x !== undefined)
+        // data.x = ...` assignments above — never a nested relation-connect
+        // shape — but Prisma.ReceiptUpdateInput's *type* allows those too,
+        // which is stricter than AuditLog.newValue's plain-JSON column
+        // accepts. The cast is narrow and accurate to what's actually here,
+        // not a blanket escape hatch.
+        newValue: data as Prisma.InputJsonValue,
       },
     });
 
@@ -401,7 +407,7 @@ export class ReceiptsService {
   async updateStatus(id: string, status: ReceiptStatus, userId: string, orgId: string) {
     const receipt = await this.findOne(id, orgId);
 
-    const data: any = { status };
+    const data: Prisma.ReceiptUpdateInput = { status };
     if (status === ReceiptStatus.CANCELLED) {
       data.isVoided = true;
       data.voidedAt = new Date();
@@ -435,7 +441,7 @@ export class ReceiptsService {
   }
 
   async exportCsv(orgId: string, campaignId?: string): Promise<string> {
-    const where: any = { campaign: { orgId }, isVoided: false };
+    const where: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false };
     if (campaignId) where.campaignId = campaignId;
 
     const receipts = await this.prisma.receipt.findMany({

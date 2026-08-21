@@ -3,7 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { InternalCollectionsService } from './internal-collections.service';
 import { DeclareInternalCollectionDto } from './dto/internal-collection.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@pavti/shared';
 
@@ -17,7 +17,7 @@ export class InternalCollectionsController {
   @Post('declare')
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
   @ApiOperation({ summary: 'Bulk-declare a fee/contribution for a set of members under a campaign' })
-  declare(@CurrentUser() user: any, @Body() dto: DeclareInternalCollectionDto) {
+  declare(@CurrentUser() user: AuthenticatedUser, @Body() dto: DeclareInternalCollectionDto) {
     return this.service.declare(user.orgId, user.id, dto);
   }
 

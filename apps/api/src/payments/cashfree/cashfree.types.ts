@@ -120,6 +120,37 @@ export interface CashfreeUpiIntentResponse {
   [key: string]: unknown;
 }
 
+// POST /payments/cashfree/webhook body — Cashfree's PAYMENT_SUCCESS/FAILED/
+// USER_DROPPED event shape. Only the fields CashfreeWebhookService actually
+// reads are typed (matching this file's convention elsewhere); everything
+// else stays reachable but unchecked via the index signatures, since
+// Cashfree's full webhook schema isn't fully documented anywhere this
+// codebase can cite. Replaces what used to be `let payload: any` parsed
+// straight from JSON.parse with zero shape checking at all.
+export interface CashfreeWebhookPayload {
+  type?: string;
+  data?: {
+    order?: {
+      order_id?: string;
+      order_amount?: number | string;
+      order_currency?: string;
+      [key: string]: unknown;
+    };
+    payment?: {
+      cf_payment_id?: string | number;
+      payment_status?: string;
+      payment_message?: string;
+      [key: string]: unknown;
+    };
+    error_details?: {
+      error_description?: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 // GET /easy-split/orders/{order_id} — settlement + per-vendor breakdown.
 export interface CashfreeSplitDetailsResponse {
   settlement?: {

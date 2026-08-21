@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { toCsv } from '@pavti/shared';
 
@@ -10,11 +11,11 @@ export class ReportsService {
     // "Collected" means actually paid — a PENDING (unpaid/due) receipt is a
     // promise, not cash in hand, so it's tracked separately as
     // pendingCollections instead of inflating totalCollections/netBalance.
-    const paidReceiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
-    const pendingReceiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PENDING' };
+    const paidReceiptWhere: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const pendingReceiptWhere: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PENDING' };
     // Expenses are a plain ledger, no approval workflow — every logged
     // expense counts toward the balance as soon as it's entered.
-    const expenseWhere: any = { campaign: { orgId } };
+    const expenseWhere: Prisma.ExpenseWhereInput = { campaign: { orgId } };
     if (campaignId) {
       paidReceiptWhere.campaignId = campaignId;
       pendingReceiptWhere.campaignId = campaignId;
@@ -65,7 +66,7 @@ export class ReportsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const where: any = {
+    const where: Prisma.ReceiptWhereInput = {
       campaign: { orgId },
       isVoided: false,
       status: 'PAID',
@@ -95,7 +96,7 @@ export class ReportsService {
   }
 
   async getCollectorStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const where: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     const results = await this.prisma.receipt.groupBy({
@@ -127,7 +128,7 @@ export class ReportsService {
   }
 
   async getAreaStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID', areaId: { not: null } };
+    const where: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID', areaId: { not: null } };
     if (campaignId) where.campaignId = campaignId;
 
     const results = await this.prisma.receipt.groupBy({
@@ -153,7 +154,7 @@ export class ReportsService {
   }
 
   async getCategoryStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const where: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     return this.prisma.receipt.groupBy({
@@ -166,7 +167,7 @@ export class ReportsService {
   }
 
   async getCollectionTypeStats(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const where: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     return this.prisma.receipt.groupBy({
@@ -182,8 +183,8 @@ export class ReportsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const receiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID', createdAt: { gte: startDate } };
-    const expenseWhere: any = { campaign: { orgId }, expenseDate: { gte: startDate } };
+    const receiptWhere: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID', createdAt: { gte: startDate } };
+    const expenseWhere: Prisma.ExpenseWhereInput = { campaign: { orgId }, expenseDate: { gte: startDate } };
     if (campaignId) {
       receiptWhere.campaignId = campaignId;
       expenseWhere.campaignId = campaignId;
@@ -219,8 +220,8 @@ export class ReportsService {
    * of truth so the screen and the printed report never disagree.
    */
   async getIncomeExpenditureStatement(orgId: string, campaignId?: string) {
-    const receiptWhere: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
-    const expenseWhere: any = { campaign: { orgId } };
+    const receiptWhere: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const expenseWhere: Prisma.ExpenseWhereInput = { campaign: { orgId } };
     if (campaignId) {
       receiptWhere.campaignId = campaignId;
       expenseWhere.campaignId = campaignId;
@@ -281,7 +282,7 @@ export class ReportsService {
   }
 
   async getExpenseRegisterCsv(orgId: string, campaignId?: string): Promise<string> {
-    const where: any = { campaign: { orgId } };
+    const where: Prisma.ExpenseWhereInput = { campaign: { orgId } };
     if (campaignId) where.campaignId = campaignId;
 
     const expenses = await this.prisma.expense.findMany({
@@ -315,7 +316,7 @@ export class ReportsService {
   }
 
   async getTopDonors(orgId: string, campaignId?: string, limit = 10) {
-    const where: any = { campaign: { orgId }, isVoided: false, status: 'PAID' };
+    const where: Prisma.ReceiptWhereInput = { campaign: { orgId }, isVoided: false, status: 'PAID' };
     if (campaignId) where.campaignId = campaignId;
 
     const results = await this.prisma.receipt.groupBy({

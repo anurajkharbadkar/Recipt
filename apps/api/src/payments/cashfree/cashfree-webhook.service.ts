@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentsService } from '../payments.service';
-import { PaymentProvider } from '@prisma/client';
+import { PaymentProvider, Prisma } from '@prisma/client';
+import { CashfreeWebhookPayload } from './cashfree.types';
 
 // Confirmed against Cashfree's live webhook docs (not assumed):
 // https://www.cashfree.com/docs/payments/online/webhooks/overview
@@ -82,9 +83,12 @@ export class CashfreeWebhookService {
       this.logger.log(`Webhook delivery attempt #${attempt}`);
     }
 
-    let payload: any;
+    // JSON.parse itself returns `any` — the cast through `unknown` is what
+    // actually enforces CashfreeWebhookPayload's shape at every access
+    // below, instead of trusting whatever JSON.parse handed back.
+    let payload: CashfreeWebhookPayload;
     try {
-      payload = JSON.parse(rawBody.toString('utf8'));
+      payload = JSON.parse(rawBody.toString('utf8')) as unknown as CashfreeWebhookPayload;
     } catch {
       throw new BadRequestException('Malformed webhook JSON');
     }
@@ -119,8 +123,11 @@ export class CashfreeWebhookService {
         },
       });
       eventRecordId = created.id;
-    } catch (err: any) {
-      if (err?.code === 'P2002') {
+    } catch (err: unknown) {
+      // P2002 = unique constraint violation — narrowed via Prisma's own
+      // error class rather than a loose `err?.code` check on an untyped
+      // catch variable.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         // A row with this eventId already exists — but only skip if that
         // earlier attempt actually finished. If it's still RECEIVED/FAILED,
         // the process likely crashed between recording the event and

@@ -1,6 +1,6 @@
 {
-  "name": "e-Pavti Book",
-  "short_name": "e-Pavti Book",
+  "name": "E-PavtiBook",
+  "short_name": "E-Pavti",
   "description": "Digital Receipt & Collection Management for Mandals, Trusts and Community Organizations",
   "start_url": "/",
   "display": "standalone",

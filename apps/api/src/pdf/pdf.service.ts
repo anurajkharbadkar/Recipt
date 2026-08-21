@@ -74,6 +74,15 @@ export class PdfService implements OnModuleDestroy {
       .replace(/'/g, '&#39;');
   }
 
+  // receipt/expense/statement params below stay `any` deliberately, not by
+  // omission — traced their actual callers (ReceiptsService,
+  // ExpensesService, ReportsService) and each passes a differently-shaped
+  // Prisma query result (different `include`s per call site, no single
+  // consistent shape to name). A single Prisma.XGetPayload<{...}> type here
+  // would have to be wrong for at least one caller; that's worse than an
+  // honest `any` on a private rendering helper that never receives
+  // unvalidated external input (everything reaching these comes from our
+  // own Prisma queries, not a request body).
   async generateExpenseVoucherPdf(expense: any): Promise<Buffer> {
     let page: puppeteer.Page | undefined;
     try {

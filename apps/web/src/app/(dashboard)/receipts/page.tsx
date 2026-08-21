@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { receiptsApi } from '@/lib/api';
 import { shareReceiptViaWhatsApp, prefetchReceiptImage } from '@/lib/whatsappShare';
 import { useAuthStore } from '@/store/auth.store';
+import { useUrlState } from '@/hooks/useUrlState';
 import Link from 'next/link';
 import { Plus, Search, Download, Filter, Eye, Share2, XCircle, Users, ChevronDown, ChevronUp, Zap, Loader2 } from 'lucide-react';
 import {
@@ -15,13 +16,20 @@ import {
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
-export default function ReceiptsPage() {
-  const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [page, setPage] = useState(1);
-  const [collectionType, setCollectionType] = useState<string>('');
-  const [status, setStatus] = useState<string>('');
+function ReceiptsPageInner() {
+  // Page/search/date-range/type/status are all navigation state — a
+  // refresh, a shared link, or the browser back button should all land
+  // back on the same filtered view, so these read from the URL rather
+  // than local useState. showDonors/donorFilter/sharingId stay local:
+  // they're transient UI state (a panel toggle, an in-panel-only search,
+  // a per-row loading flag), not something worth bookmarking.
+  const { get, getNumber, setParams } = useUrlState();
+  const search = get('search');
+  const dateFrom = get('dateFrom');
+  const dateTo = get('dateTo');
+  const page = getNumber('page', 1);
+  const collectionType = get('collectionType');
+  const status = get('status');
   const [showDonors, setShowDonors] = useState(false);
   const [donorFilter, setDonorFilter] = useState('');
   const [sharingId, setSharingId] = useState<string | null>(null);
@@ -164,7 +172,7 @@ export default function ReceiptsPage() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-fg/30" />
           <input
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setParams({ search: e.target.value })}
             className="form-input pl-9 py-2 text-sm"
             placeholder={language === 'mr' ? 'नाव, फोन किंवा पावती क्र. शोधा...' : 'Search donor, phone, or receipt #...'}
           />
@@ -172,18 +180,18 @@ export default function ReceiptsPage() {
         <input
           type="date"
           value={dateFrom}
-          onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+          onChange={(e) => setParams({ dateFrom: e.target.value })}
           className="form-input py-2 text-sm w-auto"
         />
         <input
           type="date"
           value={dateTo}
-          onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+          onChange={(e) => setParams({ dateTo: e.target.value })}
           className="form-input py-2 text-sm w-auto"
         />
         <select
           value={collectionType}
-          onChange={(e) => { setCollectionType(e.target.value); setPage(1); }}
+          onChange={(e) => setParams({ collectionType: e.target.value })}
           className="form-select py-2 text-sm w-auto"
         >
           <option value="">{language === 'mr' ? 'सर्व प्रकार' : language === 'hi' ? 'सभी प्रकार' : 'All Types'}</option>
@@ -192,7 +200,7 @@ export default function ReceiptsPage() {
         </select>
         <select
           value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          onChange={(e) => setParams({ status: e.target.value })}
           className="form-select py-2 text-sm w-auto"
         >
           <option value="">{language === 'mr' ? 'सर्व स्थिती' : language === 'hi' ? 'सभी स्थितियां' : 'All Statuses'}</option>
@@ -340,14 +348,14 @@ export default function ReceiptsPage() {
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setParams({ page: Math.max(1, page - 1) }, { resetPage: false })}
                     disabled={page === 1}
                     className="btn-ghost px-3 py-1.5 text-sm disabled:opacity-30"
                   >
                     ← Prev
                   </button>
                   <button
-                    onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+                    onClick={() => setParams({ page: Math.min(data.totalPages, page + 1) }, { resetPage: false })}
                     disabled={page === data.totalPages}
                     className="btn-ghost px-3 py-1.5 text-sm disabled:opacity-30"
                   >
@@ -360,5 +368,13 @@ export default function ReceiptsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ReceiptsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReceiptsPageInner />
+    </Suspense>
   );
 }

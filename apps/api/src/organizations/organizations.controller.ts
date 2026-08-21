@@ -6,7 +6,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagg
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoryKind } from '@prisma/client';
 import { OrganizationsService } from './organizations.service';
-import { UpdateOrganizationDto } from './dto/organization.dto';
+import { UpdateOrganizationDto, CreateAreaDto } from './dto/organization.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -84,7 +84,7 @@ export class OrganizationsController {
   // inline without hitting a 403, or the inline-add UX can't reach them.
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
   @ApiOperation({ summary: 'Create a collection area' })
-  createArea(@CurrentUser('orgId') orgId: string, @Body() data: any) {
+  createArea(@CurrentUser('orgId') orgId: string, @Body() data: CreateAreaDto) {
     return this.service.createArea(orgId, data);
   }
 

@@ -95,3 +95,22 @@ export class UpdateOrganizationDto {
   @Matches(/^#[0-9a-fA-F]{6}$/, { message: 'brandColor must be a 6-digit hex color, e.g. #C85000' })
   brandColor?: string;
 }
+
+/**
+ * Was `@Body() data: any` on the controller — with no DTO to validate
+ * against, the global ValidationPipe's whitelist/forbidNonWhitelisted never
+ * kicked in, and OrganizationsService.createArea spreads the body straight
+ * into `prisma.collectorArea.create({ data: { orgId, ...data } })`. Any
+ * extra field a caller sent (isActive, id, ...) would have passed straight
+ * through to Prisma. A real DTO closes that.
+ */
+export class CreateAreaDto {
+  @ApiPropertyOptional({ example: 'Ward A' })
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ example: 'Tilak Road & Surroundings' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}

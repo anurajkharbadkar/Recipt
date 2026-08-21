@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { join } from 'path';
 import * as express from 'express';
+import type { Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { BRAND_NAME } from '@pavti/shared';
 
@@ -20,13 +21,13 @@ async function bootstrap() {
 
   // Root & Health routes for platform proxies (Railway / Load Balancers)
   const httpAdapter = app.getHttpAdapter().getInstance();
-  httpAdapter.get('/', (_req: any, res: any) => {
+  httpAdapter.get('/', (_req: Request, res: Response) => {
     res.json({ status: 'ok', service: `${BRAND_NAME} API`, version: '1.0.0' });
   });
-  httpAdapter.get('/health', (_req: any, res: any) => {
+  httpAdapter.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', uptime: process.uptime() });
   });
-  httpAdapter.get('/api/v1', (_req: any, res: any) => {
+  httpAdapter.get('/api/v1', (_req: Request, res: Response) => {
     res.json({ status: 'ok', service: `${BRAND_NAME} API`, version: '1.0.0' });
   });
 

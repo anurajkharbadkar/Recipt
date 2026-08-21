@@ -186,17 +186,13 @@ function RegisterForm() {
                     className={`relative text-left rounded-xl border-2 p-4 transition-all duration-200 ${
                       selected
                         ? isStandard
-                          ? 'border-royal-600 bg-royal-50/60 shadow-md shadow-royal-900/10'
+                          ? 'border-royal-600 bg-royal-50 dark:bg-royal-900/30 shadow-md shadow-royal-900/10'
                           : isPremium
-                          ? 'border-gold-400 bg-[#1E140C] text-[#F4F0E0] shadow-md shadow-black/20'
+                          ? 'border-gold-500 bg-amber-50 dark:bg-[#2A1A06] shadow-md shadow-gold-900/20'
                           : isFree
-                          ? 'border-theme-fg/40 bg-theme-fg/[0.04] shadow-sm'
-                          : 'border-saffron-600 bg-saffron-100/60 shadow-md shadow-saffron-900/10'
-                        : isPremium
-                        ? 'border-[#301000]/20 bg-[#1E140C]/30 text-theme-fg hover:border-gold-400/40'
-                        : isFree
-                        ? 'border-dashed border-theme-fg/20 hover:border-theme-fg/40'
-                        : 'border-theme hover:border-saffron-500/40'
+                          ? 'border-saffron-400 bg-saffron-50 dark:bg-saffron-900/20 shadow-sm'
+                          : 'border-saffron-600 bg-saffron-50 dark:bg-saffron-900/20 shadow-md shadow-saffron-900/10'
+                        : 'border-theme hover:border-saffron-400/50 bg-[var(--card-bg)] hover:bg-saffron-50/40 dark:hover:bg-saffron-900/10'
                     }`}
                   >
                     {isStandard && (
@@ -227,7 +223,7 @@ function RegisterForm() {
                           className={isPremium ? 'text-gold-400' : isStandard ? 'text-royal-600' : isFree ? 'text-theme-fg/70' : 'text-saffron-700'}
                         />
                       )}
-                      <span className={`font-bold ${isPremium && selected ? 'text-gold-300' : 'text-theme-fg'}`}>{plan.name}</span>
+                      <span className="font-bold text-theme-fg">{plan.name}</span>
                     </div>
                     <div
                       className={`text-xl font-extrabold ${
@@ -236,7 +232,7 @@ function RegisterForm() {
                     >
                       {formatCurrency(plan.priceInr)}
                     </div>
-                    <p className={`text-[10px] ${isPremium && selected ? 'text-saffron-200/60' : 'text-theme-fg/40'}`}>{plan.priceNote}</p>
+                    <p className="text-[10px] text-theme-fg/50">{plan.priceNote}</p>
                   </button>
                 );
               })}

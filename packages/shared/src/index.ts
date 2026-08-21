@@ -2,11 +2,12 @@
 // Single source of truth for the platform's own name/tagline (distinct from
 // any org's name, which is user data). Every UI string, API response and
 // metadata field that names the platform should read from here rather than
-// hardcode "e-Pavti Book" — that's what let it drift into "e Pavti Book",
+// hardcode "E-PavtiBook" — that's what let it drift into "e Pavti Book",
 // "e-Pavti Book" and split-weight lockups across a dozen files before this
-// existed (2026-08 brand pass).
-export const BRAND_NAME = 'e-Pavti Book';
-export const BRAND_SHORT_NAME = 'e-Pavti';
+// existed (2026-08 brand pass). Capitalization/spacing matches the actual
+// designed wordmark lockup, not a generic title-case guess.
+export const BRAND_NAME = 'E-PavtiBook';
+export const BRAND_SHORT_NAME = 'E-Pavti';
 export const BRAND_TAGLINE = 'Collect. Record. Share.';
 /** The emotional/campaign headline — see BRAND_TAGLINE for the short-form one. */
 export const BRAND_TAGLINE_ALT = 'Your Pavti. Now Digital.';
@@ -224,7 +225,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: SubscriptionPlan.FREE,
     name: 'Free Trial',
-    tagline: 'Try e-Pavti before committing to a plan',
+    tagline: `Try ${BRAND_SHORT_NAME} before committing to a plan`,
     positioningLine: 'Experience',
     marathiDescriptor: 'अनुभव घ्या',
     priceInr: 0,

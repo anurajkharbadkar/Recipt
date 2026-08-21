@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { AuthenticatedUser } from '../decorators/current-user.decorator';
 import { UserRole, BRAND_NAME } from '@pavti/shared';
 
 @Injectable()
@@ -30,7 +31,7 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<{ user?: AuthenticatedUser; method: string }>();
     const { user, method } = req;
     if (!user) return false;
 

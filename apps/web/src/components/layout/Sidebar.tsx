@@ -11,7 +11,7 @@ import {
   Receipt, BarChart3, Settings, LogOut, Menu, X,
   IndianRupee, Sun, Moon, UserSquare2
 } from 'lucide-react';
-import clsx from 'clsx';
+import { cn } from '@/lib/cn';
 import LogoMark from '@/components/brand/LogoMark';
 
 // 'module' drives the permission check (see useModuleAccessResolver) and can
@@ -114,7 +114,7 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               onClick={() => setMobileOpen(false)}
-              className={clsx(
+              className={cn(
                 'nav-link',
                 isActive && 'active',
                 item.highlight && !isActive && 'bg-saffron-600/10 text-saffron-400 border border-saffron-600/20',
@@ -181,7 +181,7 @@ export default function Sidebar() {
       )}
 
       {/* Mobile sidebar (slides in from the right) */}
-      <div className={clsx(
+      <div className={cn(
         'fixed right-0 top-0 h-full w-64 z-50 md:hidden transition-transform duration-300',
         'bg-navy-800 border-l border-theme shadow-2xl',
         mobileOpen ? 'translate-x-0' : 'translate-x-full',

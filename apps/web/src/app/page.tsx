@@ -1,28 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import {
-  PRICING_PLANS, formatCurrency, formatPlanLimit, BRAND_NAME, BRAND_SHORT_NAME, BRAND_TAGLINE,
-  resolvePlanFeatures, FEATURE_CATEGORY_LABELS, type PricingFeatureCategory,
+  PRICING_PLANS, formatCurrency, formatPlanLimit, MAX_ACTIVE_CAMPAIGNS_BY_PLAN, BRAND_NAME, BRAND_TAGLINE,
 } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
-import {
-  QrCode, MessageCircle, FileText, Globe2, Users2, ShieldCheck,
-  BarChart3, Palette, Check, Star, ArrowRight, Smartphone, Wallet, Sparkles, ChevronDown,
-  IndianRupee, Share2,
-} from 'lucide-react';
+import { ChevronDown, MessageCircle, ArrowRight } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 
-// Sample data for the hero's receipt visual — a real ReceiptPreview render
-// (same component the actual app uses for its own live preview and the
-// donor-facing verify page), not a hand-drawn mockup, so what a visitor
-// sees here is never out of sync with what the product actually produces.
-// FESTIVE is the closest built-in receipt theme to this marketing page's
-// own saffron palette (see RECEIPT_THEMES).
+// Sample receipt — same structure the real portal uses when issuing a pavti.
+// FESTIVE theme is the closest built-in design to the landing page's saffron
+// palette so what visitors see here is never out of sync with the real product.
 const HERO_PREVIEW_RECEIPT = {
   id: 'preview',
   receiptNumber: 'SGM-2026-0001',
@@ -45,282 +37,337 @@ const HERO_PREVIEW_RECEIPT = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Static page data
+// ---------------------------------------------------------------------------
+
+type Lang = 'en' | 'mr' | 'hi';
+
 const HOW_IT_WORKS = [
-  { icon: FileText, title: 'Issue the Pavti', desc: 'Generate a QR-verified digital receipt the moment a donor pays — cash, UPI, or bank transfer.' },
-  { icon: Wallet, title: 'Collect Online', desc: 'Show your UPI ID on every receipt so donors can pay you directly, or record cash and cheque just as fast.' },
-  { icon: IndianRupee, title: 'Log Every Expense', desc: 'Track spends against collections so your balance is always current, not reconciled after the fact.' },
-  { icon: Share2, title: 'Share the Record', desc: 'Committee members and donors see the same transparent, always-current account.' },
+  {
+    step: '01',
+    title: 'Issue the Pavti',
+    titleMr: 'पावती द्या',
+    titleHi: 'पावती जारी करें',
+    desc: 'Generate a digital receipt the moment a donor pays — cash, UPI, or bank transfer.',
+    descMr: 'देणगीदाराने पैसे भरताच डिजिटल पावती तयार करा — रोख, UPI किंवा बँक ट्रान्सफरने.',
+    descHi: 'दानदाता के भुगतान करते ही डिजिटल पावती बनाएं — नकद, UPI या बैंक ट्रांसफर से.',
+  },
+  {
+    step: '02',
+    title: 'Collect Online',
+    titleMr: 'ऑनलाइन स्वीकारा',
+    titleHi: 'ऑनलाइन प्राप्त करें',
+    desc: "Payments route straight to the cashier's account — no manual handoffs, no cash leakage.",
+    descMr: 'पैसे थेट खजिनदाराच्या खात्यात जमा होतात, हातोहात देवाणघेवाणीची गरज नाही.',
+    descHi: 'पैसा सीधे खजांची के खाते में जमा होता है, किसी हाथों-हाथ लेन-देन की जरूरत नहीं.',
+  },
+  {
+    step: '03',
+    title: 'Log Every Expense',
+    titleMr: 'खर्चाची नोंद ठेवा',
+    titleHi: 'हर खर्च दर्ज करें',
+    desc: 'Track spends against collections so the balance is always current — not reconciled after the fact.',
+    descMr: 'जमा व खर्चाचा ताळमेळ ठेवा, त्यामुळे शिल्लक नेहमी अद्ययावत राहते.',
+    descHi: 'चंदे और खर्च का मिलान रखें ताकि बकाया राशि हमेशा अद्यतन रहे.',
+  },
+  {
+    step: '04',
+    title: 'Share the Record',
+    titleMr: 'हिशोब सर्वांसोबत शेअर करा',
+    titleHi: 'हिसाब सबके साथ साझा करें',
+    desc: 'Committee members and donors see the same transparent, always-current account.',
+    descMr: 'समिती सदस्य आणि देणगीदार दोघांनाही तोच पारदर्शक हिशोब दिसतो.',
+    descHi: 'समिति सदस्य और दानदाता, दोनों को एक जैसा पारदर्शी हिसाब दिखता है.',
+  },
 ];
 
-const OCCASIONS = [
-  'Ganesh Utsav Mandals', 'Navratri Samitis', 'Bhandara & Community Drives', 'Temple Trusts', 'Housing Society Funds',
+const OCCASIONS: { en: string; mr: string; hi: string }[] = [
+  { en: 'Ganesh Utsav Mandals', mr: 'गणेशोत्सव मंडळे', hi: 'गणेशोत्सव मंडल' },
+  { en: 'Navratri Samitis', mr: 'नवरात्र समित्या', hi: 'नवरात्रि समितियां' },
+  { en: 'Bhandara & Community Drives', mr: 'भंडारा व सामुदायिक उपक्रम', hi: 'भंडारा और सामुदायिक अभियान' },
+  { en: 'Temple & Public Trusts', mr: 'सार्वजनिक ट्रस्ट', hi: 'सार्वजनिक ट्रस्ट' },
+  { en: 'Housing Society Funds', mr: 'गृहनिर्माण सोसायटी निधी', hi: 'हाउसिंग सोसाइटी फंड' },
 ];
 
-// Free Trial gets pulled out into its own banner (see the Pricing section)
-// instead of sitting in the 3-card grid — this looks it up once rather than
-// re-filtering PRICING_PLANS at render time.
-const FREE_PLAN = PRICING_PLANS.find((p) => p.id === 'FREE');
+const ROTATOR_WORDS: Record<Lang, string[]> = {
+  en: ['by your mandal.', 'by your utsav team.', 'by your trust.', 'for every donor.'],
+  mr: ['तुमच्या मंडळासाठी.', 'तुमच्या उत्सव समितीसाठी.', 'तुमच्या ट्रस्टसाठी.', 'प्रत्येक देणगीदारासाठी.'],
+  hi: ['आपके मंडल के लिए.', 'आपकी उत्सव समिति के लिए.', 'आपके ट्रस्ट के लिए.', 'हर दानदाता के लिए.'],
+};
 
-const FEATURES = [
-  { icon: FileText, title: 'Digital Pavti Generation', desc: 'Traditional receipt design with QR code — issue a receipt in seconds instead of writing one by hand.' },
-  { icon: MessageCircle, title: 'WhatsApp Delivery', desc: 'Send the digital receipt straight to the donor\'s WhatsApp the moment it\'s created.' },
-  { icon: QrCode, title: 'QR Verification', desc: 'Anyone can scan a receipt\'s QR code to publicly verify it\'s genuine.' },
-  { icon: Globe2, title: 'Multilingual', desc: 'English, Hindi & Marathi — switch the whole app, or just one receipt, independently.' },
-  { icon: Users2, title: 'Role-Based Access', desc: 'Admin, Treasurer, Collector & Viewer roles, with fine-grained per-person overrides.' },
-  { icon: Wallet, title: 'Internal Collection', desc: 'Declare a membership fee for your registered members and track who\'s paid at a glance.' },
-  { icon: BarChart3, title: 'Analytics Dashboard', desc: 'Daily collection trends, collector rankings, category & donor breakdowns.' },
-  { icon: Palette, title: 'Custom Branding', desc: 'Pick a receipt design and set your own accent color across the whole portal.' },
-  { icon: ShieldCheck, title: 'Audit Trail', desc: 'Every create, edit, void and status change is logged.' },
-];
+// ---------------------------------------------------------------------------
+// Brand logotype — styled "E-PavtiBook" treatment
+// ---------------------------------------------------------------------------
+function BrandLogo({ size = 'md', dark = false }: { size?: 'sm' | 'md' | 'lg'; dark?: boolean }) {
+  const sizes = { sm: 'text-base', md: 'text-xl', lg: 'text-2xl' };
+  return (
+    <span className={`font-bold tracking-wide leading-none ${sizes[size]}`}>
+      <span className={dark ? 'text-[rgba(247,239,221,0.70)]' : 'text-saffron-900 dark:text-saffron-100'}>E-</span>
+      <span className={dark ? 'text-[#E8C878]' : 'text-saffron-600 dark:text-saffron-400'}>Pavti</span>
+      <span className={dark ? 'text-[rgba(247,239,221,0.70)]' : 'text-saffron-900 dark:text-saffron-100'}>Book</span>
+    </span>
+  );
+}
 
-// "Compare all plans" table data — each row is a category with at least one
-// tagged feature somewhere in the ladder; each cell is that plan's full
-// *cumulative* feature set for the category (resolvePlanFeatures walks the
-// includesFrom chain, so Standard's cell correctly includes what it
-// inherited from Basic/Free, not just what Standard's own card adds).
-// Computed once at module load — PRICING_PLANS is static data, not state.
-const COMPARISON_CATEGORY_ORDER: PricingFeatureCategory[] = [
-  'pavti', 'collections', 'donors', 'payments', 'expenses', 'reports', 'branding', 'team', 'support',
-];
-const COMPARISON_ROWS = COMPARISON_CATEGORY_ORDER.map((category) => ({
-  category,
-  label: FEATURE_CATEGORY_LABELS[category],
-  cells: PRICING_PLANS.map((plan) => resolvePlanFeatures(plan.id).filter((f) => f.category === category)),
-})).filter((row) => row.cells.some((cell) => cell.length > 0));
+// ---------------------------------------------------------------------------
 
-// Three self-contained visual identities, not scattered inline ternaries —
-// each tone owns every color it needs so a card never depends on the site's
-// light/dark toggle for contrast against its own (possibly toggle-
-// independent) background. 'standard' and 'premium' deliberately keep a
-// fixed card background regardless of site theme (that's *why* they stand
-// out as the "special" tiers) — the site theme only reaches 'default' cards,
-// which have no background override and just inherit glass-card's
-// theme-aware var(--card-bg). Previously 'standard' forced a white
-// background but still used var(--text-color)-driven text classes for its
-// tagline/feature copy — invisible near-white-on-white the moment a visitor
-// had the site in dark mode.
+/** Generic IntersectionObserver trigger — fires once when element enters viewport. */
+function useReveal(threshold = 0.12) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { threshold },
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
+type RevealDir = 'up' | 'down' | 'left' | 'right' | 'scale';
+
+/** Fade + directional slide in — use delay for stagger effects. */
+function Reveal({
+  children, className = '', delay = 0, dir = 'up', threshold,
+}: {
+  children: React.ReactNode; className?: string; delay?: number;
+  dir?: RevealDir; threshold?: number;
+}) {
+  const { ref, visible } = useReveal(threshold);
+  const hidden: Record<RevealDir, string> = {
+    up:    'translateY(28px)',
+    down:  'translateY(-28px)',
+    left:  'translateX(32px)',
+    right: 'translateX(-32px)',
+    scale: 'scale(0.92)',
+  };
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? (dir === 'scale' ? 'scale(1)' : 'translate(0)') : hidden[dir],
+        transition: `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pricing card tones — identical property names across all 4 tones so the
+// PricingCard skeleton stays truly uniform, only the values change.
+// ---------------------------------------------------------------------------
 const CARD_TONES = {
-  default: {
-    card: 'border border-saffron-300/80 shadow-md hover:border-saffron-500/60',
-    title: 'text-theme-fg',
-    tagline: 'text-theme-fg/50',
+  free: {
+    wrapper: 'border border-dashed border-saffron-300/50 dark:border-saffron-700/40 bg-[var(--card-bg)]',
+    badge: null as string | null,
+    badgeCls: '',
+    eyebrow: 'text-saffron-500 dark:text-saffron-400',
+    name: 'text-saffron-900 dark:text-saffron-100',
+    tagline: 'text-saffron-900/45 dark:text-saffron-100/40',
     price: 'text-saffron-700 dark:text-saffron-300',
-    priceNote: 'text-theme-fg/40',
-    checkActive: 'text-success-500',
-    checkComingSoon: 'text-theme-fg/30',
-    featureActive: 'text-theme-fg/85',
-    featureComingSoon: 'text-theme-fg/40',
-    featureDesc: 'text-theme-fg/45',
-    cta: 'btn-primary',
-    whatsapp: 'text-theme-fg/50 hover:text-theme-fg/80',
+    priceUnit: 'text-saffron-900/40 dark:text-saffron-100/35',
+    divider: 'border-saffron-200/50 dark:border-saffron-700/40',
+    featureText: 'text-saffron-900/75 dark:text-saffron-100/65',
+    cta: 'border-2 border-saffron-600/70 text-saffron-700 dark:text-saffron-300 hover:bg-saffron-600/8 dark:hover:bg-saffron-400/10',
+    ctaLabel: 'Start Free Trial',
+    whatsapp: 'text-saffron-900/35 dark:text-saffron-100/30 hover:text-saffron-700 dark:hover:text-saffron-300',
+  },
+  basic: {
+    wrapper: 'border border-saffron-200/80 dark:border-saffron-800/60 bg-[var(--card-bg)] shadow-sm',
+    badge: null as string | null,
+    badgeCls: '',
+    eyebrow: 'text-saffron-500 dark:text-saffron-400',
+    name: 'text-saffron-900 dark:text-saffron-100',
+    tagline: 'text-saffron-900/45 dark:text-saffron-100/40',
+    price: 'text-saffron-700 dark:text-saffron-300',
+    priceUnit: 'text-saffron-900/40 dark:text-saffron-100/35',
+    divider: 'border-saffron-200/50 dark:border-saffron-700/40',
+    featureText: 'text-saffron-900/75 dark:text-saffron-100/65',
+    cta: 'bg-saffron-700 hover:bg-saffron-800 text-white shadow-md shadow-saffron-700/20',
+    ctaLabel: 'Get Started',
+    whatsapp: 'text-saffron-900/35 dark:text-saffron-100/30 hover:text-saffron-700 dark:hover:text-saffron-300',
   },
   standard: {
-    card: 'border-2 border-royal-600 bg-gradient-to-b from-white via-white to-royal-50/50 shadow-xl shadow-royal-900/10 lg:-translate-y-2',
-    title: 'text-royal-900',
-    tagline: 'text-saffron-900/50',
-    price: 'text-royal-600',
-    priceNote: 'text-saffron-900/40',
-    checkActive: 'text-royal-600',
-    checkComingSoon: 'text-saffron-900/30',
-    featureActive: 'text-saffron-900/85',
-    featureComingSoon: 'text-saffron-900/40',
-    featureDesc: 'text-saffron-900/50',
-    cta: 'bg-royal-600 text-white hover:bg-royal-700 shadow-md shadow-royal-600/25',
-    whatsapp: 'text-saffron-900/50 hover:text-saffron-900/80',
+    wrapper: 'border-2 border-royal-600 bg-gradient-to-b from-white via-white to-royal-50/50 dark:from-[#16213E] dark:via-[#14203A] dark:to-[#121D35] shadow-2xl shadow-royal-900/15',
+    badge: '🌟 Most Popular',
+    badgeCls: 'bg-royal-600 text-white',
+    eyebrow: 'text-royal-500 dark:text-royal-400',
+    name: 'text-royal-900 dark:text-white',
+    tagline: 'text-royal-900/50 dark:text-white/45',
+    price: 'text-royal-600 dark:text-royal-400',
+    priceUnit: 'text-royal-900/40 dark:text-white/35',
+    divider: 'border-royal-200/60 dark:border-royal-700/40',
+    featureText: 'text-royal-900/80 dark:text-white/75',
+    cta: 'bg-royal-600 hover:bg-royal-700 text-white shadow-lg shadow-royal-600/30',
+    ctaLabel: 'Get Started',
+    whatsapp: 'text-royal-900/40 dark:text-white/30 hover:text-royal-700 dark:hover:text-royal-300',
   },
   premium: {
-    card: 'border-2 border-gold-400 bg-gradient-to-b from-[#21160E] to-[#120D08] text-[#F4F0E0] shadow-xl shadow-black/25',
-    title: 'text-gold-300',
-    tagline: 'text-saffron-100/70',
-    price: 'text-gold-400',
-    priceNote: 'text-saffron-200/50',
-    checkActive: 'text-gold-400',
-    checkComingSoon: 'text-white/20',
-    featureActive: 'text-white/90',
-    featureComingSoon: 'text-white/40',
-    featureDesc: 'text-saffron-200/50',
-    cta: 'bg-gradient-to-r from-[#C89B3C] to-[#E8C878] text-[#301000] hover:brightness-105 shadow-md shadow-gold-500/20',
-    whatsapp: 'text-gold-300/80 hover:text-gold-200',
+    wrapper: 'border-2 border-gold-500/60 bg-gradient-to-b from-[#FBF5E8] via-white to-[#FDF8EF] dark:from-[#2A1F0E] dark:via-[#231A0C] dark:to-[#1E160A] shadow-xl shadow-gold-900/10 dark:shadow-gold-900/30',
+    badge: '👑 VIP Access',
+    badgeCls: 'bg-gradient-to-r from-gold-500 to-gold-300 text-[#2A1A00] font-bold',
+    eyebrow: 'text-gold-600 dark:text-gold-400',
+    name: 'text-gold-800 dark:text-gold-300',
+    tagline: 'text-gold-900/50 dark:text-saffron-200/55',
+    price: 'text-gold-700 dark:text-gold-400',
+    priceUnit: 'text-gold-900/40 dark:text-saffron-200/45',
+    divider: 'border-gold-400/30 dark:border-gold-500/20',
+    featureText: 'text-gold-900/80 dark:text-saffron-100/80',
+    cta: 'bg-gradient-to-r from-gold-600 to-gold-500 text-white hover:brightness-105 shadow-lg shadow-gold-500/30',
+    ctaLabel: 'Get Started',
+    whatsapp: 'text-gold-900/35 dark:text-saffron-300/40 hover:text-gold-700 dark:hover:text-gold-300',
   },
 } as const;
 
+// Trimmed to differentiators only — table-stakes features common to all plans
+// (QR verification, WhatsApp sharing, expense tracking, reports, multi-language,
+// multi-role, PDF download) are surfaced in the footnote below the grid so
+// the cards stay short and scannable.
+const PLAN_FEATURES: Record<string, { label: string; highlight?: boolean }[]> = {
+  FREE: [
+    { label: 'Up to 10 digital pavtis' },
+    { label: 'Up to 5 collectors' },
+    { label: '1 active festival or drive' },
+    { label: 'No payment needed to start', highlight: true },
+  ],
+  BASIC: [
+    { label: 'Unlimited digital pavtis', highlight: true },
+    { label: 'Up to 5 collectors' },
+    { label: '1 active festival or drive' },
+    { label: 'PDF download & print' },
+  ],
+  STANDARD: [
+    { label: 'Unlimited digital pavtis', highlight: true },
+    { label: 'Up to 10 collectors', highlight: true },
+    { label: 'Run 2 festivals at once', highlight: true },
+    { label: 'Your branding on every pavti', highlight: true },
+    { label: 'Mandal UPI ID on every pavti', highlight: true },
+    { label: 'PDF download & print' },
+  ],
+  PREMIUM: [
+    { label: 'Unlimited digital pavtis', highlight: true },
+    { label: 'Unlimited collectors', highlight: true },
+    { label: 'Run up to 5 festivals at once', highlight: true },
+    { label: 'Your branding on every pavti', highlight: true },
+    { label: 'Mandal UPI ID on every pavti', highlight: true },
+    { label: 'Cinematic 4-slide pavti experience', highlight: true },
+    { label: 'Full activity log', highlight: true },
+  ],
+};
+
+type ToneKey = keyof typeof CARD_TONES;
+
+
+
+
+
 function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
-  const isFree = plan.id === 'FREE';
-  const isStandard = plan.id === 'STANDARD';
-  const isPremium = plan.id === 'PREMIUM';
-  const t = isStandard ? CARD_TONES.standard : isPremium ? CARD_TONES.premium : CARD_TONES.default;
-  const freeCardStyle = 'border border-dashed border-theme-fg/25 hover:border-theme-fg/40';
+  const toneKey: ToneKey =
+    plan.id === 'FREE' ? 'free'
+    : plan.id === 'BASIC' ? 'basic'
+    : plan.id === 'STANDARD' ? 'standard'
+    : 'premium';
+  const tone = CARD_TONES[toneKey];
+  const features = PLAN_FEATURES[plan.id] ?? [];
 
   return (
-    <div className={`relative glass-card p-6 flex flex-col transition-all duration-300 ${isFree ? freeCardStyle : t.card}`}>
-      {/* Ribbon badges — all three share the same `badge` base (pill shape,
-          sizing) plus `whitespace-nowrap` so none of them wrap to a second
-          line; only the color variant differs between tiers. */}
-      {isStandard && (
-        <span className="badge badge-royal absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-3 py-1 font-bold shadow-sm">
-          <Star size={10} className="fill-gold-500 text-gold-500" /> RECOMMENDED
-        </span>
-      )}
-      {isPremium && (
-        <span className="badge badge-gold absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-3 py-1 font-bold shadow-sm">
-          👑 VIP ACCESS
-        </span>
-      )}
-      {isFree && (
-        <span className="badge badge-neutral absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-3 py-1 font-bold shadow-sm">
-          NO PAYMENT NEEDED
+    <div className={`relative rounded-2xl p-5 flex flex-col h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${tone.wrapper}`}>
+
+      {tone.badge && (
+        <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 text-[11px] px-3.5 py-1 rounded-full whitespace-nowrap shadow-sm ${tone.badgeCls}`}>
+          {tone.badge}
         </span>
       )}
 
-      {/* Positioning word — the value-progression framing (Experience → Go
-          Digital → Manage Better → Elevate the Experience), not just a name
-          + price. Marathi descriptor sits with the plan name as a
-          personality layer, not a translation of the feature list below. */}
-      <p className={`text-[10px] font-bold uppercase tracking-wider mt-2 ${t.price}`}>{plan.positioningLine}</p>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <h3 className={`text-xl font-bold ${t.title}`}>{plan.name}</h3>
-        <span className={`text-xs font-devanagari ${t.tagline}`}>{plan.marathiDescriptor}</span>
+      <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${tone.eyebrow}`}>{plan.positioningLine}</p>
+
+      <div className="flex items-baseline gap-2 flex-wrap mb-1">
+        <h3 className={`text-[1.35rem] font-bold leading-tight ${tone.name}`}>{plan.name}</h3>
+        <span className={`text-xs ${tone.tagline}`}>{plan.marathiDescriptor}</span>
       </div>
-      <p className={`text-xs mt-1 min-h-[32px] ${t.tagline}`}>{plan.tagline}</p>
 
-      <div className="mt-4 mb-1 flex items-baseline gap-1.5">
-        <span className={`text-3xl font-extrabold ${t.price}`}>{formatCurrency(plan.priceInr)}</span>
-        {plan.priceInr > 0 && <span className={`text-xs font-semibold ${t.priceNote}`}>/ season</span>}
+      <p className={`text-xs leading-relaxed mb-4 ${tone.tagline}`}>{plan.tagline}</p>
+
+      <div className="flex items-baseline gap-1.5 mb-0.5">
+        <span className={`text-[1.75rem] font-extrabold leading-none ${tone.price}`}>{formatCurrency(plan.priceInr)}</span>
+        {plan.priceInr > 0 && <span className={`text-xs font-semibold ${tone.priceUnit}`}>/ season</span>}
       </div>
-      <p className={`text-[11px] mb-5 ${t.priceNote}`}>{plan.priceNote}</p>
+      <p className={`text-[11px] mb-4 ${tone.priceUnit}`}>{plan.priceNote}</p>
 
-      {/* Tiered ladder, not four independent lists — each paid tier only
-          shows what it adds on top of the one before it (see
-          PricingPlan.includesFrom), so the list length reflects what a tier
-          actually changes instead of repeating the same base features 4x. */}
-      {plan.includesFrom && (
-        <p className={`text-[11px] font-semibold uppercase tracking-wide mb-2.5 ${t.tagline}`}>
-          Everything in {plan.includesFrom}, plus:
-        </p>
-      )}
+      <div className={`border-t mb-4 ${tone.divider}`} />
 
-      <ul className="space-y-2.5 mb-6">
-        {plan.features.map((f) => (
-          <li key={f.label} className="flex items-start gap-2 text-sm">
-            <Check size={15} className={`shrink-0 mt-0.5 ${f.comingSoon ? t.checkComingSoon : t.checkActive}`} />
-            <span className={f.comingSoon ? t.featureComingSoon : t.featureActive}>
+      <ul className="space-y-2.5 mb-5 flex-1">
+        {features.map((f) => (
+          <li key={f.label} className="flex items-start gap-2 text-[12px]">
+            <span className={`shrink-0 mt-[3px] w-[5px] h-[5px] rounded-full ${f.highlight ? 'bg-current opacity-80' : 'opacity-30 bg-current'}`} />
+            <span className={`leading-snug ${f.highlight ? `font-semibold ${tone.featureText}` : `${tone.featureText} opacity-75`}`}>
               {f.label}
-              {f.comingSoon && <span className="ml-1.5 badge badge-neutral text-[9px] align-middle">Coming Soon</span>}
-              {f.description && <span className={`block text-[11px] mt-0.5 ${t.featureDesc}`}>{f.description}</span>}
             </span>
           </li>
         ))}
       </ul>
 
-      {/* Premium's signature moment — the Interactive/Devotional Pavti
-          experience is real on every plan already (see
-          InteractivePavtiView/INTERACTIVE_PAVTI_TEMPLATES — nothing here is
-          plan-gated), so this is a spotlight, not an exclusivity claim.
-          Deliberately not a checkmark bullet: it's the "wow" feature, not
-          another line item. */}
-      {isPremium && (
-        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-gold-500/10 border border-gold-500/25 mb-6 -mt-2">
-          <Sparkles size={16} className="text-gold-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-bold text-gold-300">Premium Digital Pavti Experience</p>
-            <p className="text-[11px] text-saffron-200/60 mt-0.5">A cinematic darshan-style pavti — your Mandal&apos;s signature moment for every donor.</p>
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1" />
-
       <Link
         href={`/register?plan=${plan.id.toLowerCase()}`}
-        className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-200 ${t.cta}`}
+        className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-full font-bold text-sm transition-all duration-200 ${tone.cta}`}
       >
-        {isFree ? 'Start Free Trial' : 'Get Started'} <ArrowRight size={15} />
+        {tone.ctaLabel} <ArrowRight size={14} />
       </Link>
 
-      {/* No payment gateway wired up yet (see PendingPaymentBanner.tsx) — this
-          is the low-friction alternative to filling out the whole signup
-          form just to ask about a plan. Not shown for FREE — there's nothing
-          to request, signup itself is instant. */}
-      {!isFree && (
+      {plan.priceInr > 0 && (
         <a
-          href={platformWhatsappLink(`Hi, I'd like to request access to the ${plan.name} plan (${formatCurrency(plan.priceInr)}) for my mandal.`)}
+          href={platformWhatsappLink(
+            `Hi, I'd like to request access to the ${plan.name} plan (${formatCurrency(plan.priceInr)}) for my mandal.`,
+          )}
           target="_blank"
           rel="noopener noreferrer"
-          className={`w-full flex items-center justify-center gap-1.5 mt-2 py-2 rounded-xl text-xs font-semibold transition-colors ${t.whatsapp}`}
+          className={`w-full flex items-center justify-center gap-1.5 mt-2.5 py-2 rounded-full text-xs font-semibold transition-colors ${tone.whatsapp}`}
         >
-          <MessageCircle size={13} /> Request Access via WhatsApp
+          <MessageCircle size={12} /> Request access via WhatsApp
         </a>
       )}
     </div>
   );
 }
 
-// Collapsed by default — the four cards above are the actual decision-making
-// surface (deliberately kept short per the ladder pattern); this is the
-// "show me everything" detail view for anyone who wants the full picture
-// without the cards themselves growing back into the wall of text they used
-// to be.
-function PlanComparisonTable() {
-  const [open, setOpen] = useState(false);
 
-  return (
-    <div className="mt-10">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 mx-auto text-sm font-semibold text-saffron-600 hover:text-saffron-700 transition-colors"
-      >
-        {open ? 'Hide' : 'Compare'} all plans in detail
-        <ChevronDown size={15} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
 
-      {open && (
-        <div className="mt-6 glass-card p-4 sm:p-6 overflow-x-auto animate-fade-in">
-          <table className="w-full min-w-[640px] text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-theme">
-                <th className="text-left py-3 pr-4 text-xs font-semibold uppercase tracking-wide text-theme-fg/40">Category</th>
-                {PRICING_PLANS.map((plan) => (
-                  <th key={plan.id} className="text-left py-3 px-3 min-w-[150px]">
-                    <span className={`font-bold ${plan.highlighted ? 'text-royal-600' : plan.id === 'PREMIUM' ? 'text-saffron-600' : 'text-theme-fg'}`}>
-                      {plan.name}
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARISON_ROWS.map((row) => (
-                <tr key={row.category} className="border-b border-theme/60 last:border-0">
-                  <td className="py-3 pr-4 text-xs font-semibold text-theme-fg/50 align-top whitespace-nowrap">{row.label}</td>
-                  {row.cells.map((items, i) => (
-                    <td key={PRICING_PLANS[i].id} className="py-3 px-3 align-top text-xs text-theme-fg/80">
-                      {items.length ? (
-                        <div className="space-y-1">
-                          {items.map((f) => <div key={f.label}>{f.label}</div>)}
-                        </div>
-                      ) : (
-                        <span className="text-theme-fg/20">—</span>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const [lang, setLangState] = useState<Lang>('en');
+  const [rotatorIdx, setRotatorIdx] = useState(0);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) router.push('/dashboard');
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    const handler = () => setNavScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setRotatorIdx((i) => (i + 1) % 4), 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  const t = (en: string, mr: string, hi: string) =>
+    lang === 'mr' ? mr : lang === 'hi' ? hi : en;
 
   if (isAuthenticated) {
     return (
@@ -331,264 +378,491 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-navy-900/70 border-b border-theme">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <LogoMark size={36} className="rounded-xl shadow-glow-saffron" />
-            <span className="font-bold text-theme-fg">{BRAND_NAME}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="btn-ghost text-sm px-4">Sign In</Link>
-            <Link href="/register" className="btn-primary text-sm px-4 py-2">Try {BRAND_SHORT_NAME}</Link>
-          </div>
-        </div>
-      </header>
+    <>
+      <style>{`
+        /* ── Hero pavti card float ── */
+        @keyframes floatCard {
+          0%,100% { transform: rotate(-3deg) translateY(0px); }
+          50%      { transform: rotate(-1.5deg) translateY(-12px); }
+        }
 
-      {/* Hero — text + a real ReceiptPreview render as the signature visual,
-          not a hand-drawn mockup (see HERO_PREVIEW_RECEIPT above). */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden -z-10">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-saffron-600/10 rounded-full blur-3xl animate-pulse-soft" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-amber-500/8 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        </div>
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-16 pb-16 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
-          <div className="text-center lg:text-left">
-            {/* Level 1 of the message hierarchy: what is it, in one line. */}
-            <span className="inline-block badge badge-saffron text-xs mb-5">
-              Digital Receipt & Collection Management for Mandals, Trusts &amp; NGOs
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-bold text-theme-fg leading-tight mb-5">
-              Your Pavti. <span className="text-saffron-400">Now Digital.</span>
-            </h1>
-            {/* Level 2 (why) + Level 4 (benefit), blended into one subhead. */}
-            <p className="text-sm sm:text-base text-theme-fg/60 max-w-lg mx-auto lg:mx-0 mb-7">
-              Replace the paper Pavti book with a faster, simpler digital system — issue QR-verified receipts,
-              deliver them over WhatsApp instantly, and keep every rupee your Mandal, trust or community
-              organization collects fully accounted for. In English, Hindi or Marathi.
-            </p>
-            <div className="flex items-center justify-center lg:justify-start gap-3 flex-wrap">
-              <Link href="/register" className="btn-primary px-6 py-3">
-                Try {BRAND_SHORT_NAME} <ArrowRight size={16} />
-              </Link>
-              <Link href="#pricing" className="btn-secondary px-6 py-3">View Pricing</Link>
+        /* ── Hero rotator word ── */
+        .rotator-word {
+          display: inline-block;
+          animation: fadeWord 2s ease-in-out infinite;
+        }
+        @keyframes fadeWord {
+          0%      { opacity: 0; transform: translateY(8px); }
+          15%,80% { opacity: 1; transform: translateY(0); }
+          100%    { opacity: 0; transform: translateY(-8px); }
+        }
+
+        /* ── Shimmer sweep on CTA buttons ── */
+        .btn-shimmer {
+          position: relative;
+          overflow: hidden;
+        }
+        .btn-shimmer::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%);
+          transform: translateX(-100%);
+          transition: transform 0s;
+        }
+        .btn-shimmer:hover::after {
+          transform: translateX(100%);
+          transition: transform 0.55s ease;
+        }
+
+        /* ── Pulse glow on highlighted feature dots ── */
+        @keyframes dotPulse {
+          0%,100% { opacity: 0.8; }
+          50%      { opacity: 1; box-shadow: 0 0 0 3px currentColor; }
+        }
+        .feature-dot-highlight { animation: dotPulse 3s ease-in-out infinite; }
+
+        /* ── Section bg gradient drift ── */
+        @keyframes gradDrift {
+          0%,100% { background-position: 0% 50%; }
+          50%      { background-position: 100% 50%; }
+        }
+        .grad-drift {
+          background-size: 200% 200%;
+          animation: gradDrift 12s ease infinite;
+        }
+
+        /* ── Hover lift on cards ── */
+        .card-lift {
+          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+        }
+        .card-lift:hover { transform: translateY(-6px); }
+
+        /* ── Stat number count-up (font variant) ── */
+        .stat-num { font-variant-numeric: tabular-nums; }
+
+        /* ── Soft scroll-fade for section dividers ── */
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+      `}</style>
+
+      <div className="min-h-screen">
+
+        {/* ============================================================ NAV */}
+        <nav
+          className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+          style={{
+            background: navScrolled ? 'rgba(250,247,240,0.93)' : 'transparent',
+            backdropFilter: navScrolled ? 'blur(10px)' : 'none',
+            borderBottom: navScrolled ? '1px solid rgba(96,48,0,0.10)' : '1px solid transparent',
+            padding: navScrolled ? '14px 0' : '20px 0',
+          }}
+        >
+          <div className="max-w-6xl mx-auto px-5 md:px-8 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <LogoMark size={32} className="rounded-xl" />
+              <BrandLogo size="md" />
             </div>
-            {/* Level 3: the collection cycle in three words — the core brand
-                idea (doc §2/§4) made literal. */}
-            <div className="flex items-center justify-center lg:justify-start gap-1.5 mt-7 flex-wrap">
-              {[
-                { icon: Wallet, label: 'Collect' },
-                { icon: FileText, label: 'Record' },
-                { icon: MessageCircle, label: 'Share' },
-              ].map((step, i, arr) => (
-                <div key={step.label} className="flex items-center gap-1.5">
-                  <span className="badge badge-saffron">
-                    <step.icon size={12} /> {step.label}
-                  </span>
-                  {i < arr.length - 1 && <ArrowRight size={11} className="text-theme-fg/25" />}
-                </div>
+
+            <div className="hidden md:flex items-center gap-7 text-sm font-medium text-saffron-900/70 dark:text-saffron-100/70">
+              <a href="#how" className="hover:text-saffron-700 dark:hover:text-saffron-300 transition-colors">{t('How it works', 'कसे काम करते', 'यह कैसे काम करता है')}</a>
+              <a href="#occasions" className="hover:text-saffron-700 dark:hover:text-saffron-300 transition-colors">{t('For your mandal', 'तुमच्या मंडळासाठी', 'आपके मंडल के लिए')}</a>
+              <a href="#pricing" className="hover:text-saffron-700 dark:hover:text-saffron-300 transition-colors">{t('Pricing', 'किंमत योजना', 'मूल्य योजनाएं')}</a>
+              <a href="#contact" className="hover:text-saffron-700 dark:hover:text-saffron-300 transition-colors">{t('Contact', 'संपर्क', 'संपर्क')}</a>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex border border-saffron-800/20 rounded-full p-[3px]" role="group" aria-label="Language">
+                {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setLangState(l)}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all duration-200 ${
+                      lang === l
+                        ? 'bg-saffron-700 text-white'
+                        : 'text-saffron-800/70 dark:text-saffron-200/70 hover:bg-saffron-100/60 dark:hover:bg-saffron-900/30'
+                    }`}
+                  >
+                    {l === 'en' ? 'EN' : l === 'mr' ? 'मर' : 'हि'}
+                  </button>
+                ))}
+              </div>
+
+              <Link href="/login" className="hidden sm:inline-flex text-sm font-semibold text-saffron-800 dark:text-saffron-200 hover:text-saffron-600 transition-colors">
+                {t('Sign In', 'लॉग इन', 'लॉग इन')}
+              </Link>
+
+              <Link
+                href="/register"
+                className="btn-shimmer flex items-center gap-1.5 px-4 py-2 rounded-full bg-saffron-700 hover:bg-saffron-800 text-white text-sm font-semibold transition-all duration-200 hover:-translate-y-px hover:shadow-lg hover:shadow-saffron-700/25"
+              >
+                {t('Get Started', 'सुरुवात करा', 'शुरू करें')}
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        {/* =========================================================== HERO */}
+        <header className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center max-w-6xl mx-auto px-5 md:px-8 pt-40 pb-20">
+          <Reveal dir="right" threshold={0.05}>
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-saffron-700 border border-saffron-500/50 rounded-full px-4 py-1.5 mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
+              {t('Digital Pavtis · Honest Accounts', 'डिजिटल पावती · प्रामाणिक हिशोब', 'डिजिटल पावती · ईमानदार हिसाब')}
+            </span>
+
+            <h1 className="text-[clamp(2.2rem,5vw,3.6rem)] font-bold leading-tight text-saffron-900 dark:text-saffron-50 mb-5">
+              {t('Every pavti, every rupee', 'प्रत्येक पावती, प्रत्येक रुपया', 'हर पावती, हर रुपया')}
+              <span className="block mt-2">
+                {t('— accounted for', '— हिशोबात,', '— का हिसाब,')}{' '}
+                <span
+                  className="inline-block rounded-xl px-4 py-1 text-[#4A3A0E]"
+                  style={{ background: 'linear-gradient(135deg,#E8C878,#C89B3C)', boxShadow: '0 8px 20px -6px rgba(201,162,39,0.50)' }}
+                >
+                  <span key={rotatorIdx} className="rotator-word">{ROTATOR_WORDS[lang][rotatorIdx]}</span>
+                </span>
+              </span>
+            </h1>
+
+            <p className="text-base text-saffron-900/60 dark:text-saffron-100/60 max-w-lg mb-8 leading-relaxed">
+              {t(
+                `${BRAND_NAME} replaces the carbon-copy receipt book with digital pavtis, live expense logs and donation records every committee member and donor can see — for mandals, utsav samitis and public trusts.`,
+                `${BRAND_NAME} कार्बन-कॉपी पावती पुस्तिकेच्या जागी डिजिटल पावती, लाइव्ह खर्चाचा हिशोब व देणगीच्या नोंदी आणते — मंडळे, उत्सव समित्या व सार्वजनिक ट्रस्टसाठी.`,
+                `${BRAND_NAME} कार्बन-कॉपी पावती बुक की जगह डिजिटल पावती, लाइव खर्च का हिसाब और दान का रिकॉर्ड लाता है — मंडल, उत्सव समितियों और सार्वजनिक ट्रस्ट के लिए.`,
+              )}
+            </p>
+
+            <div className="flex gap-3 flex-wrap mb-6">
+              <a
+                href="#pricing"
+                className="btn-shimmer flex items-center gap-2 px-6 py-3 rounded-full bg-saffron-700 hover:bg-saffron-800 text-white font-semibold transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-saffron-700/30"
+              >
+                {t('See plans', 'योजना पहा', 'योजनाएं देखें')} <ArrowRight size={15} />
+              </a>
+              <a
+                href="#how"
+                className="flex items-center gap-2 px-6 py-3 rounded-full border border-saffron-800/25 dark:border-saffron-200/25 text-saffron-800 dark:text-saffron-200 font-semibold hover:bg-saffron-800/5 transition-all"
+              >
+                {t('How it works', 'कसे काम करते', 'यह कैसे काम करता है')}
+              </a>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-saffron-900/50 dark:text-saffron-100/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
+              {t(
+                'Built for Ganesh Utsav, Navratri and everyday mandal collections',
+                'गणेशोत्सव, नवरात्र आणि दैनंदिन मंडळ वर्गणीसाठी तयार',
+                'गणेशोत्सव, नवरात्रि और रोज़मर्रा की मंडल वसूली के लिए बनाया गया',
+              )}
+            </div>
+          </Reveal>
+
+          <Reveal dir="left" delay={200} className="flex justify-center lg:justify-end">
+            <div
+              className="w-full max-w-[340px] drop-shadow-2xl"
+              style={{ animation: 'floatCard 6s ease-in-out infinite' }}
+            >
+              {/* qrPath: this receipt is a synthetic demo (id: 'preview'),
+                  not a real row — without an override its QR code would
+                  scan to a live receipt-not-found page. /register is a
+                  real, working destination for a curious visitor. */}
+              <ReceiptPreview receipt={HERO_PREVIEW_RECEIPT} qrPath="/register" />
+            </div>
+          </Reveal>
+        </header>
+
+        {/* ========================================================== ABOUT */}
+        <section id="about" className="max-w-6xl mx-auto px-5 md:px-8 py-20">
+          <Reveal>
+            <div className="max-w-xl mb-8">
+              <span className="text-xs font-bold uppercase tracking-widest text-saffron-600 dark:text-saffron-400">
+                {t('About', 'आमच्याबद्दल', 'हमारे बारे में')}
+              </span>
+              <h2 className="text-[clamp(1.6rem,3vw,2.3rem)] font-bold text-saffron-900 dark:text-saffron-50 mt-2 leading-tight">
+                {t('Trust is the real currency mandals run on', 'विश्वास हेच मंडळांचे खरे भांडवल आहे', 'विश्वास ही वह असली पूंजी है जिस पर मंडल चलते हैं')}
+              </h2>
+            </div>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+              <p className="text-saffron-900/60 dark:text-saffron-100/55 leading-relaxed text-sm">
+                {t(
+                  'Every mandal collects on trust — from members, from neighbours, from donors who expect their contribution to be recorded and used the way it was promised. Paper receipt books make that hard to prove after the fact.',
+                  'प्रत्येक मंडळ विश्वासावर वर्गणी गोळा करते — सदस्यांकडून, शेजाऱ्यांकडून, देणगीदारांकडून जे आपल्या योगदानाची नोंद व्हावी अशी अपेक्षा ठेवतात. कागदी पावती पुस्तिकेत हे नंतर सिद्ध करणे कठीण जाते.',
+                  'हर मंडल विश्वास पर चंदा इकट्ठा करता है — सदस्यों से, पड़ोसियों से, उन दानदाताओं से जो चाहते हैं कि उनका योगदान दर्ज हो। कागज़ी पावती बुक में यह बाद में साबित करना मुश्किल होता है.',
+                )}
+              </p>
+              <p className="text-saffron-900/60 dark:text-saffron-100/55 leading-relaxed text-sm">
+                {t(
+                  `${BRAND_NAME} turns every collection into a digital pavti, logged the moment it's issued, with expenses and balances any committee member — or donor — can check. No more reconciling carbon copies after the utsav ends.`,
+                  `${BRAND_NAME} प्रत्येक वर्गणीला डिजिटल पावतीत रूपांतरित करते, ती दिली जाताच नोंदवली जाते — खर्च आणि शिल्लक कोणताही समिती सदस्य तपासू शकतो. उत्सव संपल्यावर कार्बन कॉपी जुळवण्याची गरज उरत नाही.`,
+                  `${BRAND_NAME} हर चंदे को डिजिटल पावती में बदल देता है, जो मिलते ही दर्ज हो जाती है — खर्च और बकाया कोई भी समिति सदस्य देख सकता है। उत्सव खत्म होने के बाद कार्बन कॉपी मिलाने की जरूरत नहीं रहती.`,
+                )}
+              </p>
+          </div>
+        </section>
+
+        {/* ====================================================== HOW IT WORKS */}
+        <section id="how" className="border-y" style={{ background: 'var(--card-bg)', borderColor: 'rgba(96,48,0,0.10)' }}>
+          <div className="max-w-6xl mx-auto px-5 md:px-8 py-20">
+            <Reveal className="max-w-xl mb-10">
+              <span className="text-xs font-bold uppercase tracking-widest text-saffron-600 dark:text-saffron-400">
+                {t('How it works', 'कसे काम करते', 'यह कैसे काम करता है')}
+              </span>
+              <h2 className="text-[clamp(1.6rem,3vw,2.3rem)] font-bold text-saffron-900 dark:text-saffron-50 mt-2 leading-tight">
+                {t('From collection to accounted-for, in four steps', 'वर्गणी ते हिशोब, अवघ्या चार टप्प्यांत', 'चंदे से हिसाब तक, सिर्फ चार चरणों में')}
+              </h2>
+            </Reveal>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-saffron-200/40 dark:divide-saffron-900/40 border border-saffron-200/40 dark:border-saffron-900/40 rounded-2xl overflow-hidden">
+              {HOW_IT_WORKS.map((step, i) => (
+                <Reveal key={step.step} delay={i * 100} dir="up" threshold={0.08}>
+                  <div className="px-6 py-7 h-full" style={{ background: 'var(--card-bg)' }}>
+                    <span className="font-mono text-xs font-bold text-gold-500/70">{step.step}</span>
+                    <h3 className="font-semibold text-saffron-900 dark:text-saffron-50 text-sm mt-2 mb-2">
+                      {lang === 'mr' ? step.titleMr : lang === 'hi' ? step.titleHi : step.title}
+                    </h3>
+                    <p className="text-xs text-saffron-900/55 dark:text-saffron-100/50 leading-relaxed">
+                      {lang === 'mr' ? step.descMr : lang === 'hi' ? step.descHi : step.desc}
+                    </p>
+                  </div>
+                </Reveal>
               ))}
             </div>
-            <div className="flex items-center justify-center lg:justify-start gap-6 mt-6 text-xs text-theme-fg/40 flex-wrap">
-              <span className="flex items-center gap-1.5"><ShieldCheck size={13} /> Secure & Reliable</span>
-              <span className="flex items-center gap-1.5"><Smartphone size={13} /> Easy to Use</span>
-              <span className="flex items-center gap-1.5"><MessageCircle size={13} /> Dedicated Support</span>
+          </div>
+        </section>
+
+        {/* ======================================================= OCCASIONS */}
+        <section id="occasions" className="max-w-6xl mx-auto px-5 md:px-8 py-16">
+          <Reveal>
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-xs font-semibold uppercase tracking-wider text-saffron-900/40 dark:text-saffron-100/40 shrink-0">
+                {t('Built for —', 'यांच्यासाठी खास —', 'इनके लिए खास —')}
+              </span>
+              {OCCASIONS.map((o, i) => (
+                <span
+                  key={o.en}
+                  className="text-xs px-4 py-2 rounded-full border border-saffron-300/50 dark:border-saffron-700/40 text-saffron-900/60 dark:text-saffron-100/50 inline-block"
+                  style={{ background: 'var(--card-bg)', animation: `fadeUp 0.5s ease both`, animationDelay: `${i * 50}ms` }}
+                >
+                  {lang === 'mr' ? o.mr : lang === 'hi' ? o.hi : o.en}
+                </span>
+              ))}
             </div>
-          </div>
+          </Reveal>
+        </section>
 
-          <div className="flex justify-center lg:justify-end">
-            <div className="-rotate-2 hover:rotate-0 transition-transform duration-300 w-full max-w-[320px]">
-              <ReceiptPreview receipt={HERO_PREVIEW_RECEIPT} />
-            </div>
-          </div>
-        </div>
-      </section>
+        {/* ========================================================= PRICING */}
+        <section id="pricing" className="max-w-6xl mx-auto px-5 md:px-8 py-20">
+          <Reveal className="text-center mb-12">
+            <span className="text-xs font-bold uppercase tracking-widest text-saffron-600 dark:text-saffron-400">
+              {t('Pricing', 'किंमत योजना', 'मूल्य योजनाएं')}
+            </span>
+            <h2 className="text-[clamp(1.6rem,3vw,2.3rem)] font-bold text-saffron-900 dark:text-saffron-50 mt-2">
+              {t('Choose the experience your Mandal deserves', 'तुमच्या मंडळासाठी योग्य योजना निवडा', 'अपने मंडल के लिए सही योजना चुनें')}
+            </h2>
+            <p className="text-sm text-saffron-900/50 dark:text-saffron-100/40 mt-2 max-w-lg mx-auto">
+              {t('One price per festival season — not a recurring subscription.', 'एका उत्सव हंगामासाठी एक किंमत — मासिक शुल्क नाही.', 'एक त्योहार के मौसम के लिए एक कीमत — मासिक सदस्यता नहीं.')}
+            </p>
+          </Reveal>
 
-      {/* About/Trust */}
-      <section className="max-w-6xl mx-auto px-4 md:px-6 py-16">
-        <div className="max-w-xl mb-10">
-          <span className="text-xs font-bold uppercase tracking-wider text-saffron-500">About</span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mt-2 leading-tight">Trust Is the Real Currency Mandals Run On</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-          <p className="text-sm text-theme-fg/60 leading-relaxed">
-            Every Mandal collects on trust — from members, from neighbours, from donors who expect their
-            contribution to be recorded and used the way it was promised. A paper receipt book makes that
-            hard to prove after the fact.
-          </p>
-          <p className="text-sm text-theme-fg/60 leading-relaxed">
-            {BRAND_NAME} turns every collection into a digital Pavti, logged the moment it&apos;s issued,
-            with expenses and balances any committee member — or donor — can check. No more reconciling
-            carbon copies after the festival ends.
-          </p>
-        </div>
-      </section>
-
-      {/* How It Works — the familiar Pavti workflow, made concrete in four
-          steps (not asking anyone to learn something new). Divided-grid
-          band, not individual floating cards — reads as one continuous
-          process, not four separate features. */}
-      <section id="how" className="bg-theme-fg/[0.02] border-y border-theme">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-16">
-          <div className="text-center mb-10">
-            <span className="text-xs font-bold uppercase tracking-wider text-saffron-500">How It Works</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mt-2">From Collection to Accounted-For, in Four Steps</h2>
-          </div>
-          {/* gap-px + a border-colored container background is what makes
-              this grid line up correctly at every breakpoint (1/2/4
-              columns) without hand-tracking which index needs a border on
-              which side — nth-child math for a wrapping grid gets wrong
-              fast, this can't. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-theme rounded-2xl overflow-hidden border border-theme">
-            {HOW_IT_WORKS.map((step, i) => (
-              <div key={step.title} className="px-6 py-6 bg-[var(--card-bg)]">
-                <span className="text-xs font-bold text-saffron-500/60 font-mono">0{i + 1}</span>
-                <h3 className="font-semibold text-theme-fg text-sm mt-2 mb-1.5">{step.title}</h3>
-                <p className="text-xs text-theme-fg/50 leading-relaxed">{step.desc}</p>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PRICING_PLANS.map((plan, i) => (
+              <Reveal key={plan.id} delay={i * 90} dir="up" threshold={0.08}>
+                <PricingCard plan={plan} />
+              </Reveal>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Occasions — broadens the "who this is for" read at a glance;
-          e-Pavti isn't scoped to one festival or one kind of organization. */}
-      <section id="occasions" className="max-w-6xl mx-auto px-4 md:px-6 pb-16">
-        <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-start">
-          <span className="text-xs font-semibold text-theme-fg/40 uppercase tracking-wide shrink-0">Built for —</span>
-          {OCCASIONS.map((o) => (
-            <span key={o} className="text-xs px-3.5 py-2 rounded-full border border-theme-fg/10 bg-theme-fg/[0.02] text-theme-fg/60">
-              {o}
-            </span>
-          ))}
-        </div>
-      </section>
+          {/* ── Baseline features footnote ─────────────────────────────────── */}
+          <Reveal delay={200}>
+            <p className="text-center text-[11px] text-saffron-900/40 dark:text-saffron-100/35 mt-6 max-w-xl mx-auto leading-relaxed">
+              {t(
+                'Every plan includes QR-verified pavtis, WhatsApp sharing, income & expense tracking, reports, PDF download, and Marathi · Hindi · English support.',
+                'सर्व योजनांमध्ये QR-पडताळणी, WhatsApp शेअरिंग, जमा-खर्च हिशोब, अहवाल, PDF डाउनलोड आणि मराठी · हिंदी · इंग्रजी भाषा आहे.',
+                'सभी योजनाओं में QR-सत्यापन, WhatsApp शेयरिंग, आय-व्यय ट्रैकिंग, रिपोर्ट, PDF डाउनलोड और मराठी · हिंदी · अंग्रेज़ी भाषा शामिल है।',
+              )}
+            </p>
+          </Reveal>
 
-      {/* Features */}
-      <section className="max-w-6xl mx-auto px-4 md:px-6 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mb-2">Everything Your Organization Needs</h2>
-          <p className="text-sm text-theme-fg/50">One app for receipts, collections, expenses and reporting.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="glass-card-hover p-5">
-              <div className="w-10 h-10 rounded-xl bg-saffron-600/15 flex items-center justify-center text-saffron-400 mb-3">
-                <f.icon size={18} />
-              </div>
-              <h3 className="font-semibold text-theme-fg text-sm mb-1">{f.title}</h3>
-              <p className="text-xs text-theme-fg/50">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pricing — Free Trial gets its own banner rather than sitting as a
-          4th grid card: it's the low-commitment on-ramp, not a peer of the
-          three paid tiers, and deserves to read that way. The comparison
-          table below still includes it as a full column for anyone who
-          wants the complete picture. */}
-      <section id="pricing" className="max-w-6xl mx-auto px-4 md:px-6 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold text-theme-fg mb-2">Choose the Experience Your Mandal Deserves</h2>
-          <p className="text-sm text-theme-fg/50">Go digital this festival season — every plan is priced per season, not a subscription you'll forget about.</p>
-        </div>
-
-        {FREE_PLAN && (
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 p-5 sm:p-6 rounded-2xl bg-saffron-500/[0.06] border border-dashed border-saffron-500/30 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-saffron-500/10 flex items-center justify-center text-saffron-500 shrink-0">
-              <Sparkles size={22} />
-            </div>
-            <div className="flex-1 text-center sm:text-left">
-              <p className="font-bold text-theme-fg text-sm">
-                Not ready to commit? Start with {FREE_PLAN.name} — {FREE_PLAN.marathiDescriptor}
-              </p>
-              <p className="text-xs text-theme-fg/50 mt-0.5">
-                {formatPlanLimit(FREE_PLAN.receiptLimit, 'Digital Pavtis')} · {FREE_PLAN.priceNote}
-              </p>
-            </div>
-            <Link href="/register?plan=free" className="btn-primary px-5 py-2.5 text-sm shrink-0">
-              Start Free Trial <ArrowRight size={14} />
-            </Link>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-stretch">
-          {PRICING_PLANS.filter((plan) => plan.id !== 'FREE').map((plan) => <PricingCard key={plan.id} plan={plan} />)}
-        </div>
-        <PlanComparisonTable />
-      </section>
-
-      {/* CTA band — the closing conversion moment the page was missing;
-          same dark treatment as the Premium tier so it reads as "the
-          serious version" of the page rather than a bolted-on banner. */}
-      <section className="bg-navy-900 dark:bg-[#120D08]">
-        <div className="max-w-3xl mx-auto px-4 md:px-6 py-16 text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-saffron-400">Get Started</span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mt-2 mb-3">Bring Your Next Collection Online</h2>
-          <p className="text-sm text-white/60 max-w-lg mx-auto mb-8">
-            Set up your Mandal&apos;s digital Pavti book before the next festival season — start free,
-            or talk to us on WhatsApp and we&apos;ll help you pick the right plan.
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link href="/register" className="btn-primary px-6 py-3">
-              Try {BRAND_SHORT_NAME} Free <ArrowRight size={16} />
-            </Link>
-            <a
-              href={platformWhatsappLink(`Hi, I'd like to set up ${BRAND_NAME} for my mandal.`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-ghost px-6 py-3 border border-white/30 text-white hover:bg-white hover:text-navy-900"
+          {/* Collapsible comparison table */}
+          <div className="mt-10 text-center">
+            <button
+              type="button"
+              onClick={() => setCompareOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-saffron-600 hover:text-saffron-700 dark:text-saffron-400 transition-colors"
             >
-              <MessageCircle size={16} /> Chat on WhatsApp
-            </a>
-          </div>
-        </div>
-      </section>
+              {compareOpen
+                ? t('Hide comparison', 'तुलना लपवा', 'तुलना छुपाएं')
+                : t('Compare all plans in detail', 'सर्व योजनांची तुलना करा', 'सभी योजनाओं की तुलना करें')}
+              <ChevronDown size={15} className={`transition-transform duration-300 ${compareOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-      {/* Footer */}
-      <footer className="border-t border-theme py-12">
-        <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="flex flex-col sm:flex-row justify-between gap-10">
-            <div className="max-w-xs">
-              <div className="flex items-center gap-2.5 mb-3">
-                <LogoMark size={28} className="rounded-lg" />
-                <span className="font-bold text-theme-fg text-sm">{BRAND_NAME}</span>
+            {compareOpen && (
+              <div className="mt-6 rounded-2xl border border-saffron-200/50 dark:border-saffron-900/50 overflow-x-auto text-left" style={{ background: 'var(--card-bg)' }}>
+                <table className="w-full min-w-[540px] text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-saffron-200/40 dark:border-saffron-900/40">
+                      <th className="text-left py-3 px-5 text-saffron-900/40 dark:text-saffron-100/40 font-semibold uppercase tracking-wide">{t('Feature', 'वैशिष्ट्य', 'विशेषता')}</th>
+                      {PRICING_PLANS.map((p) => (
+                        <th key={p.id} className="text-left py-3 px-4 font-bold text-saffron-800 dark:text-saffron-200">{p.name}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      // Driven by the real plan data (MAX_*_BY_PLAN, both
+                      // already enforced server-side) rather than repeated
+                      // literals, so this table can't silently drift out of
+                      // sync the way a hand-copied ['1','1','2','5'] would.
+                      { label: t('Digital Pavtis', 'डिजिटल पावत्या', 'डिजिटल पावतियां'), values: PRICING_PLANS.map((p) => formatPlanLimit(p.receiptLimit, '')) },
+                      { label: t('Field Collectors', 'कार्यकर्ते', 'कार्यकर्ता'), values: PRICING_PLANS.map((p) => formatPlanLimit(p.collectorLimit, '')) },
+                      { label: t('Active Campaigns', 'मोहिमा', 'अभियान'), values: PRICING_PLANS.map((p) => String(MAX_ACTIVE_CAMPAIGNS_BY_PLAN[p.id])) },
+                      { label: t('WhatsApp Delivery', 'व्हॉट्सॲप शेअर', 'व्हाट्सएप शेयर'), values: ['✓', '✓', '✓', '✓'] },
+                      { label: t('QR Code Verification', 'QR पडताळणी', 'QR सत्यापन'), values: ['✓', '✓', '✓', '✓'] },
+                      // Every plan actually includes this (see the footnote
+                      // just above the table, and resolvePlanFeatures's FREE
+                      // entry) — was previously shown as "—" for FREE, which
+                      // directly contradicted that footnote on the same page.
+                      { label: t('Income & Expense Tracking', 'जमा-खर्च हिशोब', 'आय-व्यय ट्रैकिंग'), values: ['✓', '✓', '✓', '✓'] },
+                      { label: t('Custom Branding', 'कस्टम ब्रँडिंग', 'कस्टम ब्रांडिंग'), values: ['—', '—', '✓', '✓'] },
+                      { label: t('Devotional Pavti Experience', 'दर्शन पावती अनुभव', 'दर्शन पावती अनुभव'), values: ['—', '—', '—', '✓'] },
+                    ].map((row) => (
+                      <tr key={row.label} className="border-b border-saffron-200/30 dark:border-saffron-900/30 last:border-0">
+                        <td className="py-2.5 px-5 font-medium text-saffron-900/60 dark:text-saffron-100/60">{row.label}</td>
+                        {row.values.map((v, i) => (
+                          <td key={i} className={`py-2.5 px-4 font-semibold ${v === '✓' ? 'text-success-500' : v === '—' ? 'text-saffron-900/20 dark:text-saffron-100/20' : 'text-saffron-800 dark:text-saffron-200'}`}>{v}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <p className="text-xs text-theme-fg/45">
-                Digital receipts and honest accounts for Mandals, utsav samitis, temple trusts and community organizations.
+            )}
+          </div>
+        </section>
+
+        {/* ============================================================= CTA */}
+        <section id="contact" style={{ background: 'radial-gradient(130% 150% at 20% 0%,#3B1310 0%,#260B09 70%)' }}>
+          <div className="max-w-3xl mx-auto px-5 md:px-8 py-20 text-center">
+            <Reveal>
+              <span className="text-xs font-bold uppercase tracking-widest text-gold-400">
+                {t('Get started', 'सुरुवात करा', 'शुरू करें')}
+              </span>
+              <h2 className="text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-[#FBF3DE] mt-3 mb-4">
+                {t('Bring your next collection online', 'तुमची पुढील वर्गणी ऑनलाइन आणा', 'अपनी अगली वसूली ऑनलाइन लाएं')}
+              </h2>
+              <p className="text-sm max-w-lg mx-auto mb-8 leading-relaxed" style={{ color: 'rgba(247,239,221,0.65)' }}>
+                {t(
+                  "Set up your mandal's digital pavti book before the next utsav — start free, or talk to us on WhatsApp and we'll help you pick the right plan.",
+                  'पुढील उत्सवापूर्वी तुमच्या मंडळाचे डिजिटल पावती बुक सुरू करा — विनामूल्य सुरू करा किंवा आमच्याशी बोला.',
+                  'अगले उत्सव से पहले अपने मंडल की डिजिटल पावती बुक शुरू करें — मुफ्त शुरू करें या हमसे बात करें.',
+                )}
               </p>
+              <div className="flex justify-center gap-4 flex-wrap">
+                <Link
+                  href="/register"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-saffron-600 hover:bg-saffron-700 text-white font-semibold transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-saffron-700/30"
+                >
+                  {t('Start Free Trial', 'मोफत सुरुवात करा', 'मुफ्त शुरू करें')} <ArrowRight size={15} />
+                </Link>
+                <a
+                  href={platformWhatsappLink(`Hi, I'd like to set up ${BRAND_NAME} for my mandal.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all"
+                  style={{ border: '1px solid rgba(247,239,221,0.35)', color: '#F7EFDD' }}
+                >
+                  <MessageCircle size={15} /> {t('Chat on WhatsApp', 'व्हॉट्सॲपवर बोला', 'व्हाट्सएप पर बात करें')}
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ========================================================== FOOTER */}
+        <footer style={{ background: '#260B09', color: 'rgba(247,239,221,0.60)' }} className="pt-12 pb-8">
+          <div className="max-w-6xl mx-auto px-5 md:px-8">
+            <div className="flex flex-col sm:flex-row justify-between gap-10 flex-wrap">
+              <div className="max-w-xs">
+                <div className="flex items-center gap-2.5 mb-3">
+                  {/* forceTheme="dark": this footer's background is
+                      hardcoded dark regardless of the site's own theme
+                      toggle — same reason BrandLogo takes its own `dark`
+                      prop right below instead of reading site theme. */}
+                  <LogoMark size={26} className="rounded-lg" forceTheme="dark" />
+                  <BrandLogo size="sm" dark />
+                </div>
+                <p className="text-xs leading-relaxed">
+                  {t(
+                    'Digital pavtis and honest accounts for mandals, utsav samitis and public trusts.',
+                    'मंडळे, उत्सव समित्या आणि सार्वजनिक ट्रस्टसाठी डिजिटल पावती व प्रामाणिक हिशोब.',
+                    'मंडल, उत्सव समितियों और सार्वजनिक ट्रस्ट के लिए डिजिटल पावती और ईमानदार हिसाब.',
+                  )}
+                </p>
+              </div>
+
+              <div className="flex gap-14 flex-wrap">
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: '#C89B3C' }}>
+                    {t('Product', 'उत्पादन', 'उत्पाद')}
+                  </h4>
+                  <div className="flex flex-col gap-2 text-xs">
+                    <a href="#how" className="transition-colors hover:text-[#F7EFDD]">{t('How it works', 'कसे काम करते', 'यह कैसे काम करता है')}</a>
+                    <a href="#pricing" className="transition-colors hover:text-[#F7EFDD]">{t('Pricing', 'किंमत योजना', 'मूल्य योजनाएं')}</a>
+                    <a href="#occasions" className="transition-colors hover:text-[#F7EFDD]">{t("Who it's for", 'कोणासाठी', 'किनके लिए')}</a>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: '#C89B3C' }}>
+                    {t('Account', 'खाते', 'खाता')}
+                  </h4>
+                  <div className="flex flex-col gap-2 text-xs">
+                    <Link href="/login" className="transition-colors hover:text-[#F7EFDD]">{t('Sign In', 'लॉग इन', 'लॉग इन')}</Link>
+                    <Link href="/register" className="transition-colors hover:text-[#F7EFDD]">{t('Register', 'नोंदणी', 'रजिस्टर')}</Link>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[11px] font-semibold uppercase tracking-widest mb-3" style={{ color: '#C89B3C' }}>
+                    {t('Reach us', 'आमच्याशी संपर्क', 'हमसे संपर्क करें')}
+                  </h4>
+                  <div className="flex flex-col gap-2 text-xs">
+                    <a href="mailto:hello@epavtibook.com" className="transition-colors hover:text-[#F7EFDD]">hello@epavtibook.com</a>
+                    <a href="mailto:support@epavtibook.com" className="transition-colors hover:text-[#F7EFDD]">support@epavtibook.com</a>
+                    <a href="mailto:sales@epavtibook.com" className="transition-colors hover:text-[#F7EFDD]">sales@epavtibook.com</a>
+                    <a
+                      href={platformWhatsappLink(`Hi, I have a question about ${BRAND_NAME}.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transition-colors hover:text-[#F7EFDD]"
+                    >
+                      {t('WhatsApp Us', 'व्हॉट्सॲप करा', 'व्हाट्सएप करें')}
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-12 flex-wrap">
-              <div>
-                <h4 className="text-[11px] font-semibold uppercase tracking-wide text-saffron-500 mb-3">Product</h4>
-                <div className="flex flex-col gap-2 text-xs text-theme-fg/50">
-                  <a href="#how" className="hover:text-theme-fg">How it works</a>
-                  <a href="#pricing" className="hover:text-theme-fg">Pricing</a>
-                  <a href="#occasions" className="hover:text-theme-fg">Who it&apos;s for</a>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-[11px] font-semibold uppercase tracking-wide text-saffron-500 mb-3">Account</h4>
-                <div className="flex flex-col gap-2 text-xs text-theme-fg/50">
-                  <Link href="/login" className="hover:text-theme-fg">Sign In</Link>
-                  <Link href="/register" className="hover:text-theme-fg">Register</Link>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-[11px] font-semibold uppercase tracking-wide text-saffron-500 mb-3">Reach Us</h4>
-                <div className="flex flex-col gap-2 text-xs text-theme-fg/50">
-                  <a href={platformWhatsappLink(`Hi, I have a question about ${BRAND_NAME}.`)} target="_blank" rel="noopener noreferrer" className="hover:text-theme-fg">WhatsApp Us</a>
-                </div>
-              </div>
+
+            <div
+              className="mt-10 pt-5 flex flex-col sm:flex-row justify-between gap-2 text-[11px]"
+              style={{ borderTop: '1px solid rgba(247,239,221,0.12)' }}
+            >
+              <span>© {new Date().getFullYear()} {BRAND_NAME} · {BRAND_TAGLINE}</span>
+              <span style={{ color: 'rgba(247,239,221,0.35)' }}>
+                {t('Made with devotion in India 🇮🇳', 'भारतात श्रद्धेने बनवले 🇮🇳', 'भारत में श्रद्धा से बनाया 🇮🇳')}
+              </span>
             </div>
           </div>
-          <div className="mt-10 pt-6 border-t border-theme text-xs text-theme-fg/40">
-            © {new Date().getFullYear()} {BRAND_NAME} · {BRAND_TAGLINE}
-          </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+
+      </div>
+    </>
   );
 }

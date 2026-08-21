@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCollectorDto, UpdateCollectorDto } from './dto/collector.dto';
 import { MAX_COLLECTORS_BY_PLAN, SubscriptionPlan } from '@pavti/shared';
@@ -75,7 +76,10 @@ export class CollectorsService {
 
   async update(id: string, orgId: string, data: UpdateCollectorDto) {
     await this.findOne(id, orgId);
-    const updateData: any = {
+    // Unchecked, not the plain UpdateInput — this assigns the raw areaId
+    // scalar column directly (matching create()'s same pattern just above),
+    // not a relation `area: { connect/disconnect }` object.
+    const updateData: Prisma.UserUncheckedUpdateInput = {
       name: data.name,
       email: data.email,
       role: data.role,
@@ -97,7 +101,7 @@ export class CollectorsService {
 
   async getStats(id: string, orgId: string, campaignId?: string) {
     await this.findOne(id, orgId);
-    const where: any = { collectorId: id, isVoided: false };
+    const where: Prisma.ReceiptWhereInput = { collectorId: id, isVoided: false };
     if (campaignId) where.campaignId = campaignId;
 
     // Split by collectionType: a collector's "normal" donation total and

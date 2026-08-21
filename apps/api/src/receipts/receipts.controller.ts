@@ -7,7 +7,7 @@ import { Response } from 'express';
 import { ReceiptsService } from './receipts.service';
 import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto, UpdateReceiptDto } from './dto/receipt.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole, ReceiptStatus } from '@pavti/shared';
 
@@ -23,7 +23,7 @@ export class ReceiptsController {
   @ApiOperation({ summary: 'Create a new receipt (Pavti)' })
   create(
     @Body() dto: CreateReceiptDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Headers('user-agent') userAgent: string,
   ) {
     return this.receiptsService.create(dto, user.id, user.orgId, userAgent);
@@ -34,7 +34,7 @@ export class ReceiptsController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all receipts with filters' })
-  findAll(@Query() query: ReceiptQueryDto, @CurrentUser() user: any) {
+  findAll(@Query() query: ReceiptQueryDto, @CurrentUser() user: AuthenticatedUser) {
     return this.receiptsService.findAll(user.orgId, query, user.role, user.id);
   }
 
@@ -44,7 +44,7 @@ export class ReceiptsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Export receipts as CSV' })
   async exportCsv(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('campaignId') campaignId: string,
     @Res() res: Response,
   ) {
@@ -65,7 +65,7 @@ export class ReceiptsController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a single receipt by ID' })
-  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.receiptsService.findOne(id, user.orgId, { role: user.role, userId: user.id });
   }
 
@@ -74,7 +74,7 @@ export class ReceiptsController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Download a PNG snapshot of the pavti (used for the WhatsApp image + caption share)' })
-  async getImage(@Param('id') id: string, @CurrentUser() user: any, @Res() res: Response) {
+  async getImage(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Res() res: Response) {
     const image = await this.receiptsService.getReceiptImage(id, user.orgId, { role: user.role, userId: user.id });
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Disposition', `inline; filename=pavti-${id}.png`);
@@ -89,7 +89,7 @@ export class ReceiptsController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateReceiptDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.receiptsService.update(id, dto, user.id, user.orgId);
   }
@@ -102,7 +102,7 @@ export class ReceiptsController {
   void(
     @Param('id') id: string,
     @Body() dto: VoidReceiptDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.receiptsService.void(id, dto, user.id, user.orgId);
   }
@@ -112,7 +112,7 @@ export class ReceiptsController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get unique list of existing donors' })
-  getUniqueDonors(@CurrentUser() user: any) {
+  getUniqueDonors(@CurrentUser() user: AuthenticatedUser) {
     return this.receiptsService.findUniqueDonors(user.orgId);
   }
 
@@ -124,7 +124,7 @@ export class ReceiptsController {
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: ReceiptStatus,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.receiptsService.updateStatus(id, status, user.id, user.orgId);
   }

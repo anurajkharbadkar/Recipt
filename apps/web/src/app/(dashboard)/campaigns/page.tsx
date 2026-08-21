@@ -9,7 +9,6 @@ import { Plus, Play, CheckCircle, Calendar, Target, Receipt } from 'lucide-react
 import { formatCurrency, CAMPAIGN_STATUS_LABELS, CampaignStatus } from '@pavti/shared';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import clsx from 'clsx';
 import { useCommonLabels } from '@/lib/i18n';
 
 const STATUS_COLORS: Record<string, string> = {

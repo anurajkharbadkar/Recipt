@@ -4,7 +4,7 @@ import { Response } from 'express';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/expense.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@pavti/shared';
 
@@ -25,7 +25,7 @@ export class ExpensesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER)
-  create(@CurrentUser() user: any, @Body() data: CreateExpenseDto) {
+  create(@CurrentUser() user: AuthenticatedUser, @Body() data: CreateExpenseDto) {
     return this.service.create(user.orgId, user.id, data);
   }
 

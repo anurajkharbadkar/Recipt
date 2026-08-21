@@ -86,8 +86,9 @@ export class CashfreeController {
         donorPhone: body.customerPhone,
         donorEmail: body.customerEmail,
       });
-    } catch (err: any) {
-      this.logger.error(`Failed to persist Payment row for orderId=${orderId} (Cashfree order still created): ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to persist Payment row for orderId=${orderId} (Cashfree order still created): ${message}`);
     }
 
     return order;

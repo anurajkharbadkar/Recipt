@@ -3,7 +3,7 @@ import { Prisma, CategoryKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { UpdateOrganizationDto } from './dto/organization.dto';
-import { UserRole, SubscriptionPlan, DEFAULT_RECEIPT_THEME_ID } from '@pavti/shared';
+import { UserRole, SubscriptionPlan, DEFAULT_RECEIPT_THEME_ID, ReceiptTemplateSettings } from '@pavti/shared';
 
 // STANDARD/PREMIUM-exclusive per the pricing page ("UPI ID on Every Receipt",
 // "Custom Branded Receipt Design") — BASIC/FREE previously got both for free
@@ -76,8 +76,8 @@ export class OrganizationsService {
       if (dto.upiId && dto.upiId !== current?.upiId) {
         throw new ForbiddenException('A UPI ID on receipts is a Standard-plan feature. Upgrade your plan to add one.');
       }
-      const requestedTheme = (dto.receiptTemplateSettings as any)?.theme;
-      const currentTheme = (current?.receiptTemplateSettings as any)?.theme || DEFAULT_RECEIPT_THEME_ID;
+      const requestedTheme = (dto.receiptTemplateSettings as ReceiptTemplateSettings | undefined)?.theme;
+      const currentTheme = (current?.receiptTemplateSettings as ReceiptTemplateSettings | null)?.theme || DEFAULT_RECEIPT_THEME_ID;
       if (requestedTheme && requestedTheme !== DEFAULT_RECEIPT_THEME_ID && requestedTheme !== currentTheme) {
         throw new ForbiddenException('Custom receipt themes are a Standard-plan feature. Upgrade your plan to use this design.');
       }

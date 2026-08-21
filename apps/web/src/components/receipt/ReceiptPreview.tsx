@@ -9,6 +9,15 @@ interface ReceiptPreviewProps {
   printMode?: boolean;
   /** Overrides the dashboard/template language for this receipt instance (e.g. for print or public toggle). */
   language?: 'en' | 'hi' | 'mr';
+  /**
+   * Overrides the QR code's target path (default: `/receipt/${receipt.id}`).
+   * Needed for non-real receipts — e.g. the landing page's hero preview
+   * uses a synthetic `receipt.id: 'preview'` that has no backing row, so the
+   * default target would be a real, scannable QR code pointing at a
+   * receipt-not-found page on the live domain. Pass a path that actually
+   * resolves (e.g. `/register`) for any receipt that isn't a real one.
+   */
+  qrPath?: string;
 }
 
 /**
@@ -83,7 +92,7 @@ function MotifRosette({ motif, size, opacity, color }: { motif: 'lotus' | 'diya'
 /** Faint dot-grain texture — a plain color reads as a printed card; a whisper of paper grain reads as a physical, handled document. Same for every theme (a material quality, not a mood choice). */
 const PAPER_GRAIN_BG = 'radial-gradient(circle, rgba(0,0,0,0.05) 0.6px, transparent 0.6px) 0 0/7px 7px';
 
-export default function ReceiptPreview({ receipt, printMode = false, language: languageOverride }: ReceiptPreviewProps) {
+export default function ReceiptPreview({ receipt, printMode = false, language: languageOverride, qrPath }: ReceiptPreviewProps) {
   const { language: dashboardLanguage } = useAuthStore();
   const org = receipt.campaign?.organization;
   const preferredLang = (languageOverride || org?.receiptTemplateSettings?.language || dashboardLanguage || 'mr') as 'mr' | 'hi' | 'en';
@@ -91,9 +100,10 @@ export default function ReceiptPreview({ receipt, printMode = false, language: l
   const language = settings.language;
   const theme = resolveReceiptTheme(settings.theme);
 
+  const path = qrPath ?? `/receipt/${receipt.id}`;
   const verifyUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/receipt/${receipt.id}`
-    : `/receipt/${receipt.id}`;
+    ? `${window.location.origin}${path}`
+    : path;
 
   const l = RECEIPT_FIELD_LABELS[language] || RECEIPT_FIELD_LABELS.mr;
 

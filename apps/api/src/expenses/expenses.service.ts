@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfService } from '../pdf/pdf.service';
 import { CreateExpenseDto } from './dto/expense.dto';
+import { Prisma } from '@prisma/client';
 
 // Expenses are a straight ledger — logged, viewed, deleted if entered in
 // error. No approval workflow: whoever has access to log an expense
@@ -14,7 +15,7 @@ export class ExpensesService {
   constructor(private prisma: PrismaService, private pdfService: PdfService) {}
 
   async findAll(orgId: string, campaignId?: string) {
-    const where: any = { campaign: { orgId } };
+    const where: Prisma.ExpenseWhereInput = { campaign: { orgId } };
     if (campaignId) where.campaignId = campaignId;
 
     return this.prisma.expense.findMany({

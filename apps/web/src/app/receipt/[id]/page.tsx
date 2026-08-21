@@ -53,7 +53,9 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
       <div className="relative w-full max-w-sm space-y-4 my-6">
         {/* Header */}
         <div className="text-center">
-          <LogoMark size={48} className="rounded-xl shadow-lg shadow-amber-950/40 mx-auto mb-3 block" />
+          {/* forceTheme="dark": this page's background (bg-[#1A120B]) is
+              hardcoded dark regardless of the site's own theme toggle. */}
+          <LogoMark size={48} className="rounded-xl shadow-lg shadow-amber-950/40 mx-auto mb-3 block" forceTheme="dark" />
           <h1 className="text-lg font-bold text-amber-100">Receipt Verification</h1>
           <p className="text-xs text-amber-200/50 font-devanagari">पावती पडताळणी</p>
         </div>
