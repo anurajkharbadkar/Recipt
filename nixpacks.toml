@@ -11,7 +11,16 @@
 # across builds, so it's resolved at runtime via `which chromium`, not
 # hardcoded here).
 [phases.setup]
-nixPkgs = ["chromium"]
+# nodejs_20 has to be listed explicitly alongside chromium — declaring
+# [phases.setup] at all REPLACES Nixpacks' auto-detected setup phase
+# instead of extending it, which silently dropped Node/npm from the build
+# image the moment this file was added (2026-08-20): every build since then
+# failed at `npm install -g corepack@0.24.1` with "npm: command not found",
+# and Railway kept serving the last successful pre-regression build for
+# three days straight while looking healthy (root/health routes don't need
+# npm to already be running) until every DB-touching route started 500ing
+# once the live DB schema moved ahead of that stale build's Prisma Client.
+nixPkgs = ["nodejs_20", "chromium"]
 
 [variables]
 # Skip Puppeteer's own Chromium download during `pnpm install` — the nix
