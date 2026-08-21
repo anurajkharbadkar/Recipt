@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { UpdateOrganizationDto } from './dto/organization.dto';
 import { UserRole, SubscriptionPlan, DEFAULT_RECEIPT_THEME_ID, ReceiptTemplateSettings } from '@pavti/shared';
+import { extensionFor } from '../common/pipes/image-upload.pipe';
 
 // STANDARD/PREMIUM-exclusive per the pricing page ("UPI ID on Every Receipt",
 // "Custom Branded Receipt Design") — BASIC/FREE previously got both for free
@@ -95,7 +96,7 @@ export class OrganizationsService {
 
   async uploadLogo(orgId: string, file: Express.Multer.File) {
     const logoUrl = await this.storage.uploadFile(
-      `logos/${orgId}-${Date.now()}.png`,
+      `logos/${orgId}-${Date.now()}.${extensionFor(file.mimetype)}`,
       file.buffer,
       file.mimetype,
     );
@@ -116,7 +117,7 @@ export class OrganizationsService {
    */
   async uploadIdolImage(orgId: string, file: Express.Multer.File) {
     const url = await this.storage.uploadFile(
-      `idols/${orgId}-${Date.now()}.png`,
+      `idols/${orgId}-${Date.now()}.${extensionFor(file.mimetype)}`,
       file.buffer,
       file.mimetype,
     );

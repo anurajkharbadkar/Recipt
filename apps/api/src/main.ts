@@ -10,6 +10,7 @@ import { AppModule } from './app.module';
 import { BRAND_NAME } from '@pavti/shared';
 import { EmptyStringToUndefinedPipe } from './common/pipes/empty-string-to-undefined.pipe';
 import { validationExceptionFactory } from './common/validation-exception.factory';
+import { jsonSyntaxErrorHandler } from './common/filters/json-syntax-error.filter';
 
 async function bootstrap() {
   // rawBody: true — the Cashfree webhook signature (CashfreeWebhookService)
@@ -18,8 +19,29 @@ async function bootstrap() {
   // would never match). This only adds `req.rawBody` alongside the normal
   // parsed `req.body` Nest already provides everywhere else — no behavior
   // change for any other route.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  // bodyParser: false — Nest's own automatic body-parser (still installed
+  // even with only `rawBody: true`) sits ahead of anything app.use() adds
+  // afterward, so jsonSyntaxErrorHandler below never actually saw its
+  // errors (confirmed empirically — registering it post-create() had zero
+  // effect). Wiring express.json() ourselves guarantees our error handler
+  // is positioned right after it. The `verify` callback replicates exactly
+  // what `rawBody: true` used to give us: req.rawBody, needed by the
+  // Cashfree webhook's signature check (computed over the exact raw bytes,
+  // not a re-serialized JSON — key order/whitespace would never match).
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const configService = app.get(ConfigService);
+
+  app.use(express.json({
+    verify: (req: Request & { rawBody?: Buffer }, _res, buf) => { req.rawBody = buf; },
+  }));
+  app.use(express.urlencoded({ extended: true }));
+
+  // A malformed JSON body fails in the JSON parser above, before any
+  // controller/service code (including a route's own careful try/catch
+  // around req.rawBody) ever runs — without this, that raw V8 parser
+  // SyntaxError text reaches the client verbatim. See the handler's own
+  // comment for the confirmed live case this fixes.
+  app.use(jsonSyntaxErrorHandler);
 
   // Root & Health routes for platform proxies (Railway / Load Balancers)
   const httpAdapter = app.getHttpAdapter().getInstance();

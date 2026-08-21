@@ -11,6 +11,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@pavti/shared';
+import { imageUploadPipe } from '../common/pipes/image-upload.pipe';
 
 @ApiTags('organizations')
 @UseGuards(JwtAuthGuard)
@@ -51,7 +52,7 @@ export class OrganizationsController {
   @ApiOperation({ summary: 'Upload organization logo' })
   uploadLogo(
     @CurrentUser('orgId') orgId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(imageUploadPipe()) file: Express.Multer.File,
   ) {
     return this.service.uploadLogo(orgId, file);
   }
@@ -64,7 +65,7 @@ export class OrganizationsController {
   @ApiOperation({ summary: 'Upload a custom idol/darshan photo for the Interactive Devotional Pavti' })
   uploadIdolImage(
     @CurrentUser('orgId') orgId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(imageUploadPipe()) file: Express.Multer.File,
   ) {
     return this.service.uploadIdolImage(orgId, file);
   }
