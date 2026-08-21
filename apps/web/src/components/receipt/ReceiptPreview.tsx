@@ -228,11 +228,6 @@ export default function ReceiptPreview({ receipt, printMode = false, language: l
             <div className="text-xs text-stone-600 italic mt-1 font-medium">
               {receipt.amountInWords}
             </div>
-            {org?.upiId && (
-              <div className="text-[11px] text-stone-600 mt-1.5 pt-1.5" style={{ borderTop: `1px dashed ${theme.primaryColor}33` }}>
-                📲 Pay via UPI: <strong className="font-mono text-stone-800">{org.upiId}</strong>
-              </div>
-            )}
           </div>
 
           {/* Category, Mode & Status */}

@@ -783,11 +783,6 @@ export default function InteractivePavtiView({
                 <p className="text-[0.72rem] text-amber-950 font-medium italic mt-0.5">
                   अक्षरी: {amountInWords}
                 </p>
-                {org.upiId && (
-                  <p className="text-[0.65rem] text-amber-950 mt-1.5 pt-1.5 border-t border-dashed border-amber-700/30">
-                    📲 Pay via UPI: <strong className="font-mono">{org.upiId}</strong>
-                  </p>
-                )}
               </div>
 
               {/* Signatures & Dynamic Mandal Stamp */}

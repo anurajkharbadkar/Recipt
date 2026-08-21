@@ -82,6 +82,7 @@ function ReceiptsPageInner() {
         receiptId: r.id,
         category: r.category,
         createdAt: r.createdAt,
+        status: r.status,
         organization: organization as any,
       });
     } finally {

@@ -1,5 +1,6 @@
 import { formatShareMessage, formatSocialLinksText, resolveReceiptSettings } from '@pavti/shared';
 import { receiptsApi } from './api';
+import { buildUpiPaymentLink } from './upi';
 import toast from 'react-hot-toast';
 
 export interface WhatsAppShareParams {
@@ -10,14 +11,16 @@ export interface WhatsAppShareParams {
   receiptId: string;
   category?: string;
   createdAt?: string | Date;
-  organization?: { name?: string; receiptTemplateSettings?: unknown; socialLinks?: unknown } | null;
+  /** A PENDING receipt gets the UPI payment link appended to the message — see buildCaption. */
+  status?: string;
+  organization?: { name?: string; receiptTemplateSettings?: unknown; socialLinks?: unknown; upiId?: string } | null;
   language?: 'en' | 'hi' | 'mr';
 }
 
 function buildCaption(params: WhatsAppShareParams): { message: string; waUrl: string } {
   const settings = resolveReceiptSettings(params.organization?.receiptTemplateSettings, params.language);
   const receiptUrl = `${window.location.origin}/receipt/${params.receiptId}`;
-  const message = formatShareMessage(
+  let message = formatShareMessage(
     settings.shareMessage,
     {
       donorName: params.donorName,
@@ -31,6 +34,30 @@ function buildCaption(params: WhatsAppShareParams): { message: string; waUrl: st
     },
     settings.language,
   );
+
+  // Appended after the templated message rather than woven into it as a
+  // placeholder — a shareMessage template is free text an org can fully
+  // customize (see DEFAULT_SHARE_MESSAGE_TEMPLATES), so this is the only
+  // way to guarantee the payment link actually shows up regardless of
+  // which template/preset the org is using. Applies to any still-unpaid
+  // receipt with a UPI ID on file, not just ones originally logged as
+  // UPI-mode — the point is giving a remote donor a way to pay whatever's
+  // still owed (2026-08-21 payments architecture decision).
+  if (params.status === 'PENDING' && params.organization?.upiId) {
+    const upiLink = buildUpiPaymentLink({
+      upiId: params.organization.upiId,
+      payeeName: params.organization?.name || 'Mandal',
+      amount: params.amount,
+      note: params.receiptNumber,
+    });
+    const payLine = settings.language === 'mr'
+      ? `\n\n💳 पैसे भरण्यासाठी: ${upiLink}`
+      : settings.language === 'hi'
+      ? `\n\n💳 भुगतान करने के लिए: ${upiLink}`
+      : `\n\n💳 Pay now: ${upiLink}`;
+    message += payLine;
+  }
+
   const cleanPhone = params.donorPhone.replace(/\D/g, '');
   const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
   return { message, waUrl };

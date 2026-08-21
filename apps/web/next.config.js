@@ -9,6 +9,7 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@pavti/shared'],
+  allowedDevOrigins: ['*.ngrok-free.dev', 'localhost:3010'],
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },

@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import PickerWithAdd from '@/components/form/PickerWithAdd';
+import { QRCodeSVG } from 'qrcode.react';
+import { buildUpiPaymentLink } from '@/lib/upi';
+import Link from 'next/link';
 
 const schema = z.object({
   campaignId: z.string().min(1, 'Campaign is required'),
@@ -79,6 +82,8 @@ export default function NewReceiptPage() {
   });
 
   const paymentMode = watch('paymentMode');
+  const watchedAmount = watch('amount');
+  const watchedDonorName = watch('donorName');
 
   // Quick receipt: prefill from ?donorPhone= and jump straight to the amount step
   useEffect(() => {
@@ -135,6 +140,7 @@ export default function NewReceiptPage() {
         receiptNumber: createdReceipt.receiptNumber,
         receiptId: createdReceipt.id,
         category: createdReceipt.category,
+        status: createdReceipt.status,
         organization: organization as any,
       });
     } finally {
@@ -405,6 +411,47 @@ export default function NewReceiptPage() {
               <div className="animate-slide-up">
                 <label className="form-label">Cheque Number</label>
                 <input {...register('chequeNumber')} className="form-input" placeholder="000123" />
+              </div>
+            )}
+
+            {/* Collector-facing, in-person UPI QR — shown live the moment
+                UPI is picked, not on the pavti itself (donor scans this on
+                the collector's own screen while the collector is standing
+                right there; the receipt hasn't been created yet, so the
+                note field uses the donor's name/campaign rather than a
+                receipt number). See lib/upi.ts for why this bypasses any
+                payment gateway entirely (2026-08-21 architecture decision). */}
+            {paymentMode === 'UPI' && (
+              <div className="animate-slide-up glass-card p-4 text-center space-y-2 bg-theme-fg/[0.02]">
+                {organization?.upiId ? (
+                  <>
+                    <p className="text-xs text-theme-fg/50">
+                      {language === 'mr' ? 'देणगीदाराला स्कॅन करण्यासाठी दाखवा' : 'Show this to the donor to scan & pay'}
+                    </p>
+                    <div className="flex justify-center py-2">
+                      <div className="p-3 bg-white rounded-xl">
+                        <QRCodeSVG
+                          value={buildUpiPaymentLink({
+                            upiId: organization.upiId,
+                            payeeName: organization.name,
+                            amount: watchedAmount || 0,
+                            note: watchedDonorName || undefined,
+                          })}
+                          size={160}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-theme-fg/40">{organization.upiId}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-theme-fg/40">
+                    {language === 'mr' ? 'पेमेंट QR दाखवण्यासाठी ' : 'Add your UPI ID in '}
+                    <Link href="/settings" className="text-saffron-400 underline underline-offset-2">
+                      {language === 'mr' ? 'सेटिंग्जमध्ये UPI ID जोडा' : 'Settings'}
+                    </Link>
+                    {language === 'mr' ? '.' : ' to show a payment QR here.'}
+                  </p>
+                )}
               </div>
             )}
 

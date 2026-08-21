@@ -75,6 +75,7 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
         receiptId: params.id,
         category: receipt.category,
         createdAt: receipt.createdAt,
+        status: receipt.status,
         organization: (receipt.campaign?.organization || organization) as any,
         language: receiptLanguage,
       });
