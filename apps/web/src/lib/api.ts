@@ -184,3 +184,12 @@ export const cashfreeApi = {
   getOrder: (orderId: string) => apiClient.get(`/payments/cashfree/orders/${orderId}`).then(r => r.data),
   getOrderPayments: (orderId: string) => apiClient.get(`/payments/cashfree/orders/${orderId}/payments`).then(r => r.data),
 };
+
+// A Mandal paying its own subscription fee — see apps/api's
+// SubscriptionPaymentController. Distinct from cashfreeApi.createOrder
+// above (the sandbox test surface) and from the (now-unreachable, EasySplit-
+// based) donations flow.
+export const subscriptionPaymentApi = {
+  createOrder: (): Promise<{ orderId: string; amount: number; planName: string; paymentSessionId: string }> =>
+    apiClient.post('/payments/subscription/order').then(r => r.data),
+};

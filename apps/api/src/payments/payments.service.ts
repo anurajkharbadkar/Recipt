@@ -2,6 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiptsService } from '../receipts/receipts.service';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
+import { PRICING_PLANS, SubscriptionPlan, SubscriptionStatus, SUBSCRIPTION_PERIOD_DAYS } from '@pavti/shared';
+import { CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX } from './cashfree/cashfree.constants';
 
 /**
  * The business-rule layer the handover doc describes (section 40) — owns
@@ -69,6 +71,32 @@ export class PaymentsService {
     }
 
     return { receipt, organization, existingPayment: receipt.payment };
+  }
+
+  /**
+   * Mirrors resolveDonationPaymentContext's shape for the other Cashfree
+   * order type this app creates: a Mandal paying its own subscription fee
+   * (plain, non-split — the org is the actual merchant here). Refuses on
+   * FREE (nothing to pay) or already-ACTIVE (nothing owed) rather than
+   * silently letting a second order get created.
+   */
+  async resolveSubscriptionPaymentContext(orgId: string) {
+    const organization = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
+    const plan = PRICING_PLANS.find((p) => p.id === organization.subscriptionPlan);
+    if (!plan) throw new BadRequestException('Unknown subscription plan');
+    if (plan.id === SubscriptionPlan.FREE) {
+      throw new BadRequestException('The Free Trial plan has nothing to pay.');
+    }
+    if (organization.subscriptionStatus === SubscriptionStatus.ACTIVE) {
+      throw new BadRequestException('Your subscription is already active.');
+    }
+
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: { orgId, orderId: { startsWith: CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX }, status: { not: PaymentStatus.PAYMENT_FAILED } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return { organization, plan, existingPayment };
   }
 
   /**
@@ -194,9 +222,27 @@ export class PaymentsService {
 
       let updatedReceipt = null;
       // writeResult.count === 0 means a concurrent delivery already won —
-      // this one must not touch the receipt or fire notifications either.
-      if (writeResult.count > 0 && status === PaymentStatus.PAYMENT_SUCCESS && updatedPayment.receiptId) {
-        updatedReceipt = await this.receiptsService.markOnlinePaymentSuccessInTx(tx, updatedPayment.receiptId);
+      // this one must not touch the receipt/org or fire notifications either.
+      if (writeResult.count > 0 && status === PaymentStatus.PAYMENT_SUCCESS) {
+        if (updatedPayment.receiptId) {
+          updatedReceipt = await this.receiptsService.markOnlinePaymentSuccessInTx(tx, updatedPayment.receiptId);
+        }
+        // A subscription order (see CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX)
+        // has no receiptId — this is its equivalent of the receipt cascade
+        // above: what actually makes a successful payment *mean* something.
+        // The clock restarts from confirmed payment, not from the original
+        // (unpaid) signup date — matches SUBSCRIPTION_PERIOD_DAYS's own
+        // "30 days from signup" contract, just re-anchored to when they
+        // actually paid rather than when they merely registered.
+        if (updatedPayment.orderId.startsWith(CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX)) {
+          await tx.organization.update({
+            where: { id: updatedPayment.orgId },
+            data: {
+              subscriptionStatus: SubscriptionStatus.ACTIVE,
+              subscriptionExpiry: new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000),
+            },
+          });
+        }
       }
 
       return { updatedPayment, updatedReceipt };

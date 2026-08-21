@@ -2,8 +2,9 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { SKIP_SUBSCRIPTION_GATE_KEY } from '../decorators/skip-subscription-gate.decorator';
 import { AuthenticatedUser } from '../decorators/current-user.decorator';
-import { UserRole, BRAND_NAME } from '@pavti/shared';
+import { UserRole, SubscriptionPlan, SubscriptionStatus, BRAND_NAME } from '@pavti/shared';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {}
@@ -39,6 +40,22 @@ export class RolesGuard implements CanActivate {
       const expiry = user.organization?.subscriptionExpiry;
       if (expiry && new Date(expiry).getTime() < Date.now()) {
         throw new ForbiddenException(`Your plan has expired. Renew to keep using ${BRAND_NAME}.`);
+      }
+
+      // A paid plan (FREE has nothing to pay, so it's never PENDING_PAYMENT
+      // — see AuthService.register) that hasn't been paid yet can't create
+      // new records either — same "view past data, can't add new" shape as
+      // the expiry check above, just gated on payment instead of time.
+      // SkipSubscriptionGate exempts SubscriptionPaymentController's own
+      // order-creation endpoint, which is itself a write and would
+      // otherwise be blocked by the exact gate it exists to satisfy.
+      const skipGate = this.reflector.getAllAndOverride<boolean>(SKIP_SUBSCRIPTION_GATE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      const org = user.organization;
+      if (!skipGate && org?.subscriptionPlan !== SubscriptionPlan.FREE && org?.subscriptionStatus === SubscriptionStatus.PENDING_PAYMENT) {
+        throw new ForbiddenException('Complete your subscription payment to keep creating new records.');
       }
     }
 

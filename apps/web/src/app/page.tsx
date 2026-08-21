@@ -26,7 +26,7 @@ const HERO_PREVIEW_RECEIPT = {
   paymentMode: 'UPI',
   status: 'PAID',
   collectionType: 'DONATION',
-  createdAt: new Date().toISOString(),
+  createdAt: '2026-08-21T12:00:00.000Z',
   collector: { name: 'Amit Joshi', nameMarathi: 'अमित जोशी' },
   area: { name: 'Kasba Peth', nameMarathi: 'कसबा पेठ' },
   campaign: {
@@ -350,8 +350,6 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
   );
 }
 
-
-
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -391,7 +389,7 @@ export default function HomePage() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* ── Hero pavti card float ── */
         @keyframes floatCard {
           0%,100% { transform: rotate(-3deg) translateY(0px); }
@@ -462,7 +460,7 @@ export default function HomePage() {
         @media (prefers-reduced-motion: reduce) {
           * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
-      `}</style>
+      ` }} />
 
       <div className="min-h-screen">
 

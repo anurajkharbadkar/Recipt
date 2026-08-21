@@ -19,10 +19,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: { sub: string; role: string; orgId: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      // organization.subscriptionExpiry rides along on the same lookup this
-      // strategy already does per request — SubscriptionGuard reads it off
-      // req.user.organization without a second query.
-      select: { id: true, role: true, orgId: true, organization: { select: { subscriptionExpiry: true } } }
+      // organization.subscriptionExpiry/Plan/Status ride along on the same
+      // lookup this strategy already does per request — RolesGuard reads
+      // them off req.user.organization without a second query.
+      select: {
+        id: true, role: true, orgId: true,
+        organization: { select: { subscriptionExpiry: true, subscriptionPlan: true, subscriptionStatus: true } },
+      }
     });
     if (!user) throw new UnauthorizedException('User not found');
     return user;

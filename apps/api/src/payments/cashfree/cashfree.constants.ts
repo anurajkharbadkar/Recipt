@@ -13,3 +13,12 @@ export const CASHFREE_ORDER_ID_PREFIX = 'DP';
 // test page's (DP_TEST_...) at a glance in Cashfree's own dashboard/logs —
 // same env/credentials either way, just different traffic to tell apart.
 export const CASHFREE_DONATION_ORDER_ID_PREFIX = `${CASHFREE_ORDER_ID_PREFIX}_RCT`;
+
+// A Mandal paying its own E-PavtiBook subscription fee — a plain, non-split
+// order (the org is the actual merchant here, not an intermediary), unlike
+// CASHFREE_DONATION_ORDER_ID_PREFIX's EasySplit flow. This prefix is also
+// how PaymentsService.applyCashfreeWebhook tells a subscription payment
+// apart from a donation one, to know whether to activate the org on
+// success (2026-08-21 payments architecture decision — see lib/upi.ts on
+// the web side for why donations moved off Cashfree entirely).
+export const CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX = `${CASHFREE_ORDER_ID_PREFIX}_SUB`;

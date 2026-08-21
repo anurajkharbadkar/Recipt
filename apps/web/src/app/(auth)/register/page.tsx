@@ -7,9 +7,10 @@ import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
 import toast from 'react-hot-toast';
-import { ArrowRight, ArrowLeft, Check, Star, MessageCircle, KeyRound, Copy, CheckCheck } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Star, MessageCircle, KeyRound, Copy, CheckCheck, CreditCard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import LogoMark from '@/components/brand/LogoMark';
+import { launchSubscriptionCheckout } from '@/lib/cashfreeCheckout';
 
 function RegisterForm() {
   const router = useRouter();
@@ -22,6 +23,7 @@ function RegisterForm() {
   // one, and every collector they add needs this to actually log in.
   const [newMandalCode, setNewMandalCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [payingViaCheckout, setPayingViaCheckout] = useState(false);
 
   const preselected = searchParams.get('plan')?.toUpperCase();
   const [form, setForm] = useState({
@@ -70,7 +72,20 @@ function RegisterForm() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePayNow = async () => {
+    setPayingViaCheckout(true);
+    try {
+      await launchSubscriptionCheckout();
+      // Redirects the whole page to Cashfree on success — this only runs
+      // if it threw before getting there.
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Could not start checkout — please try again.');
+      setPayingViaCheckout(false);
+    }
+  };
+
   if (newMandalCode) {
+    const isPaidPlan = form.subscriptionPlan !== SubscriptionPlan.FREE;
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="glass-card p-8 max-w-sm w-full text-center">
@@ -88,9 +103,22 @@ function RegisterForm() {
             <span className="text-2xl font-extrabold tracking-[0.2em] text-saffron-600">{newMandalCode}</span>
             {copied ? <CheckCheck size={18} className="text-emerald-500" /> : <Copy size={16} className="text-theme-fg/40" />}
           </button>
-          <button onClick={() => router.push('/dashboard')} className="btn-primary w-full">
-            Continue to Dashboard <ArrowRight size={16} />
-          </button>
+
+          {isPaidPlan ? (
+            <>
+              <button onClick={handlePayNow} disabled={payingViaCheckout} className="btn-primary w-full mb-2 disabled:opacity-60">
+                {payingViaCheckout ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+                Pay {formatCurrency(selectedPlan?.priceInr || 0)} & Activate
+              </button>
+              <button onClick={() => router.push('/dashboard')} className="btn-ghost w-full text-xs">
+                I&apos;ll pay later — take me to the dashboard
+              </button>
+            </>
+          ) : (
+            <button onClick={() => router.push('/dashboard')} className="btn-primary w-full">
+              Continue to Dashboard <ArrowRight size={16} />
+            </button>
+          )}
         </div>
       </div>
     );

@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserRole } from '@pavti/shared';
+import { UserRole, SubscriptionPlan, SubscriptionStatus } from '@pavti/shared';
 
 /**
  * The exact shape JwtStrategy.validate() attaches to req.user — every
@@ -14,7 +14,11 @@ export interface AuthenticatedUser {
   id: string;
   role: UserRole;
   orgId: string;
-  organization: { subscriptionExpiry: Date | null };
+  organization: {
+    subscriptionExpiry: Date | null;
+    subscriptionPlan: SubscriptionPlan;
+    subscriptionStatus: SubscriptionStatus;
+  };
 }
 
 export const CurrentUser = createParamDecorator(

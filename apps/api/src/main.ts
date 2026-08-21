@@ -90,6 +90,8 @@ async function bootstrap() {
         corsOrigin === '*' ||
         allowedOrigins.includes(origin) ||
         /\.vercel\.app$/.test(origin) ||
+        /\.ngrok-free\.dev$/.test(origin) ||
+        /\.ngrok\.io$/.test(origin) ||
         /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
         /^https:\/\/(app\.)?epavtibook\.com$/.test(origin);
       callback(isAllowed ? null : new Error(`Origin ${origin} not allowed by CORS`), isAllowed);
