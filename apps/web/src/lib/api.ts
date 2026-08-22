@@ -11,6 +11,38 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Turns an axios error into a message an actual citizen (not a developer)
+// should see. `err?.response?.data?.message || fallback` — the pattern this
+// replaces — quietly mislabels every non-response failure as the caller's
+// generic fallback text, which is almost always phrased as "check your
+// details"/"invalid credentials". That's wrong whenever the request never
+// reached the server at all: a blocked/failed CORS preflight (which the
+// browser also reports with no readable status, same as being offline) or
+// a 429 from platform-level rate limiting both look identical to the code
+// here, and neither has anything to do with what the person typed.
+export function getErrorMessage(err: any, fallback: string): string {
+  // The backend answered with its own message — always the most accurate
+  // text available, and (per AuthService's own convention) already written
+  // for a non-technical reader, so it wins over everything else.
+  if (err?.response?.data?.message) return err.response.data.message;
+
+  const status = err?.response?.status;
+  if (status === 429) {
+    return 'Too many attempts — please wait a moment and try again.';
+  }
+  if (status && status >= 500) {
+    return 'Something went wrong on our end. Please try again in a moment.';
+  }
+  if (!err?.response) {
+    // No response object at all reached the browser: offline, DNS failure,
+    // or a failed CORS preflight are indistinguishable from here — none of
+    // them are the user's fault, so don't imply their input was wrong.
+    return "Couldn't reach the server. Please check your connection and try again in a moment.";
+  }
+
+  return fallback;
+}
+
 // Request interceptor — attach JWT
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;

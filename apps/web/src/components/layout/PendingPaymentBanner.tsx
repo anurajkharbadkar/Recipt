@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
+import { getErrorMessage } from '@/lib/api';
 import { launchSubscriptionCheckout } from '@/lib/cashfreeCheckout';
 import { AlertTriangle, MessageCircle, XCircle, Sparkles, Loader2, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -50,7 +51,7 @@ export default function PendingPaymentBanner() {
       // launchSubscriptionCheckout redirects the whole page to Cashfree on
       // success — this line only runs if it threw before getting there.
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Could not start checkout — please try again.');
+      toast.error(getErrorMessage(err, 'Could not start checkout — please try again.'));
       setPayingViaCheckout(false);
     }
   };

@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authApi } from '@/lib/api';
+import { authApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
 import toast from 'react-hot-toast';
@@ -56,7 +56,7 @@ function RegisterForm() {
       toast.success('Account created! 🙏');
       setNewMandalCode(data.organization?.mandalCode || null);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Registration failed. Please check your details.');
+      toast.error(getErrorMessage(err, 'Registration failed. Please check your details and try again.'));
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi } from '@/lib/api';
+import { authApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import toast from 'react-hot-toast';
 import { Phone, Lock, ArrowRight, Eye, EyeOff, KeyRound, ShieldCheck, Users2 } from 'lucide-react';
@@ -49,8 +49,7 @@ export default function LoginPage() {
       toast.success('Welcome back! 🙏');
       router.push('/dashboard');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || (err?.message === 'Network Error' || !err?.response ? 'Cannot connect to backend server. Please verify API URL.' : 'Invalid credentials');
-      toast.error(msg);
+      toast.error(getErrorMessage(err, 'Invalid credentials'));
     } finally {
       setLoading(false);
     }
