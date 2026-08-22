@@ -452,6 +452,18 @@ export default function InteractivePavtiView({
           align-items: center;
           justify-content: center;
           overflow: hidden;
+          /* Every fluid size below this point (envelope, chakra, darshan
+             frame, receipt card, etc.) is expressed in cq* units, not vw/vh
+             — those measure the real browser viewport, which is correct on
+             the real full-page receipt view but badly wrong for the
+             landing-page's embedded phone-frame demo, where this slide is a
+             ~340×580 box inside a much wider desktop page: vw-sized
+             elements were rendering at their full viewport-relative size
+             and overflowing straight out of that small frame. container-type
+             makes this slide itself the sizing reference instead, which is
+             correct in both places since it already gets its own explicit
+             100vw/100vh (real) or 100%/100% (.embedded) size either way. */
+          container-type: size;
         }
 
         /* Frame Corner Accents */
@@ -582,8 +594,8 @@ export default function InteractivePavtiView({
         }
         .envelope-back-glow {
           position: absolute;
-          width: min(440px, 100vw);
-          height: min(440px, 100vw);
+          width: min(440px, 100cqw);
+          height: min(440px, 100cqw);
           border-radius: 50%;
           background: radial-gradient(circle, rgba(244, 221, 154, 0.26), rgba(244, 221, 154, 0.05) 45%, transparent 72%);
           animation: backGlowPulse 4.2s ease-in-out infinite;
@@ -594,8 +606,8 @@ export default function InteractivePavtiView({
 
         .envelope-wrap {
           perspective: 1900px;
-          width: min(500px, 92vw);
-          height: min(253px, 46vw);
+          width: min(500px, 92cqw);
+          height: min(253px, 46cqw);
           position: relative;
           z-index: 5;
         }
@@ -825,8 +837,8 @@ export default function InteractivePavtiView({
           top: 38%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: min(420px, 92vw);
-          height: min(420px, 92vw);
+          width: min(420px, 92cqw);
+          height: min(420px, 92cqw);
           pointer-events: none;
           z-index: 1;
           filter: drop-shadow(0 0 20px rgba(244, 221, 154, 0.55));
@@ -840,8 +852,8 @@ export default function InteractivePavtiView({
 
         .darshan-idol-wrap {
           position: relative;
-          width: min(240px, 62vw);
-          height: min(240px, 62vw);
+          width: min(240px, 62cqw);
+          height: min(240px, 62cqw);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -884,10 +896,10 @@ export default function InteractivePavtiView({
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: clamp(14px, 5vw, 30px);
+          gap: clamp(14px, 5cqw, 30px);
         }
         .brass-diya { position: relative; display: flex; flex-direction: column; align-items: center; opacity: 0; }
-        .diya-chain { width: 2px; height: clamp(36px, 8vh, 60px); background: linear-gradient(180deg, rgba(201, 162, 74, 0.3), rgba(244, 221, 154, 0.8), #8a6a2a); }
+        .diya-chain { width: 2px; height: clamp(36px, 8cqh, 60px); background: linear-gradient(180deg, rgba(201, 162, 74, 0.3), rgba(244, 221, 154, 0.8), #8a6a2a); }
         .diya-bowl {
           position: relative;
           width: 26px;
@@ -909,7 +921,7 @@ export default function InteractivePavtiView({
 
         /* Continuous ambient petal drift (separate from the one-shot burst) */
         .flower-petal { position: absolute; top: -20px; width: 12px; height: 16px; background: linear-gradient(135deg, #f5a623, #d0021b); border-radius: 0 60% 0 60%; opacity: 0.75; pointer-events: none; animation: petalFall linear infinite; }
-        @keyframes petalFall { 0% { transform: translateY(0) rotate(0deg); opacity: 0.8; } 100% { transform: translateY(105vh) rotate(360deg); opacity: 0.1; } }
+        @keyframes petalFall { 0% { transform: translateY(0) rotate(0deg); opacity: 0.8; } 100% { transform: translateY(105cqh) rotate(360deg); opacity: 0.1; } }
 
         /* One-shot burst particles (pushpa vrishti / receipt flower blast) */
         .burst-petal { position: absolute; width: 13px; height: 16px; border-radius: 50% 0 50% 50%; pointer-events: none; z-index: 40; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
@@ -920,8 +932,8 @@ export default function InteractivePavtiView({
         }
         .authentic-card {
           position: relative;
-          width: min(440px, 92vw);
-          max-height: 86vh;
+          width: min(440px, 92cqw);
+          max-height: 86cqh;
           overflow-y: auto;
           background: var(--parchment);
           color: var(--ink);
@@ -972,8 +984,8 @@ export default function InteractivePavtiView({
         }
         .divine-rays {
           position: absolute;
-          width: 160vmax;
-          height: 160vmax;
+          width: 160cqmax;
+          height: 160cqmax;
           background: repeating-conic-gradient(from 0deg, rgba(244, 221, 154, 0.05) 0deg 6deg, transparent 6deg 14deg);
           animation: raysSpin 90s linear infinite;
           z-index: 0;
@@ -1010,11 +1022,11 @@ export default function InteractivePavtiView({
         .bless-glow-ring.r2 { animation-delay: 1.3s; }
         @keyframes blessRingPulse { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
 
-        .royal-divider { display: flex; align-items: center; gap: 10px; width: min(200px, 50vw); margin: 6px 0; opacity: 0; }
+        .royal-divider { display: flex; align-items: center; gap: 10px; width: min(200px, 50cqw); margin: 6px 0; opacity: 0; }
         .royal-divider span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent); }
         .royal-divider .gem { width: 7px; height: 7px; transform: rotate(45deg); background: linear-gradient(135deg, var(--gold-light), var(--gold)); box-shadow: 0 0 8px rgba(244, 221, 154, 0.7); flex: none; }
 
-        .bless-message { font-family: var(--font-display); font-style: italic; font-size: clamp(1.05rem, 2.6vw, 1.35rem); color: var(--parchment); line-height: 1.55; opacity: 0; }
+        .bless-message { font-family: var(--font-display); font-style: italic; font-size: clamp(1.05rem, 2.6cqw, 1.35rem); color: var(--parchment); line-height: 1.55; opacity: 0; }
 
         .closing-chant-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; opacity: 0; }
         .closing-flourish { width: 30px; height: 11px; opacity: 0.8; }
