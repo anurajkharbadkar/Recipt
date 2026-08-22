@@ -7,9 +7,14 @@ import { UserRole, SubscriptionPlan, DEFAULT_RECEIPT_THEME_ID, ReceiptTemplateSe
 import { extensionFor } from '../common/pipes/image-upload.pipe';
 
 // STANDARD/PREMIUM-exclusive per the pricing page ("UPI ID on Every Receipt",
-// "Custom Branded Receipt Design") — BASIC/FREE previously got both for free
-// since nothing checked plan here (2026-08 roles/subscription audit).
-const STANDARD_PLUS: SubscriptionPlan[] = [SubscriptionPlan.STANDARD, SubscriptionPlan.PREMIUM];
+// "Custom Branded Receipt Design") — BASIC previously got both for free
+// since nothing checked plan here (2026-08 roles/subscription audit). FREE
+// is included too, but only for its 7-day trial window — see
+// MAX_COLLECTORS_BY_PLAN's comment for why FREE mirrors Premium there.
+// Once that window closes, RolesGuard's expiry check already blocks every
+// write regardless of this list, so there's no gap where an expired trial
+// org keeps using these (2026-08-22 free-trial rework).
+const PREMIUM_FEATURE_PLANS: SubscriptionPlan[] = [SubscriptionPlan.FREE, SubscriptionPlan.STANDARD, SubscriptionPlan.PREMIUM];
 
 // Bank transfer details are sensitive — only admins/treasurers who actually
 // reconcile funds need them. COLLECTOR/VIEWER accounts are often low-trust
@@ -69,7 +74,7 @@ export class OrganizationsService {
     });
     const plan = (current?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
 
-    if (!STANDARD_PLUS.includes(plan)) {
+    if (!PREMIUM_FEATURE_PLANS.includes(plan)) {
       // Only block a genuine change to a gated value — re-saving an
       // unrelated field (e.g. the footer note) shouldn't fail just because
       // the org's already-saved theme/UPI ID predates a downgrade, or the

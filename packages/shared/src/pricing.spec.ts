@@ -72,4 +72,27 @@ describe('resolvePlanFeatures', () => {
   it('returns an empty list for an unknown plan id', () => {
     expect(resolvePlanFeatures('NOT_A_REAL_PLAN' as SubscriptionPlan)).toEqual([]);
   });
+
+  // Regression coverage for a real bug found while reworking Free Trial
+  // into a 7-day "full Premium access" window (2026-08-22): Free Trial's
+  // collector/campaign limits used to be numerically identical to Basic's,
+  // so Basic's own `features` list safely left those two keys unset and
+  // inherited Free Trial's bullets via includesFrom. The moment Free
+  // Trial's numbers changed to match Premium instead, Basic's resolved
+  // feature list would have silently inherited "Unlimited Collectors" too
+  // — a real, false claim about what a paid ₹499 Basic subscription
+  // actually gets — unless Basic declares its own explicit values.
+  it("Basic's resolved collector/campaign limits are its own, not Free Trial's promotional ones", () => {
+    const basic = resolvePlanFeatures(SubscriptionPlan.BASIC);
+    const basicPlan = PRICING_PLANS.find((p) => p.id === SubscriptionPlan.BASIC)!;
+    const freePlan = PRICING_PLANS.find((p) => p.id === SubscriptionPlan.FREE)!;
+
+    const collectorFeature = basic.find((f) => f.key === 'collectors');
+    expect(collectorFeature?.label).toBe(basicPlan.features.find((f) => f.key === 'collectors')!.label);
+    expect(collectorFeature?.label).not.toBe(freePlan.features.find((f) => f.key === 'collectors')!.label);
+
+    const festivalFeature = basic.find((f) => f.key === 'activeFestivals');
+    expect(festivalFeature?.label).toBe(basicPlan.features.find((f) => f.key === 'activeFestivals')!.label);
+    expect(festivalFeature?.label).not.toBe(freePlan.features.find((f) => f.key === 'activeFestivals')!.label);
+  });
 });

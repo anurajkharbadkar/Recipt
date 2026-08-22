@@ -15,7 +15,7 @@ import {
   LoginDto,
   RefreshTokenDto,
 } from './dto/auth.dto';
-import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS } from '@pavti/shared';
+import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS, FREE_TRIAL_PERIOD_DAYS } from '@pavti/shared';
 
 @Injectable()
 export class AuthService {
@@ -59,10 +59,16 @@ export class AuthService {
         subscriptionStatus: dto.subscriptionPlan === SubscriptionPlan.FREE
           ? SubscriptionStatus.ACTIVE
           : SubscriptionStatus.PENDING_PAYMENT,
-        // Every plan is a 30-day period from signup, enforced by
-        // SubscriptionGuard regardless of whether payment was ever
-        // confirmed — PENDING_PAYMENT isn't a free pass past this date.
-        subscriptionExpiry: new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000),
+        // FREE gets a short 7-day trial window (full Premium feature/limit
+        // access, just capped on receipt count — see MAX_COLLECTORS_BY_PLAN
+        // etc. in packages/shared); every paid plan is a full 30-day period
+        // from signup regardless of whether payment was ever confirmed —
+        // PENDING_PAYMENT isn't a free pass past that date either, both
+        // enforced the same way by RolesGuard (2026-08-22 free-trial rework).
+        subscriptionExpiry: new Date(
+          Date.now() +
+          (dto.subscriptionPlan === SubscriptionPlan.FREE ? FREE_TRIAL_PERIOD_DAYS : SUBSCRIPTION_PERIOD_DAYS) * 24 * 60 * 60 * 1000,
+        ),
         users: {
           create: {
             name: dto.adminName,

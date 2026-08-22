@@ -66,9 +66,12 @@ describe('CollectorsService', () => {
 
   describe('create — plan collector limit', () => {
     it('blocks adding a collector once the plan limit is reached', async () => {
+      // BASIC, not FREE — FREE is unlimited (-1) for its 7-day trial
+      // window (matches Premium; see MAX_COLLECTORS_BY_PLAN's comment),
+      // so it's no longer an example of a capped plan.
       prisma.user.findUnique.mockResolvedValue(null); // no phone collision
-      prisma.organization.findUnique.mockResolvedValue({ subscriptionPlan: SubscriptionPlan.FREE });
-      prisma.user.count.mockResolvedValue(5); // FREE's limit
+      prisma.organization.findUnique.mockResolvedValue({ subscriptionPlan: SubscriptionPlan.BASIC });
+      prisma.user.count.mockResolvedValue(5); // BASIC's limit
 
       await expect(
         service.create('org1', { name: 'X', phone: '9000000001' } as any),
@@ -79,6 +82,16 @@ describe('CollectorsService', () => {
     it('skips the count check entirely for an unlimited (-1) plan', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.organization.findUnique.mockResolvedValue({ subscriptionPlan: SubscriptionPlan.PREMIUM });
+
+      await service.create('org1', { name: 'X', phone: '9000000001' } as any);
+
+      expect(prisma.user.count).not.toHaveBeenCalled();
+      expect(prisma.user.create).toHaveBeenCalled();
+    });
+
+    it('FREE is also unlimited (-1) for its 7-day trial window, matching Premium', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.organization.findUnique.mockResolvedValue({ subscriptionPlan: SubscriptionPlan.FREE });
 
       await service.create('org1', { name: 'X', phone: '9000000001' } as any);
 

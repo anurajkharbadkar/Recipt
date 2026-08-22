@@ -44,14 +44,30 @@ export enum SubscriptionStatus {
  */
 export const SUBSCRIPTION_PERIOD_DAYS = 30;
 
+// The Free Trial is intentionally shorter than a real subscription period —
+// "try the full Premium experience for a week" (see MAX_ACTIVE_CAMPAIGNS_BY_PLAN
+// and MAX_COLLECTORS_BY_PLAN below, both set to Premium's own values for FREE)
+// rather than a month of the base tier. Checked only in AuthService.register's
+// expiry calculation for a FREE signup — every other plan still uses
+// SUBSCRIPTION_PERIOD_DAYS (2026-08-22 free-trial rework).
+export const FREE_TRIAL_PERIOD_DAYS = 7;
+
 // How many campaigns an org may run ACTIVE at once, by plan. Enforced when a
 // campaign transitions to ACTIVE (apps/api CampaignsService.activate) — a
 // campaign can always be created/edited as DRAFT regardless of this limit,
 // since only ACTIVE campaigns accept receipts. Shared so the web app can
 // pre-emptively disable/explain the "Activate" action instead of only
 // discovering the block after a failed request.
+//
+// FREE matches PREMIUM, not BASIC — the 7-day trial is meant to show the
+// full Premium experience, with only the receipt count actually capped
+// (MAX_RECEIPTS_BY_PLAN below). BASIC's own card/comparison-table row no
+// longer inherits this value from FREE (see its own explicit 'collectors'/
+// 'activeFestivals' features in PRICING_PLANS) specifically so bumping
+// FREE here can't silently overstate what a real ₹499 BASIC subscription
+// actually gets (2026-08-22 free-trial rework).
 export const MAX_ACTIVE_CAMPAIGNS_BY_PLAN: Record<SubscriptionPlan, number> = {
-  [SubscriptionPlan.FREE]: 1,
+  [SubscriptionPlan.FREE]: 5,
   [SubscriptionPlan.BASIC]: 1,
   [SubscriptionPlan.STANDARD]: 2,
   [SubscriptionPlan.PREMIUM]: 5,
@@ -61,8 +77,11 @@ export const MAX_ACTIVE_CAMPAIGNS_BY_PLAN: Record<SubscriptionPlan, number> = {
 // itself) an org may add, by plan. Enforced in CollectorsService.create.
 // -1 = unlimited — PREMIUM was previously capped at 10, which contradicted
 // the plan being sold/intended as unlimited collectors.
+//
+// FREE matches PREMIUM (unlimited) for the same reason as
+// MAX_ACTIVE_CAMPAIGNS_BY_PLAN above — see that constant's comment.
 export const MAX_COLLECTORS_BY_PLAN: Record<SubscriptionPlan, number> = {
-  [SubscriptionPlan.FREE]: 5,
+  [SubscriptionPlan.FREE]: -1,
   [SubscriptionPlan.BASIC]: 5,
   [SubscriptionPlan.STANDARD]: 10,
   [SubscriptionPlan.PREMIUM]: -1,
@@ -229,12 +248,21 @@ export const PRICING_PLANS: PricingPlan[] = [
     positioningLine: 'Experience',
     marathiDescriptor: 'अनुभव घ्या',
     priceInr: 0,
-    priceNote: `Free for ${SUBSCRIPTION_PERIOD_DAYS} days, no payment needed`,
+    priceNote: `Free for ${FREE_TRIAL_PERIOD_DAYS} days, no payment needed`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE],
+    // Deliberately NOT listing the Standard+ features (UPI ID on receipts,
+    // custom branding) that FREE also gets during its 7-day window — those
+    // are unlocked functionally (see organizations.service.ts's PREMIUM_
+    // FEATURE_PLANS), but adding them here as keyed bullets would bubble
+    // up through BASIC's `includesFrom: 'Free Trial'` inheritance and
+    // falsely claim BASIC has them too — this ladder has no way to grant a
+    // lower tier something a higher one intentionally doesn't get. A
+    // trial user discovers those in the app itself rather than the pricing
+    // page overpromising what BASIC actually buys (2026-08-22).
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
-      { label: '1 Active Festival/Drive', category: 'collections', key: 'activeFestivals' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.FREE]} Active Festivals/Drives at Once`, category: 'collections', key: 'activeFestivals' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE], 'Collectors'), category: 'team', key: 'collectors' },
       { label: 'Internal Collection & Expense Tracking', category: 'collections', key: 'internalCollection' },
       { label: 'Multi-Role Access', category: 'team', key: 'multiRole' },
@@ -253,10 +281,18 @@ export const PRICING_PLANS: PricingPlan[] = [
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC],
     includesFrom: 'Free Trial',
-    // Collectors and active-festival limits are identical to Free Trial —
-    // the receipt cap lifting is the one real difference this tier buys.
+    // Explicit collectors/activeFestivals overrides, not inherited from
+    // Free Trial — they used to be identical and safe to inherit, but
+    // Free Trial's own numbers now describe its 7-day promotional window
+    // (matches Premium), not a permanent BASIC-tier entitlement. Without
+    // these, resolvePlanFeatures would have BASIC's comparison-table row
+    // silently inherit Free Trial's unlimited-collectors bullet — a real
+    // overpromise for what a ₹499 subscription actually buys
+    // (2026-08-22 free-trial rework).
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
+      { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC], 'Collectors'), category: 'team', key: 'collectors' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.BASIC]} Active Festival/Drive at a Time`, category: 'collections', key: 'activeFestivals' },
     ],
   },
   {

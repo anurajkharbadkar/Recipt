@@ -260,9 +260,12 @@ export default function SettingsPage() {
   const { data: org } = useQuery({ queryKey: ['org'], queryFn: orgsApi.getMe });
   // UPI ID and custom receipt themes are Standard-plan-and-up features (see
   // PRICING_PLANS) — mirrors the server-side check in
-  // OrganizationsService.update so the UI doesn't offer what it can't save
-  // (2026-08 roles/subscription audit).
-  const isStandardPlus = org?.subscriptionPlan === 'STANDARD' || org?.subscriptionPlan === 'PREMIUM';
+  // OrganizationsService.update (PREMIUM_FEATURE_PLANS) so the UI doesn't
+  // offer what it can't save. FREE is included too, but only for its 7-day
+  // trial window — RolesGuard blocks every write once that expires
+  // regardless of this flag, same as the server-side check
+  // (2026-08-22 free-trial rework).
+  const hasPremiumFeatures = org?.subscriptionPlan === 'FREE' || org?.subscriptionPlan === 'STANDARD' || org?.subscriptionPlan === 'PREMIUM';
   const upgradeWhatsappLink = platformWhatsappLink(
     `Hi, I'd like to upgrade "${org?.name || 'my organization'}" to the Standard plan.`,
   );
@@ -774,16 +777,16 @@ export default function SettingsPage() {
           <div className="sm:col-span-2">
             <label className="form-label flex items-center gap-1.5">
               UPI ID
-              {!isStandardPlus && <Lock size={11} className="text-theme-fg/40" />}
+              {!hasPremiumFeatures && <Lock size={11} className="text-theme-fg/40" />}
             </label>
             <input
               value={form.upiId || ''}
               onChange={e => setForm((p: any) => ({ ...p, upiId: e.target.value }))}
               className="form-input font-mono disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder="mandal@upi"
-              disabled={!isStandardPlus && !form.upiId}
+              disabled={!hasPremiumFeatures && !form.upiId}
             />
-            {!isStandardPlus && (
+            {!hasPremiumFeatures && (
               <p className="text-[11px] text-theme-fg/45 mt-1.5">
                 Available on the Standard plan and up.{' '}
                 <a href={upgradeWhatsappLink} target="_blank" rel="noopener noreferrer" className="text-saffron-400 hover:underline font-medium">
@@ -876,7 +879,7 @@ export default function SettingsPage() {
                   // downgrade can keep it (and switch back to it) — only
                   // switching to a *different* non-default theme needs Standard+.
                   const savedTheme = org?.receiptTemplateSettings?.theme || 'DEFAULT';
-                  const locked = !isStandardPlus && t.id !== 'DEFAULT' && t.id !== savedTheme;
+                  const locked = !hasPremiumFeatures && t.id !== 'DEFAULT' && t.id !== savedTheme;
                   return (
                     <ReceiptThemeCard
                       key={t.id}
