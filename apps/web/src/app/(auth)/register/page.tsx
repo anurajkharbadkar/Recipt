@@ -5,9 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
-import { platformWhatsappLink } from '@/lib/platform';
 import toast from 'react-hot-toast';
-import { ArrowRight, ArrowLeft, Check, Star, MessageCircle, KeyRound, Copy, CheckCheck, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Star, KeyRound, Copy, CheckCheck, CreditCard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import LogoMark from '@/components/brand/LogoMark';
 import { launchSubscriptionCheckout } from '@/lib/cashfreeCheckout';
@@ -105,15 +104,19 @@ function RegisterForm() {
           </button>
 
           {isPaidPlan ? (
-            <>
-              <button onClick={handlePayNow} disabled={payingViaCheckout} className="btn-primary w-full mb-2 disabled:opacity-60">
-                {payingViaCheckout ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-                Pay {formatCurrency(selectedPlan?.priceInr || 0)} & Activate
-              </button>
-              <button onClick={() => router.push('/dashboard')} className="btn-ghost w-full text-xs">
-                I&apos;ll pay later — take me to the dashboard
-              </button>
-            </>
+            // No "pay later" escape hatch — a paid plan gets no dashboard
+            // access until payment actually clears (RolesGuard blocks
+            // every write for a PENDING_PAYMENT org server-side regardless
+            // of what this screen offers, but inviting someone to defer
+            // payment at the exact moment they should be paying works
+            // against that, not with it). Someone who closes this tab
+            // without paying can still log in later and land on the
+            // dashboard's own pending-payment gate/banner — this only
+            // removes the *invitation* to skip, not the ability to log in.
+            <button onClick={handlePayNow} disabled={payingViaCheckout} className="btn-primary w-full disabled:opacity-60">
+              {payingViaCheckout ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+              Pay {formatCurrency(selectedPlan?.priceInr || 0)} & Activate
+            </button>
           ) : (
             <button onClick={() => router.push('/dashboard')} className="btn-primary w-full">
               Continue to Dashboard <ArrowRight size={16} />
@@ -272,31 +275,6 @@ function RegisterForm() {
               ? <>Start Free Trial <ArrowRight size={16} /></>
               : <>Create Account & Continue <ArrowRight size={16} /></>}
           </button>
-
-          {/* Nothing to request for FREE — signup itself is instant. */}
-          {form.subscriptionPlan !== SubscriptionPlan.FREE && (
-          <div className="flex items-center gap-3 text-[11px] text-theme-fg/30">
-            <div className="flex-1 h-px bg-theme-fg/10" />
-            or
-            <div className="flex-1 h-px bg-theme-fg/10" />
-          </div>
-          )}
-
-          {/* No payment gateway wired up yet (see PendingPaymentBanner.tsx) —
-              this skips the form entirely for someone who'd rather just ask
-              about a plan first. Not shown for FREE — nothing to request. */}
-          {form.subscriptionPlan !== SubscriptionPlan.FREE && (
-          <a
-            href={platformWhatsappLink(
-              `Hi, I'd like to request access to the ${selectedPlan?.name || ''} plan (${selectedPlan ? formatCurrency(selectedPlan.priceInr) : ''}) for my mandal.`,
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-secondary w-full flex items-center justify-center gap-2"
-          >
-            <MessageCircle size={16} /> Request Access via WhatsApp Instead
-          </a>
-          )}
 
           <div className="text-center">
             <Link href="/login" className="text-sm text-theme-fg/40 hover:text-theme-fg inline-flex items-center gap-1">

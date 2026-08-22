@@ -190,7 +190,6 @@ const CARD_TONES = {
     featureText: 'text-saffron-900/75 dark:text-saffron-100/65',
     cta: 'border-2 border-saffron-600/70 text-saffron-700 dark:text-saffron-300 hover:bg-saffron-600/8 dark:hover:bg-saffron-400/10',
     ctaLabel: 'Start Free Trial',
-    whatsapp: 'text-saffron-900/35 dark:text-saffron-100/30 hover:text-saffron-700 dark:hover:text-saffron-300',
   },
   basic: {
     wrapper: 'border border-saffron-200/80 dark:border-saffron-800/60 bg-[var(--card-bg)] shadow-sm',
@@ -205,7 +204,6 @@ const CARD_TONES = {
     featureText: 'text-saffron-900/75 dark:text-saffron-100/65',
     cta: 'bg-saffron-700 hover:bg-saffron-800 text-white shadow-md shadow-saffron-700/20',
     ctaLabel: 'Get Started',
-    whatsapp: 'text-saffron-900/35 dark:text-saffron-100/30 hover:text-saffron-700 dark:hover:text-saffron-300',
   },
   standard: {
     wrapper: 'border-2 border-royal-600 bg-gradient-to-b from-white via-white to-royal-50/50 dark:from-[#16213E] dark:via-[#14203A] dark:to-[#121D35] shadow-2xl shadow-royal-900/15',
@@ -220,7 +218,6 @@ const CARD_TONES = {
     featureText: 'text-royal-900/80 dark:text-white/75',
     cta: 'bg-royal-600 hover:bg-royal-700 text-white shadow-lg shadow-royal-600/30',
     ctaLabel: 'Get Started',
-    whatsapp: 'text-royal-900/40 dark:text-white/30 hover:text-royal-700 dark:hover:text-royal-300',
   },
   premium: {
     wrapper: 'border-2 border-gold-500/60 bg-gradient-to-b from-[#FBF5E8] via-white to-[#FDF8EF] dark:from-[#2A1F0E] dark:via-[#231A0C] dark:to-[#1E160A] shadow-xl shadow-gold-900/10 dark:shadow-gold-900/30',
@@ -235,7 +232,6 @@ const CARD_TONES = {
     featureText: 'text-gold-900/80 dark:text-saffron-100/80',
     cta: 'bg-gradient-to-r from-gold-600 to-gold-500 text-white hover:brightness-105 shadow-lg shadow-gold-500/30',
     ctaLabel: 'Get Started',
-    whatsapp: 'text-gold-900/35 dark:text-saffron-300/40 hover:text-gold-700 dark:hover:text-gold-300',
   },
 } as const;
 
@@ -334,18 +330,11 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
         {tone.ctaLabel} <ArrowRight size={14} />
       </Link>
 
-      {plan.priceInr > 0 && (
-        <a
-          href={platformWhatsappLink(
-            `Hi, I'd like to request access to the ${plan.name} plan (${formatCurrency(plan.priceInr)}) for my mandal.`,
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`w-full flex items-center justify-center gap-1.5 mt-2.5 py-2 rounded-full text-xs font-semibold transition-colors ${tone.whatsapp}`}
-        >
-          <MessageCircle size={12} /> Request access via WhatsApp
-        </a>
-      )}
+      {/* No WhatsApp "request access instead" fallback — real Cashfree
+          checkout is wired into /register now, so this only re-invited
+          people to bypass paying (2026-08-22). The general "Chat on
+          WhatsApp" contact CTA further down the page is unrelated —
+          that's just how to reach us, not a way around checkout. */}
     </div>
   );
 }
