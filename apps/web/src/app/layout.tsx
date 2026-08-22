@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Noto_Sans_Devanagari } from 'next/font/google';
+import { Cormorant_Garamond, Yatra_One, Tiro_Devanagari_Marathi } from 'next/font/google';
 import Providers from '@/components/Providers';
 import { Toaster } from 'react-hot-toast';
 import { BRAND_NAME, BRAND_TAGLINE, BRAND_TAGLINE_ALT } from '@pavti/shared';
@@ -16,6 +17,34 @@ const noto = Noto_Sans_Devanagari({
   subsets: ['devanagari'],
   variable: '--font-noto',
   weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+
+// Only used by the Interactive Devotional Pavti (InteractivePavtiView.tsx) —
+// its envelope/darshan/blessing slides lean on an ornate display-serif +
+// Devanagari-display pairing that the rest of the app's plain UI doesn't
+// need. Loaded here (not a runtime <link>) so it's self-hosted/optimized
+// like every other font, and available as a CSS var wherever it's needed.
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-cormorant',
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+});
+
+const yatraOne = Yatra_One({
+  subsets: ['devanagari', 'latin'],
+  variable: '--font-yatra',
+  weight: '400',
+  display: 'swap',
+});
+
+const tiroMarathi = Tiro_Devanagari_Marathi({
+  subsets: ['devanagari', 'latin'],
+  variable: '--font-tiro',
+  weight: '400',
+  style: ['normal', 'italic'],
   display: 'swap',
 });
 
@@ -52,7 +81,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${noto.variable}`}>
+    <html lang="en" className={`${inter.variable} ${noto.variable} ${cormorant.variable} ${yatraOne.variable} ${tiroMarathi.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

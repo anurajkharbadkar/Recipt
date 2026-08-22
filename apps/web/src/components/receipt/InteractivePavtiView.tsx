@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useId } from 'react';
+import gsap from 'gsap';
 import {
   Receipt,
   ReceiptTemplateSettings,
@@ -10,8 +11,7 @@ import {
   RECEIPT_FIELD_LABELS
 } from '@pavti/shared';
 import { playSealCrackSound, playTempleBell, playAshirwadChimes } from '@/lib/templeAudio';
-import { Volume2, VolumeX, Download, Share2, ArrowDown, CheckCircle2, ChevronDown, Sparkles } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-react';
 
 interface InteractivePavtiViewProps {
   receipt: Receipt;
@@ -37,6 +37,64 @@ interface InteractivePavtiViewProps {
   embedded?: boolean;
 }
 
+// Small deterministic PRNG (not Math.random) so the ambient spark/smoke
+// layout is stable across re-renders of the same component instance
+// instead of jumping every time React re-renders for an unrelated reason
+// (e.g. the sound-mute toggle). Seeded per spark index, not per render.
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 999.7) * 10000;
+  return x - Math.floor(x);
+}
+
+/**
+ * Bursts a shower of colored "petal" divs outward from a screen point and
+ * lets them fall away, then removes themselves. Pure DOM/GSAP — the host
+ * element must be an otherwise-empty ref div that React never renders
+ * children into, so these manually-appended/removed nodes never collide
+ * with React's own reconciliation of that subtree.
+ */
+function burstPetals(
+  layer: HTMLElement,
+  originX: number,
+  originY: number,
+  opts: { count: number; colors: string[]; angleMin: number; angleMax: number; minDist: number; maxDist: number }
+) {
+  const { count, colors, angleMin, angleMax, minDist, maxDist } = opts;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'burst-petal';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = `${originX}px`;
+    p.style.top = `${originY}px`;
+    layer.appendChild(p);
+
+    const deg = angleMin + Math.random() * (angleMax - angleMin);
+    const rad = (deg * Math.PI) / 180;
+    const dist = minDist + Math.random() * (maxDist - minDist);
+    const burstX = Math.cos(rad) * dist;
+    const burstY = Math.sin(rad) * dist;
+    const rot = Math.random() * 480 - 240;
+    const scale = 0.55 + Math.random() * 0.7;
+    const dur = 1.5 + Math.random() * 1.1;
+
+    gsap
+      .timeline({ onComplete: () => p.remove() })
+      .fromTo(
+        p,
+        { scale: 0.1, opacity: 1, x: 0, y: 0, rotate: 0 },
+        { x: burstX, y: burstY, scale, rotate: rot, duration: dur * 0.4, ease: 'power4.out' }
+      )
+      .to(p, {
+        y: burstY + 160 + Math.random() * 120,
+        x: burstX + (Math.random() * 70 - 35),
+        opacity: 0,
+        rotate: rot + 160,
+        duration: dur * 0.6,
+        ease: 'sine.inOut',
+      });
+  }
+}
+
 export default function InteractivePavtiView({
   receipt,
   language = 'mr',
@@ -50,11 +108,47 @@ export default function InteractivePavtiView({
 
   const appContainerRef = useRef<HTMLDivElement>(null);
   const slidesRef = useRef<(HTMLElement | null)[]>([]);
+  const revealedRef = useRef<Set<number>>(new Set());
+  const activeTimelinesRef = useRef<gsap.core.Timeline[]>([]);
+
+  // Envelope slide refs (slide 0)
+  const sealRef = useRef<HTMLDivElement>(null);
+  const sealLeftRef = useRef<HTMLDivElement>(null);
+  const sealRightRef = useRef<HTMLDivElement>(null);
+  const glowBurstRef = useRef<HTMLDivElement>(null);
+  const glowBurstOuterRef = useRef<HTMLDivElement>(null);
+  const envFlapRef = useRef<HTMLDivElement>(null);
+  const insideLetterRef = useRef<HTMLDivElement>(null);
+
+  // Ganpati/darshan slide refs (slide 1)
+  const darshanWrapRef = useRef<HTMLDivElement>(null);
+  const chakraRef = useRef<HTMLDivElement>(null);
+  const diyaRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const ganpatiPetalLayerRef = useRef<HTMLDivElement>(null);
+
+  // Receipt slide refs (slide 2)
+  const receiptCardRef = useRef<HTMLDivElement>(null);
+  const stampRef = useRef<HTMLDivElement>(null);
+  const receiptPetalLayerRef = useRef<HTMLDivElement>(null);
+
+  // Blessing slide refs (slide 3)
+  const blessHandRef = useRef<HTMLDivElement>(null);
+  const blessDividerRef = useRef<HTMLDivElement>(null);
+  const blessMsgRef = useRef<HTMLParagraphElement>(null);
+  const blessClosingRef = useRef<HTMLDivElement>(null);
+  const blessSubRef = useRef<HTMLParagraphElement>(null);
+  const blessBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Unique ids for this instance's SVG <defs>/<use> — two of these could in
+  // theory render on the same page at once (e.g. a settings-page preview
+  // next to a real receipt), and duplicate SVG element ids silently break
+  // <use href="#..."> resolution in that case.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
 
   const org: any = (receipt as any).organization || (receipt as any).campaign?.organization || {};
   const campaign: any = (receipt as any).campaign || {};
   const settings: ReceiptTemplateSettings = resolveReceiptSettings(org?.receiptTemplateSettings, language);
-  
+
   const isLandscapeTemplate = settings.interactiveTemplate === 'GANESHA_LANDSCAPE_GOLD';
   const customDarshan = settings.customDarshanUrl;
   // Same field labels as the single-page pavti (ReceiptPreview.tsx) and the
@@ -74,6 +168,19 @@ export default function InteractivePavtiView({
     { day: '2-digit', month: 'long', year: 'numeric' }
   );
 
+  // Ambient floating sparks on the envelope slide — stable per mount, not
+  // re-randomized on every render (see seededRandom above).
+  const sparks = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => ({
+        left: 6 + seededRandom(i * 3 + 1) * 88,
+        top: 18 + seededRandom(i * 7 + 2) * 62,
+        dur: 4 + seededRandom(i * 5 + 3) * 4,
+        delay: seededRandom(i * 11 + 4) * 5,
+      })),
+    []
+  );
+
   // Scroll to slide helper
   const goToSlide = (slideIndex: number) => {
     if (slideIndex < 0 || slideIndex > 3) return;
@@ -84,7 +191,10 @@ export default function InteractivePavtiView({
     }
   };
 
-  // Open Envelope Trigger
+  // Open Envelope Trigger — a real GSAP timeline (seal crack → halves fly
+  // apart → golden light burst → flap unfolds in 3D → letter rises) rather
+  // than a single CSS class toggle, matching the reference design's
+  // sequenced reveal instead of one flat fade.
   const handleOpenEnvelope = () => {
     if (isEnvelopeOpen) return;
     setIsEnvelopeOpen(true);
@@ -93,10 +203,101 @@ export default function InteractivePavtiView({
       playSealCrackSound();
     }
 
-    // Move to Slide 1 (Darshan) after animation completes
-    setTimeout(() => {
-      goToSlide(1);
-    }, 2200);
+    const tl = gsap.timeline();
+    activeTimelinesRef.current.push(tl);
+
+    tl.to(sealRef.current, { scale: 1.08, duration: 0.14, ease: 'power1.out' }, 0)
+      .to(sealRef.current, { scale: 0, opacity: 0, duration: 0.32, ease: 'back.in(2.4)' }, 0.14)
+      .set([sealLeftRef.current, sealRightRef.current], { opacity: 1 }, 0.16)
+      .to(sealLeftRef.current, { x: -30, y: -16, rotate: -55, opacity: 0, duration: 0.75, ease: 'power2.in' }, 0.2)
+      .to(sealRightRef.current, { x: 30, y: -16, rotate: 55, opacity: 0, duration: 0.75, ease: 'power2.in' }, 0.2)
+      .to(glowBurstOuterRef.current, { scale: 12, opacity: 0.55, duration: 0.75, ease: 'power1.out' }, 0.3)
+      .to(glowBurstRef.current, { scale: 9, opacity: 0.95, duration: 0.6, ease: 'power1.out' }, 0.32)
+      .to(glowBurstRef.current, { opacity: 0, duration: 0.6 }, 0.8)
+      .to(glowBurstOuterRef.current, { opacity: 0, duration: 0.7 }, 0.85)
+      .to(envFlapRef.current, { rotateX: -172, duration: 1.1, ease: 'power2.inOut', transformPerspective: 1000 }, 0.5)
+      .to(insideLetterRef.current, { opacity: 1, y: -40, scale: 1.02, duration: 0.8, ease: 'elastic.out(1,0.65)' }, 1.15)
+      .call(() => goToSlide(1), undefined, 1.95);
+  };
+
+  // Ganpati/darshan slide: chakra + diyas fade-in, temple bell, and a
+  // one-shot flower shower (pushpa vrishti) — fires once, the first time
+  // the slide is actually reached, not on every scroll back to it.
+  const revealGanpatiSlide = () => {
+    if (revealedRef.current.has(1)) return;
+    revealedRef.current.add(1);
+
+    const tl = gsap.timeline();
+    activeTimelinesRef.current.push(tl);
+    tl.fromTo(darshanWrapRef.current, { opacity: 0, y: 40, scale: 0.85 }, { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: 'power3.out' })
+      .fromTo(chakraRef.current, { opacity: 0, scale: 0.6 }, { opacity: 0.85, scale: 1, duration: 1.4, ease: 'power2.out' }, '-=1.0')
+      .fromTo(
+        diyaRefs.current.filter(Boolean),
+        { opacity: 0, y: -36 },
+        { opacity: 1, y: 0, duration: 1, stagger: 0.2, ease: 'back.out(1.5)' },
+        '-=0.9'
+      );
+
+    if (!isSoundMuted) playTempleBell();
+
+    const layer = ganpatiPetalLayerRef.current;
+    const slideEl = slidesRef.current[1];
+    if (layer && slideEl) {
+      const rect = slideEl.getBoundingClientRect();
+      burstPetals(layer, rect.width / 2, rect.height * 0.4, {
+        count: 30,
+        colors: ['#ff9f43', '#ee5253', '#fabca1', '#e2883f', '#f5b942', '#ffffff'],
+        angleMin: 0,
+        angleMax: 360,
+        minDist: 60,
+        maxDist: 260,
+      });
+    }
+  };
+
+  // Receipt slide: card settles in, the mandal stamp seats with a bounce,
+  // then a flower blast fires from the card's two top corners.
+  const revealReceiptSlide = () => {
+    if (revealedRef.current.has(2)) return;
+    revealedRef.current.add(2);
+
+    const tl = gsap.timeline();
+    activeTimelinesRef.current.push(tl);
+    tl.fromTo(stampRef.current, { scale: 1.6, rotate: -20, opacity: 0 }, { scale: 1, rotate: -8, opacity: 1, duration: 0.6, delay: 0.4, ease: 'back.out(2.2)' });
+
+    const layer = receiptPetalLayerRef.current;
+    const card = receiptCardRef.current;
+    const slideEl = slidesRef.current[2];
+    if (layer && card && slideEl) {
+      const cardRect = card.getBoundingClientRect();
+      const slideRect = slideEl.getBoundingClientRect();
+      const leftX = cardRect.left - slideRect.left + 16;
+      const rightX = cardRect.right - slideRect.left - 16;
+      const topY = cardRect.top - slideRect.top + 16;
+      const colors = ['#e2883f', '#ff7700', '#e91e63', '#ffc107', '#ffffff', '#f48fb1'];
+      window.setTimeout(() => {
+        burstPetals(layer, leftX, topY, { count: 18, colors, angleMin: -85, angleMax: 20, minDist: 90, maxDist: 220 });
+        burstPetals(layer, rightX, topY, { count: 18, colors, angleMin: -200, angleMax: -95, minDist: 90, maxDist: 220 });
+      }, 250);
+    }
+  };
+
+  // Blessing slide: staged reveal of the ashirwad icon, divider, message
+  // and closing chant, ending on the share CTA — plus the existing temple
+  // chime that already played here.
+  const revealBlessingSlide = () => {
+    if (!revealedRef.current.has(3)) {
+      revealedRef.current.add(3);
+      const tl = gsap.timeline({ delay: 0.15 });
+      activeTimelinesRef.current.push(tl);
+      tl.fromTo(blessHandRef.current, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out' })
+        .fromTo(blessDividerRef.current, { opacity: 0 }, { opacity: 1, duration: 0.6 }, '-=0.3')
+        .fromTo(blessMsgRef.current, { opacity: 0 }, { opacity: 1, duration: 0.9 }, '-=0.2')
+        .fromTo(blessClosingRef.current, { opacity: 0 }, { opacity: 1, duration: 0.8 }, '-=0.3')
+        .fromTo(blessSubRef.current, { opacity: 0 }, { opacity: 1, duration: 0.7 }, '-=0.5')
+        .fromTo(blessBtnRef.current, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3');
+    }
+    if (!isSoundMuted) playAshirwadChimes();
   };
 
   // Handle slide visibility on scroll
@@ -115,15 +316,25 @@ export default function InteractivePavtiView({
       const activeIdx = Math.round(scrollPos / height);
       if (activeIdx !== currentSlide && activeIdx >= 0 && activeIdx <= 3) {
         setCurrentSlide(activeIdx);
-        if (activeIdx === 3 && !isSoundMuted) {
-          playAshirwadChimes();
-        }
+        if (activeIdx === 1) revealGanpatiSlide();
+        if (activeIdx === 2) revealReceiptSlide();
+        if (activeIdx === 3) revealBlessingSlide();
       }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSlide, isSoundMuted]);
+
+  // Kill any in-flight timelines on unmount (e.g. navigating away from the
+  // receipt page mid-animation) rather than letting them tick against
+  // detached refs.
+  useEffect(() => {
+    return () => {
+      activeTimelinesRef.current.forEach((tl) => tl.kill());
+    };
+  }, []);
 
   // WhatsApp Share Handler
   const handleShareWhatsApp = () => {
@@ -165,6 +376,9 @@ export default function InteractivePavtiView({
           --parchment-dark: #f3ede0;
           --bronze: #2a160d;
           --ink: #2b160c;
+          --font-display: var(--font-cormorant), 'Cormorant Garamond', serif;
+          --font-devotional: var(--font-yatra), serif;
+          --font-eyebrow: var(--font-tiro), var(--font-cormorant), serif;
           font-family: 'Noto Sans Devanagari', 'Segoe UI', serif;
           background: var(--maroon-black);
           color: var(--parchment);
@@ -303,11 +517,71 @@ export default function InteractivePavtiView({
           color: var(--maroon-black);
         }
 
-        /* Slide 1: Envelope */
+        /* ============ Slide 1: Royal Envelope ============ */
         .envelope-slide {
           background: radial-gradient(ellipse at 50% 30%, rgba(216, 168, 80, 0.14), transparent 55%),
+                      repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.04) 0 2px, transparent 2px 7px),
                       linear-gradient(160deg, var(--maroon) 0%, var(--maroon-deep) 60%, #150304 100%);
         }
+        .envelope-slide::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.5) 100%);
+        }
+
+        /* Drifting incense-smoke wisps behind the envelope */
+        .smoke-wisp {
+          position: absolute;
+          z-index: 1;
+          pointer-events: none;
+          border-radius: 50%;
+          filter: blur(34px);
+          opacity: 0.16;
+        }
+        .smoke-a { width: 300px; height: 380px; left: 6%; top: 10%; background: radial-gradient(ellipse, rgba(230, 190, 120, 0.5), transparent 70%); animation: smokeDriftA 16s ease-in-out infinite; }
+        .smoke-b { width: 270px; height: 340px; right: 5%; bottom: 5%; background: radial-gradient(ellipse, rgba(200, 140, 90, 0.45), transparent 70%); animation: smokeDriftB 19s ease-in-out infinite; }
+        @keyframes smokeDriftA { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(26px, -20px) scale(1.08); } }
+        @keyframes smokeDriftB { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-22px, 18px) scale(1.06); } }
+
+        /* Floating golden sparks */
+        .ambient-spark {
+          position: absolute;
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: var(--gold-light);
+          box-shadow: 0 0 6px 1px rgba(244, 221, 154, 0.8);
+          z-index: 2;
+          pointer-events: none;
+          animation: sparkTwinkle var(--dur) ease-in-out var(--delay) infinite;
+        }
+        @keyframes sparkTwinkle {
+          0%, 100% { opacity: 0; transform: translateY(0); }
+          50% { opacity: 0.9; transform: translateY(-30px); }
+        }
+
+        .envelope-stage-wrap {
+          position: relative;
+          z-index: 5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .envelope-back-glow {
+          position: absolute;
+          width: min(440px, 100vw);
+          height: min(440px, 100vw);
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(244, 221, 154, 0.26), rgba(244, 221, 154, 0.05) 45%, transparent 72%);
+          animation: backGlowPulse 4.2s ease-in-out infinite;
+          z-index: 0;
+          pointer-events: none;
+        }
+        @keyframes backGlowPulse { 0%, 100% { transform: scale(1); opacity: 0.75; } 50% { transform: scale(1.1); opacity: 1; } }
+
         .envelope-wrap {
           perspective: 1900px;
           width: min(380px, 86vw);
@@ -326,9 +600,19 @@ export default function InteractivePavtiView({
           position: absolute;
           inset: 0;
           border-radius: 8px;
-          background: linear-gradient(145deg, #7c1a2c, #480c16 65%, #2a050c);
+          background:
+            repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 8px),
+            linear-gradient(145deg, #7c1a2c, #480c16 65%, #2a050c);
           border: 1.5px solid rgba(244, 221, 154, 0.4);
           overflow: hidden;
+        }
+        .envelope-body::after {
+          content: '';
+          position: absolute;
+          inset: 8px;
+          border: 1px solid rgba(244, 221, 154, 0.22);
+          border-radius: 4px;
+          pointer-events: none;
         }
         .envelope-flap {
           position: absolute;
@@ -336,18 +620,21 @@ export default function InteractivePavtiView({
           left: 0;
           width: 100%;
           height: 52%;
-          background: linear-gradient(180deg, #8a1e32 0%, #601120 100%);
+          background:
+            repeating-linear-gradient(70deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 8px),
+            linear-gradient(180deg, #8a1e32 0%, #601120 100%);
           clip-path: polygon(0 0, 100% 0, 50% 100%);
           transform-origin: top center;
-          transition: transform 1.1s cubic-bezier(0.4, 0, 0.2, 1);
           border-top: 1.5px solid rgba(244, 221, 154, 0.5);
           z-index: 8;
         }
-        .envelope-flap.open {
-          transform: rotateX(-175deg);
-        }
+        .flap-corner-motif { position: absolute; width: 18px; height: 18px; top: 10%; opacity: 0.5; pointer-events: none; }
+        .flap-corner-motif.left { left: 12%; }
+        .flap-corner-motif.right { right: 12%; transform: scaleX(-1); }
 
-        /* Wax Seal */
+        /* Wax Seal — now splits into two halves + a golden light burst
+           instead of just shrinking to nothing, driven by handleOpenEnvelope's
+           GSAP timeline rather than a CSS class toggle. */
         .wax-seal {
           position: absolute;
           top: 48%;
@@ -363,30 +650,62 @@ export default function InteractivePavtiView({
           justify-content: center;
           color: #fff8dc;
           font-size: 1.8rem;
-          font-weight: bold;
+          font-family: var(--font-devotional);
           cursor: pointer;
           z-index: 15;
-          transition: all 0.3s ease;
+          transition: box-shadow 0.3s ease;
           border: 2px solid rgba(255, 215, 0, 0.4);
         }
-        .wax-seal:hover {
-          transform: translate(-50%, -50%) scale(1.08);
-          box-shadow: 0 0 20px rgba(244, 221, 154, 0.8);
+        .wax-seal:hover { box-shadow: 0 0 20px rgba(244, 221, 154, 0.8); }
+        .seal-ring {
+          position: absolute;
+          top: 48%;
+          left: 50%;
+          width: 64px;
+          height: 64px;
+          margin: -32px 0 0 -32px;
+          border-radius: 50%;
+          border: 1.4px solid var(--gold-light);
+          opacity: 0;
+          pointer-events: none;
+          z-index: 14;
         }
-        .wax-seal.cracked {
-          animation: sealCrack 0.5s forwards;
+        .wax-seal:not(.opened) ~ .seal-ring { animation: ringPulse 2.6s ease-out infinite; }
+        .seal-ring.r2 { animation-delay: 1.3s; }
+        @keyframes ringPulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
+        .seal-half {
+          position: absolute;
+          top: 48%;
+          width: 32px;
+          height: 64px;
+          margin-top: -32px;
+          background: radial-gradient(circle at 35% 35%, #e6a832, #b87814 60%, #6d4107);
+          opacity: 0;
+          pointer-events: none;
+          z-index: 16;
+          overflow: hidden;
         }
-        @keyframes sealCrack {
-          0% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.15) rotate(10deg); opacity: 0.8; }
-          100% { transform: translate(-50%, -50%) scale(0); opacity: 0; pointer-events: none; }
+        .seal-half.left { left: calc(50% - 32px); border-radius: 32px 0 0 32px; }
+        .seal-half.right { left: calc(50% - 0px); border-radius: 0 32px 32px 0; }
+        .glow-burst, .glow-burst-outer {
+          position: absolute;
+          top: 48%;
+          left: 50%;
+          width: 20px;
+          height: 20px;
+          margin: -10px 0 0 -10px;
+          border-radius: 50%;
+          opacity: 0;
+          pointer-events: none;
         }
+        .glow-burst { background: radial-gradient(circle, rgba(255, 232, 180, 0.98), rgba(255, 195, 100, 0.4) 42%, transparent 72%); z-index: 13; }
+        .glow-burst-outer { background: radial-gradient(circle, rgba(255, 210, 140, 0.55), transparent 70%); z-index: 12; }
 
         /* Inside Rising Letter */
         .inside-letter {
           position: absolute;
           inset: 12px;
-          background: var(--parchment);
+          background: linear-gradient(170deg, var(--parchment), var(--parchment-dark));
           color: var(--maroon);
           border-radius: 4px;
           padding: 16px;
@@ -395,28 +714,74 @@ export default function InteractivePavtiView({
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          font-size: 0.85rem;
-          font-weight: 600;
-          transform: translateY(0);
-          transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.8s;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.2);
           z-index: 4;
+          opacity: 0;
+          border: 1px solid rgba(120, 80, 20, 0.3);
         }
-        .inside-letter.rise {
-          transform: translateY(-45px);
+        .inside-letter p:first-child {
+          font-family: var(--font-devotional);
+          font-size: 1rem;
+          color: var(--maroon);
+        }
+        .inside-letter p:last-child {
+          font-family: var(--font-display);
+          font-style: italic;
+          font-size: 0.9rem;
+          color: #5a4322;
+          margin-top: 4px;
         }
 
-        /* Slide 2: Darshan */
-        .ganpati-slide {
-          background: radial-gradient(circle at 50% 45%, #46141b 0%, var(--maroon-black) 75%);
+        .open-hint {
+          position: absolute;
+          bottom: 10%;
+          left: 50%;
+          transform: translateX(-50%);
+          text-align: center;
+          color: var(--gold-light);
+          opacity: 0.9;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          z-index: 20;
+          animation: bobArrow 2.4s ease-in-out infinite;
         }
+
+        /* ============ Slide 2: Divine Ganpati Darshan ============ */
+        .ganpati-slide {
+          background: radial-gradient(circle at 50% 38%, rgba(226, 136, 63, 0.22), transparent 55%),
+                      radial-gradient(circle at 50% 45%, #46141b 0%, var(--maroon-black) 75%);
+        }
+
+        /* Suryachakra — rotating golden ring behind the darshan portrait */
+        .divine-chakra {
+          position: absolute;
+          top: 38%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: min(420px, 92vw);
+          height: min(420px, 92vw);
+          pointer-events: none;
+          z-index: 1;
+          filter: drop-shadow(0 0 20px rgba(244, 221, 154, 0.55));
+        }
+        .chakra-outer-ring { transform-origin: 250px 250px; animation: chakraSpinCW 32s linear infinite; }
+        .chakra-inner-ring { transform-origin: 250px 250px; animation: chakraSpinCCW 24s linear infinite; }
+        .chakra-hub { transform-origin: 250px 250px; animation: chakraPulseGlow 3.5s ease-in-out infinite alternate; }
+        @keyframes chakraSpinCW { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes chakraSpinCCW { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes chakraPulseGlow { 0% { opacity: 0.82; transform: scale(0.97); } 100% { opacity: 1; transform: scale(1.03); } }
+
         .darshan-idol-wrap {
           position: relative;
-          width: min(280px, 72vw);
-          height: min(280px, 72vw);
+          width: min(240px, 62vw);
+          height: min(240px, 62vw);
           display: flex;
           align-items: center;
           justify-content: center;
+          z-index: 3;
         }
         .darshan-aura {
           position: absolute;
@@ -426,63 +791,71 @@ export default function InteractivePavtiView({
           background: radial-gradient(circle, rgba(244, 221, 154, 0.35) 0%, rgba(226, 136, 63, 0.15) 50%, transparent 70%);
           animation: auraPulse 3.5s ease-in-out infinite;
         }
-        @keyframes auraPulse {
-          0%, 100% { transform: scale(1); opacity: 0.8; }
-          50% { transform: scale(1.12); opacity: 1; }
-        }
-        .darshan-img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          border-radius: 50%;
-          border: 3px solid var(--gold);
-          box-shadow: 0 0 35px rgba(244, 221, 154, 0.6);
+        @keyframes auraPulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.12); opacity: 1; } }
+        .darshan-frame {
+          padding: 7px;
+          border-radius: 52% 52% 14px 14px / 34% 34% 14px 14px;
+          background: linear-gradient(135deg, #ffe599 0%, #c9a24a 35%, #8a6a2a 70%, #f4dd9a 100%);
+          box-shadow: 0 20px 46px rgba(0, 0, 0, 0.6), 0 0 40px rgba(244, 221, 154, 0.45), inset 0 0 10px rgba(255, 255, 255, 0.5);
           position: relative;
           z-index: 2;
-        }
-
-        /* Diya Flame */
-        .diya-flame-box {
-          position: relative;
-          width: 14px;
-          height: 28px;
-          margin: 12px auto 0;
-        }
-        .flame-particle {
           width: 100%;
           height: 100%;
-          border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%;
-          background: radial-gradient(circle at 50% 70%, #fff2b8, #f5b942 55%, #e2883f 90%);
-          animation: flameFlicker 1.4s ease-in-out infinite alternate;
-          filter: drop-shadow(0 0 10px #f5b942);
         }
-        @keyframes flameFlicker {
-          0% { transform: scaleY(1) rotate(-2deg); }
-          100% { transform: scaleY(1.15) rotate(3deg); }
-        }
-
-        /* Falling Flower Petals */
-        .flower-petal {
-          position: absolute;
-          top: -20px;
-          width: 12px;
-          height: 16px;
-          background: linear-gradient(135deg, #f5a623, #d0021b);
-          border-radius: 0 60% 0 60%;
-          opacity: 0.75;
-          pointer-events: none;
-          animation: petalFall linear infinite;
-        }
-        @keyframes petalFall {
-          0% { transform: translateY(0) rotate(0deg); opacity: 0.8; }
-          100% { transform: translateY(105vh) rotate(360deg); opacity: 0.1; }
+        .darshan-frame-inner { padding: 3px; border-radius: inherit; background: linear-gradient(160deg, #2b0e08, #160504); height: 100%; }
+        .darshan-img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: inherit;
+          -webkit-mask-image: radial-gradient(ellipse 92% 96% at 50% 42%, #000 62%, transparent 96%);
+          mask-image: radial-gradient(ellipse 92% 96% at 50% 42%, #000 62%, transparent 96%);
         }
 
-        /* Slide 3: Receipt Card */
+        /* Dual flanking brass diyas */
+        .ganpati-stage {
+          position: relative;
+          z-index: 3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: clamp(14px, 5vw, 30px);
+        }
+        .brass-diya { position: relative; display: flex; flex-direction: column; align-items: center; opacity: 0; }
+        .diya-chain { width: 2px; height: clamp(36px, 8vh, 60px); background: linear-gradient(180deg, rgba(201, 162, 74, 0.3), rgba(244, 221, 154, 0.8), #8a6a2a); }
+        .diya-bowl {
+          position: relative;
+          width: 26px;
+          height: 15px;
+          background: linear-gradient(160deg, #ffe599, #c9a24a 50%, #5a431c 100%);
+          border-radius: 0 0 13px 13px;
+          border: 1px solid var(--gold-light);
+          box-shadow: 0 5px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(244, 221, 154, 0.35);
+          display: flex;
+          justify-content: center;
+        }
+        .diya-flame { position: absolute; top: -11px; width: 6px; height: 13px; border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%; background: radial-gradient(circle at 50% 70%, #fff2b8, #f5b942 55%, #e2883f 90%); animation: flameFlicker 1.4s ease-in-out infinite alternate; }
+        @keyframes flameFlicker { 0% { transform: scaleY(1) rotate(-2deg); } 100% { transform: scaleY(1.15) rotate(3deg); } }
+        .diya-glow { position: absolute; bottom: -8px; width: 42px; height: 42px; border-radius: 50%; background: radial-gradient(circle, rgba(245, 185, 66, 0.42), transparent 70%); animation: diyaGlowPulse 2s ease-in-out infinite alternate; }
+        @keyframes diyaGlowPulse { 0% { opacity: 0.55; transform: scale(0.9); } 100% { opacity: 0.9; transform: scale(1.12); } }
+        .incense-smoke { position: absolute; bottom: 12px; width: 10px; height: 26px; background: radial-gradient(ellipse, rgba(244, 221, 154, 0.4), transparent 70%); border-radius: 50%; filter: blur(4px); animation: smokeRise 3.4s ease-out infinite; }
+        .incense-smoke.s2 { animation-delay: 1.7s; width: 13px; height: 34px; }
+        @keyframes smokeRise { 0% { transform: translateY(0) scaleX(0.8); opacity: 0; } 30% { opacity: 0.42; } 100% { transform: translateY(-56px) scaleX(1.7) translateX(10px); opacity: 0; } }
+
+        /* Continuous ambient petal drift (separate from the one-shot burst) */
+        .flower-petal { position: absolute; top: -20px; width: 12px; height: 16px; background: linear-gradient(135deg, #f5a623, #d0021b); border-radius: 0 60% 0 60%; opacity: 0.75; pointer-events: none; animation: petalFall linear infinite; }
+        @keyframes petalFall { 0% { transform: translateY(0) rotate(0deg); opacity: 0.8; } 100% { transform: translateY(105vh) rotate(360deg); opacity: 0.1; } }
+
+        /* One-shot burst particles (pushpa vrishti / receipt flower blast) */
+        .burst-petal { position: absolute; width: 13px; height: 16px; border-radius: 50% 0 50% 50%; pointer-events: none; z-index: 40; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+
+        /* ============ Slide 3: Authentic Digital Pavti ============ */
         .receipt-slide {
           background: linear-gradient(160deg, #2b110b 0%, #170704 100%);
         }
         .authentic-card {
+          position: relative;
           width: min(440px, 92vw);
           max-height: 86vh;
           overflow-y: auto;
@@ -492,31 +865,128 @@ export default function InteractivePavtiView({
           padding: 24px 20px;
           box-shadow: 0 25px 50px rgba(0, 0, 0, 0.65);
           border: 2px solid var(--gold);
-          position: relative;
+          z-index: 3;
         }
-        .card-inner-frame {
-          border: 1px solid rgba(150, 110, 40, 0.4);
-          padding: 16px;
-          border-radius: 4px;
-          position: relative;
+        .card-inner-frame { border: 1px solid rgba(150, 110, 40, 0.4); padding: 16px; border-radius: 4px; position: relative; }
+        .card-watermark {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-family: var(--font-devotional);
+          font-size: 11rem;
+          color: var(--maroon);
+          opacity: 0.045;
+          pointer-events: none;
+          z-index: 0;
+          user-select: none;
+        }
+        .authentic-card > * { position: relative; z-index: 1; }
+        .om-mark { font-family: var(--font-devotional); font-size: 1.4rem; color: var(--maroon); line-height: 1; margin-bottom: 2px; }
+
+        .mandal-stamp {
+          width: 68px;
+          height: 68px;
+          border-radius: 50%;
+          border: 2.5px solid var(--maroon);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          transform: scale(1.5) rotate(-18deg);
+          opacity: 0;
+          color: var(--maroon);
+          font-family: var(--font-devotional);
+          font-size: 0.6rem;
+          line-height: 1.2;
+          box-shadow: 0 0 0 3px rgba(92, 18, 32, 0.08) inset;
         }
 
-        /* Slide 4: Blessing */
+        /* ============ Slide 4: Divine Ashirwad ============ */
         .blessing-slide {
-          background: radial-gradient(circle at 50% 45%, #3d1310 0%, #150304 75%);
+          background: radial-gradient(circle at 50% 40%, #451712 0%, #2b0a0c 55%, #1a0405 100%);
         }
         .divine-rays {
           position: absolute;
-          width: 140vmax;
-          height: 140vmax;
-          background: repeating-conic-gradient(from 0deg, rgba(244, 221, 154, 0.04) 0deg 6deg, transparent 6deg 14deg);
-          animation: raysSpin 80s linear infinite;
-          pointer-events: none;
+          width: 160vmax;
+          height: 160vmax;
+          background: repeating-conic-gradient(from 0deg, rgba(244, 221, 154, 0.05) 0deg 6deg, transparent 6deg 14deg);
+          animation: raysSpin 90s linear infinite;
+          z-index: 0;
         }
-        @keyframes raysSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        .royal-lattice {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          opacity: 0.5;
+          background-image: radial-gradient(circle, rgba(244, 221, 154, 0.16) 0.6px, transparent 0.6px);
+          background-size: 26px 26px;
+          -webkit-mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 72%);
+          mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 72%);
         }
+        .royal-vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 0 90px 30px rgba(10, 2, 3, 0.75); }
+        @keyframes raysSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .bless-icon-wrap { position: relative; width: 84px; height: 84px; opacity: 0; margin-bottom: 6px; }
+        .bless-icon {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #d9a13a, #f4dd9a);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.1rem;
+          box-shadow: 0 0 30px rgba(244, 221, 154, 0.45);
+          border: 2px solid var(--gold-light);
+          position: relative;
+          z-index: 2;
+        }
+        .bless-glow-ring { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; transform: translate(-50%, -50%); border-radius: 50%; border: 1.4px solid rgba(244, 221, 154, 0.75); pointer-events: none; z-index: 1; animation: blessRingPulse 2.6s ease-out infinite; }
+        .bless-glow-ring.r2 { animation-delay: 1.3s; }
+        @keyframes blessRingPulse { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
+
+        .royal-divider { display: flex; align-items: center; gap: 10px; width: min(200px, 50vw); margin: 6px 0; opacity: 0; }
+        .royal-divider span { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent); }
+        .royal-divider .gem { width: 7px; height: 7px; transform: rotate(45deg); background: linear-gradient(135deg, var(--gold-light), var(--gold)); box-shadow: 0 0 8px rgba(244, 221, 154, 0.7); flex: none; }
+
+        .bless-message { font-family: var(--font-display); font-style: italic; font-size: clamp(1.05rem, 2.6vw, 1.35rem); color: var(--parchment); line-height: 1.55; opacity: 0; }
+
+        .closing-chant-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; opacity: 0; }
+        .closing-flourish { width: 30px; height: 11px; opacity: 0.8; }
+        .closing-flourish.flip { transform: scaleX(-1); }
+        .closing-chant {
+          font-family: var(--font-devotional);
+          font-size: 1.3rem;
+          background: linear-gradient(180deg, var(--gold-light) 20%, var(--gold) 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          white-space: nowrap;
+          text-shadow: 0 0 20px rgba(244, 221, 154, 0.3);
+        }
+        .bless-sub { font-family: var(--font-eyebrow); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--saffron); margin-top: 6px; opacity: 0; }
+
+        .royal-share-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          margin-top: 26px;
+          padding: 11px 24px;
+          border-radius: 30px;
+          border: 1.3px solid var(--gold-light);
+          outline: 1px solid rgba(201, 162, 74, 0.35);
+          outline-offset: 3px;
+          background: transparent;
+          color: var(--gold-light);
+          font-size: 0.82rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          cursor: pointer;
+          opacity: 0;
+          transition: all 0.25s ease;
+        }
+        .royal-share-btn:hover { background: var(--gold-light); color: var(--maroon-black); }
 
         /* Down Cue Indicator */
         .down-cue-box {
@@ -537,6 +1007,16 @@ export default function InteractivePavtiView({
         @keyframes bobArrow {
           0%, 100% { transform: translateX(-50%) translateY(0); }
           50% { transform: translateX(-50%) translateY(6px); }
+        }
+
+        /* Elements this file continuously animates should get their own
+           compositing layer — cheap insurance against jank on the mid-range
+           phones most donors are actually opening this on. */
+        .divine-chakra, .brass-diya, .darshan-frame, .envelope-box, .envelope-flap,
+        .wax-seal, .seal-half, .glow-burst, .glow-burst-outer, .ambient-spark,
+        .smoke-wisp, .flower-petal, .burst-petal, .bless-icon-wrap, .bless-glow-ring {
+          will-change: transform, opacity;
+          backface-visibility: hidden;
         }
       `}</style>
 
@@ -582,7 +1062,7 @@ export default function InteractivePavtiView({
 
       {/* Main Slides Container */}
       <div ref={appContainerRef} className={`app-shell ${!isEnvelopeOpen ? 'locked' : ''}`}>
-        
+
         {/* ========================================================================= */}
         {/* SLIDE 1: ROYAL ENVELOPE (शाही पाकीट) */}
         {/* ========================================================================= */}
@@ -591,6 +1071,16 @@ export default function InteractivePavtiView({
           <div className="frame-corner fc-tr" />
           <div className="frame-corner fc-bl" />
           <div className="frame-corner fc-br" />
+
+          <div className="smoke-wisp smoke-a" />
+          <div className="smoke-wisp smoke-b" />
+          {sparks.map((s, i) => (
+            <div
+              key={i}
+              className="ambient-spark"
+              style={{ left: `${s.left}%`, top: `${s.top}%`, ['--dur' as any]: `${s.dur}s`, ['--delay' as any]: `${s.delay}s` }}
+            />
+          ))}
 
           {/* Title Header */}
           <div className="absolute top-[8%] left-1/2 -translate-x-1/2 text-center z-10 w-[90%] max-w-md">
@@ -604,43 +1094,49 @@ export default function InteractivePavtiView({
           </div>
 
           {/* 3D Envelope Component */}
-          <div className="envelope-wrap">
-            <div className="envelope-box">
-              <div className="envelope-body">
-                {/* Inside Letter that rises */}
-                <div className={`inside-letter ${isEnvelopeOpen ? 'rise' : ''}`}>
-                  <p className="font-bold text-sm tracking-wide text-[#5c1220]">
-                    || श्री गणेशाय नमः ||
-                  </p>
-                  <p className="text-xs text-amber-900 mt-1 font-medium">
-                    {receipt.donorName} जी, आपले सहकार्य प्राप्त झाले आहे
-                  </p>
+          <div className="envelope-stage-wrap">
+            <div className="envelope-back-glow" />
+            <div className="envelope-wrap">
+              <div className="envelope-box">
+                <div className="envelope-body">
+                  {/* Inside Letter that rises */}
+                  <div ref={insideLetterRef} className="inside-letter">
+                    <p>|| श्री गणेशाय नमः ||</p>
+                    <p>{receipt.donorName} जी, आपले सहकार्य प्राप्त झाले आहे</p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Envelope Flap */}
-              <div className={`envelope-flap ${isEnvelopeOpen ? 'open' : ''}`} />
+                {/* Envelope Flap */}
+                <div ref={envFlapRef} className="envelope-flap">
+                  <svg className="flap-corner-motif left" viewBox="0 0 24 24" fill="none" stroke="#7a5222" strokeWidth="1"><path d="M2 12c4 0 6-6 10-6M2 12c4 0 6 6 10 6" /><circle cx="12" cy="12" r="2" /></svg>
+                  <svg className="flap-corner-motif right" viewBox="0 0 24 24" fill="none" stroke="#7a5222" strokeWidth="1"><path d="M2 12c4 0 6-6 10-6M2 12c4 0 6 6 10 6" /><circle cx="12" cy="12" r="2" /></svg>
+                </div>
 
-              {/* Wax Seal */}
-              <div
-                className={`wax-seal ${isEnvelopeOpen ? 'cracked' : ''}`}
-                onClick={handleOpenEnvelope}
-                role="button"
-                tabIndex={0}
-                title="पावती उघडण्यासाठी येथे स्पर्श करा"
-              >
-                <span>ॐ</span>
+                {/* Wax Seal + split-halves + light burst */}
+                <div className="seal-ring r1" />
+                <div className="seal-ring r2" />
+                <div ref={glowBurstOuterRef} className="glow-burst-outer" />
+                <div ref={glowBurstRef} className="glow-burst" />
+                <div ref={sealLeftRef} className="seal-half left" />
+                <div ref={sealRightRef} className="seal-half right" />
+                <div
+                  ref={sealRef}
+                  className={`wax-seal ${isEnvelopeOpen ? 'opened' : ''}`}
+                  onClick={handleOpenEnvelope}
+                  role="button"
+                  tabIndex={0}
+                  title="पावती उघडण्यासाठी येथे स्पर्श करा"
+                >
+                  <span>ॐ</span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Hint to Open */}
           {!isEnvelopeOpen ? (
-            <div
-              className="absolute bottom-10 left-1/2 -translate-x-1/2 text-center text-amber-200/90 text-xs flex flex-col items-center gap-1.5 cursor-pointer animate-bounce z-20"
-              onClick={handleOpenEnvelope}
-            >
-              <span>उघडण्यासाठी मुद्रेला (ॐ) स्पर्श करा</span>
+            <div className="open-hint" onClick={handleOpenEnvelope}>
+              <span className="text-xs">उघडण्यासाठी मुद्रेला (ॐ) स्पर्श करा</span>
               <Sparkles size={16} className="text-amber-300" />
             </div>
           ) : (
@@ -661,45 +1157,107 @@ export default function InteractivePavtiView({
           <div className="frame-corner fc-bl" />
           <div className="frame-corner fc-br" />
 
-          {/* Decorative Falling Petals */}
+          {/* Layer the one-shot flower burst is appended into — kept empty
+              of React-rendered children so the manual DOM nodes never
+              collide with reconciliation. */}
+          <div ref={ganpatiPetalLayerRef} className="absolute inset-0 z-30 pointer-events-none overflow-hidden" />
+
+          {/* Continuous ambient petal drift */}
           {[10, 25, 45, 65, 80, 92].map((leftPct, i) => (
             <div
               key={i}
               className="flower-petal"
-              style={{
-                left: `${leftPct}%`,
-                animationDuration: `${5 + (i % 4)}s`,
-                animationDelay: `${i * 0.7}s`,
-              }}
+              style={{ left: `${leftPct}%`, animationDuration: `${5 + (i % 4)}s`, animationDelay: `${i * 0.7}s` }}
             />
           ))}
 
+          {/* Rotating suryachakra */}
+          <div ref={chakraRef} className="divine-chakra">
+            <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+              <defs>
+                <linearGradient id={`${uid}-grad`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#fff4c2" />
+                  <stop offset="30%" stopColor="#f4dd9a" />
+                  <stop offset="70%" stopColor="#c9a24a" />
+                  <stop offset="100%" stopColor="#7a5b1e" />
+                </linearGradient>
+                <radialGradient id={`${uid}-glow`} cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#ffe699" stopOpacity="0.9" />
+                  <stop offset="40%" stopColor="#e2883f" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#2d0a0c" stopOpacity="0" />
+                </radialGradient>
+                <path id={`${uid}-petal`} d="M 250,140 C 240,175 236,205 250,225 C 264,205 260,175 250,140 Z" fill={`url(#${uid}-grad)`} stroke="#ffe699" strokeWidth="0.8" />
+                <path id={`${uid}-ray`} d="M 250,20 L 258,110 L 250,102 L 242,110 Z" fill={`url(#${uid}-grad)`} stroke="#fff2b3" strokeWidth="0.5" />
+              </defs>
+
+              <circle cx="250" cy="250" r="235" fill={`url(#${uid}-glow)`} />
+
+              <g className="chakra-outer-ring">
+                <circle cx="250" cy="250" r="208" fill="none" stroke={`url(#${uid}-grad)`} strokeWidth="2.5" />
+                {Array.from({ length: 24 }, (_, i) => (
+                  <use key={i} href={`#${uid}-ray`} transform={`rotate(${i * 15} 250 250)`} opacity={i % 2 === 0 ? 1 : 0.75} />
+                ))}
+              </g>
+
+              <g className="chakra-inner-ring">
+                <circle cx="250" cy="250" r="148" fill="none" stroke={`url(#${uid}-grad)`} strokeWidth="2" />
+                {Array.from({ length: 16 }, (_, i) => (
+                  <use key={i} href={`#${uid}-petal`} transform={`rotate(${i * 22.5} 250 250)`} />
+                ))}
+              </g>
+
+              <g className="chakra-hub">
+                <circle cx="250" cy="250" r="78" fill={`url(#${uid}-grad)`} opacity="0.9" />
+                <circle cx="250" cy="250" r="72" fill="#36090c" />
+                <circle cx="250" cy="250" r="64" fill={`url(#${uid}-grad)`} opacity="0.45" />
+                <polygon points="250,208 261,239 292,250 261,261 250,292 239,261 208,250 239,239" fill={`url(#${uid}-grad)`} />
+              </g>
+            </svg>
+          </div>
+
           <div className="flex flex-col items-center text-center z-10 px-4 max-w-sm">
             {/* Sacred Tagline */}
-            <p className="text-xs sm:text-sm font-semibold tracking-widest text-amber-300/90 uppercase mb-4">
+            <p className="text-xs sm:text-sm font-semibold tracking-widest text-amber-300/90 uppercase mb-3" style={{ fontFamily: 'var(--font-eyebrow)' }}>
               {settings.headerTagline || "|| श्री गणेशाय नमः ||"}
             </p>
 
-            {/* Ganesha Darshan Idol Artwork */}
-            <div className="darshan-idol-wrap my-2">
-              <div className="darshan-aura" />
-              <img
-                src={customDarshan || "https://images.unsplash.com/photo-1567591370504-8b6540c4a4e1?w=600&auto=format&fit=crop&q=80"}
-                alt="Shree Ganesh Darshan"
-                className="darshan-img"
-              />
-            </div>
+            {/* Ganesha Darshan Idol + flanking diyas */}
+            <div className="ganpati-stage my-1">
+              <div ref={(el) => { diyaRefs.current[0] = el; }} className="brass-diya">
+                <div className="diya-chain" />
+                <div className="diya-bowl"><div className="diya-flame" /></div>
+                <div className="diya-glow" />
+                <div className="incense-smoke" />
+                <div className="incense-smoke s2" />
+              </div>
 
-            {/* Flickering Diya Flame */}
-            <div className="diya-flame-box">
-              <div className="flame-particle" />
+              <div ref={darshanWrapRef} className="darshan-idol-wrap">
+                <div className="darshan-aura" />
+                <div className="darshan-frame">
+                  <div className="darshan-frame-inner">
+                    <img
+                      src={customDarshan || "https://images.unsplash.com/photo-1567591370504-8b6540c4a4e1?w=600&auto=format&fit=crop&q=80"}
+                      alt="Shree Ganesh Darshan"
+                      className="darshan-img"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div ref={(el) => { diyaRefs.current[1] = el; }} className="brass-diya">
+                <div className="diya-chain" />
+                <div className="diya-bowl"><div className="diya-flame" /></div>
+                <div className="diya-glow" />
+                <div className="incense-smoke" />
+                <div className="incense-smoke s2" />
+              </div>
             </div>
 
             {/* Devotional Chanting Subtitle */}
-            <h2 className="text-xl sm:text-2xl font-bold text-amber-100 mt-4 tracking-wide drop-shadow-md font-serif">
+            <h2 className="text-xl sm:text-2xl font-bold text-amber-100 mt-3 tracking-wide drop-shadow-md" style={{ fontFamily: 'var(--font-devotional)' }}>
               गणपती बाप्पा मोरया
             </h2>
-            <p className="text-xs sm:text-sm text-amber-200/80 italic mt-1">
+            <p className="text-xs sm:text-sm text-amber-200/80 mt-1" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
               मंगलमूर्ती मोरया
             </p>
           </div>
@@ -716,17 +1274,22 @@ export default function InteractivePavtiView({
         {/* SLIDE 3: AUTHENTIC DIGITAL PAVTI (अधिकृत डिजिटल पावती) */}
         {/* ========================================================================= */}
         <section ref={(el) => { slidesRef.current[2] = el; }} className="pavti-slide receipt-slide">
-          <div className="authentic-card">
+          <div ref={receiptPetalLayerRef} className="absolute inset-0 z-30 pointer-events-none overflow-hidden" />
+
+          <div ref={receiptCardRef} className="authentic-card">
             <div className="card-inner-frame">
-              
+              <span className="card-watermark">ॐ</span>
+
               {/* Mandal Header */}
               <div className="text-center pb-3 border-b-2 border-amber-700/40 mb-3">
-                {org.logoUrl && (
+                {org.logoUrl ? (
                   <img
                     src={org.logoUrl}
                     alt="Mandal Logo"
                     className="w-12 h-12 object-contain mx-auto mb-1.5 rounded-full border border-amber-600/30"
                   />
+                ) : (
+                  <div className="om-mark">ॐ</div>
                 )}
                 {settings.headerTagline && (
                   <p className="text-xs font-bold text-amber-900 tracking-wider">
@@ -819,7 +1382,7 @@ export default function InteractivePavtiView({
                 <span className="text-[0.65rem] text-amber-900 font-bold uppercase tracking-wider block">
                   प्राप्त देणगी रक्कम / Amount Received
                 </span>
-                <p className="text-2xl font-extrabold text-[#5c1220] font-serif tracking-tight mt-0.5">
+                <p className="text-2xl font-extrabold text-[#5c1220] tracking-tight mt-0.5" style={{ fontFamily: 'var(--font-display)' }}>
                   ₹ {receipt.amount.toLocaleString('en-IN')}
                 </p>
                 <p className="text-[0.72rem] text-amber-950 font-medium italic mt-0.5">
@@ -829,7 +1392,7 @@ export default function InteractivePavtiView({
 
               {/* Signatures & Dynamic Mandal Stamp */}
               <div className="flex justify-between items-end pt-2 mt-2">
-                <div className="text-center w-28">
+                <div className="text-center w-24">
                   <div className="border-t border-amber-950/40 pt-1">
                     <span className="text-[0.62rem] text-amber-900 block font-medium">संग्राहक / Collector</span>
                     <span className="text-[0.65rem] font-semibold text-[#5c1220] truncate block">
@@ -838,7 +1401,11 @@ export default function InteractivePavtiView({
                   </div>
                 </div>
 
-                <div className="text-center w-28">
+                <div ref={stampRef} className="mandal-stamp">
+                  <span>अधिकृत<br />पावती<br />✓</span>
+                </div>
+
+                <div className="text-center w-24">
                   <div className="border-t border-amber-950/40 pt-1">
                     <span className="text-[0.62rem] text-amber-900 block font-medium">खजिनदार / अध्यक्ष</span>
                     <span className="text-[0.65rem] font-semibold text-[#5c1220] block">अधिकृत स्वाक्षरी</span>
@@ -886,6 +1453,8 @@ export default function InteractivePavtiView({
         {/* ========================================================================= */}
         <section ref={(el) => { slidesRef.current[3] = el; }} className="pavti-slide blessing-slide">
           <div className="divine-rays" />
+          <div className="royal-lattice" />
+          <div className="royal-vignette" />
           <div className="frame-corner fc-tl" />
           <div className="frame-corner fc-tr" />
           <div className="frame-corner fc-bl" />
@@ -893,31 +1462,43 @@ export default function InteractivePavtiView({
 
           <div className="flex flex-col items-center text-center z-10 px-6 max-w-md">
             {/* Divine Ashirwad Icon */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/30 mb-4 border-2 border-amber-200">
-              <span className="text-3xl">🙏</span>
+            <div ref={blessHandRef} className="bless-icon-wrap">
+              <div className="bless-icon">🙏</div>
+              <div className="bless-glow-ring r1" />
+              <div className="bless-glow-ring r2" />
             </div>
 
             <p className="text-xs font-bold text-amber-300 tracking-widest uppercase">
               श्रींचे शुभाशीर्वाद
             </p>
 
+            <div ref={blessDividerRef} className="royal-divider">
+              <span /><i className="gem" /><span />
+            </div>
+
             {/* Personalized Blessing Quote */}
-            <h3 className="text-lg sm:text-xl font-semibold text-amber-100 mt-2 font-serif leading-relaxed">
+            <p ref={blessMsgRef} className="bless-message mt-1">
               "{settings.blessingMessage || "गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो!"}"
-            </h3>
+            </p>
 
-            <div className="w-12 h-0.5 bg-amber-400/50 mx-auto my-3" />
+            <div ref={blessClosingRef} className="closing-chant-wrap">
+              <svg className="closing-flourish" viewBox="0 0 44 16" fill="none"><path d="M2 8 Q16 1 42 8" stroke="#c9a24a" strokeWidth="1" /></svg>
+              <span className="closing-chant">गणपती बाप्पा मोरया</span>
+              <svg className="closing-flourish flip" viewBox="0 0 44 16" fill="none"><path d="M2 8 Q16 1 42 8" stroke="#c9a24a" strokeWidth="1" /></svg>
+            </div>
+            <p ref={blessSubRef} className="bless-sub">मंगलमूर्ती मोरया</p>
 
-            <p className="text-xs text-amber-200/80">
+            <p className="text-xs text-amber-200/80 mt-3">
               - {org.nameMarathi || org.name}
             </p>
 
             {/* Big WhatsApp Share CTA Button */}
-            <div className="mt-8 w-full space-y-3">
+            <div className="mt-6 w-full space-y-3">
               <button
+                ref={blessBtnRef}
                 type="button"
                 onClick={handleShareWhatsApp}
-                className="w-full py-3 px-6 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="royal-share-btn w-full justify-center"
               >
                 <Share2 size={16} />
                 <span>ही पावती व्हॉट्सअॅपवर शेअर करा</span>
