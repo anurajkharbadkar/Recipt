@@ -115,12 +115,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Sign first (pure CPU/JWT work, no DB — orgId is already known from the
+    // lookup above), then persist lastLoginAt and refreshToken together in
+    // one UPDATE instead of two separate round trips. Measured against
+    // production on 2026-08-22: each DB round trip here was costing
+    // 1.5-2s on its own (a separate, likely connection-pooling issue — see
+    // this commit's message), so the two sequential writes this used to do
+    // were the single biggest thing actually in this file's control to fix.
+    const tokens = await this.signTokens(user.id, user.role, user.orgId);
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: { lastLoginAt: new Date(), refreshToken: tokens.refreshToken },
     });
 
-    const tokens = await this.generateTokens(user.id, user.role, user.orgId);
     return { user, organization: user.organization, ...tokens };
   }
 
@@ -148,11 +155,13 @@ export class AuthService {
   // does NOT extend to collectors/treasurers added later: their phones
   // are only unique within their own org, which is exactly the ambiguity
   // findUserByMandalCode exists to resolve.
+  // Was two sequential queries (load the org by phone, then load its admin
+  // by orgId) — collapsed into the one-query nested-relation-filter pattern
+  // findUserByMandalCode above already used, since Prisma turns this into a
+  // single JOINed query either way. One less round trip on every login.
   private async findOrgAdminByPhone(phone: string) {
-    const organization = await this.prisma.organization.findUnique({ where: { phone } });
-    if (!organization) return null;
     return this.prisma.user.findFirst({
-      where: { orgId: organization.id, role: UserRole.ORG_ADMIN, isActive: true },
+      where: { role: UserRole.ORG_ADMIN, isActive: true, organization: { phone } },
       include: { organization: true },
     });
   }
@@ -194,7 +203,11 @@ export class AuthService {
     return user;
   }
 
-  private async generateTokens(userId: string, role: string, orgId: string) {
+  // Pure JWT signing — no DB access. Split out from generateTokens (below,
+  // which still does its own persistence) so login() can sign first and
+  // fold the refreshToken write into a single UPDATE alongside lastLoginAt,
+  // instead of paying for a whole separate round trip just for this.
+  private async signTokens(userId: string, role: string, orgId: string) {
     const payload = { sub: userId, role, orgId };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -207,12 +220,23 @@ export class AuthService {
       }),
     ]);
 
+    return { accessToken, refreshToken };
+  }
+
+  // register()/refreshToken() don't have anything else to combine the
+  // refreshToken write with (register's admin.id/org.id genuinely aren't
+  // known until after the row exists; refreshToken() has no second field to
+  // update alongside it), so they keep the sign-then-persist-separately
+  // shape login() no longer needs.
+  private async generateTokens(userId: string, role: string, orgId: string) {
+    const tokens = await this.signTokens(userId, role, orgId);
+
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshToken },
+      data: { refreshToken: tokens.refreshToken },
     });
 
-    return { accessToken, refreshToken };
+    return tokens;
   }
 
   private generateSlug(name: string): string {

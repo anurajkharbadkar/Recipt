@@ -18,7 +18,6 @@ describe('AuthService.login', () => {
   let service: AuthService;
   let prisma: {
     user: { findFirst: jest.Mock; update: jest.Mock };
-    organization: { findUnique: jest.Mock };
   };
 
   const PASSWORD = 'correct-horse-battery-staple';
@@ -31,7 +30,6 @@ describe('AuthService.login', () => {
   beforeEach(async () => {
     prisma = {
       user: { findFirst: jest.fn(), update: jest.fn().mockResolvedValue({}) },
-      organization: { findUnique: jest.fn() },
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -54,35 +52,41 @@ describe('AuthService.login', () => {
 
     await service.login({ mandalCode: 'ab12cd', phone: '9000000001', password: PASSWORD } as any);
 
-    expect(prisma.organization.findUnique).not.toHaveBeenCalled();
+    expect(prisma.user.findFirst).toHaveBeenCalledTimes(1);
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
       where: { phone: '9000000001', isActive: true, organization: { mandalCode: 'AB12CD' } },
       include: { organization: true },
     });
   });
 
-  it('routes a login with no mandalCode to the org-admin-by-phone path', async () => {
-    prisma.organization.findUnique.mockResolvedValue({ id: 'org1', phone: '9000000002' });
+  // findOrgAdminByPhone used to be two sequential queries (load the org by
+  // phone, then load its admin by orgId) — collapsed into one nested-
+  // relation-filter query (2026-08-22, cutting a real round trip off every
+  // admin login), the same pattern the mandalCode path above already used.
+  it('routes a login with no mandalCode to the org-admin-by-phone path in a single query', async () => {
     prisma.user.findFirst.mockResolvedValue({
       id: 'u2', phone: '9000000002', passwordHash, role: UserRole.ORG_ADMIN, orgId: 'org1',
-      organization: { id: 'org1' },
+      organization: { id: 'org1', phone: '9000000002' },
     });
 
     await service.login({ phone: '9000000002', password: PASSWORD } as any);
 
-    expect(prisma.organization.findUnique).toHaveBeenCalledWith({ where: { phone: '9000000002' } });
+    expect(prisma.user.findFirst).toHaveBeenCalledTimes(1);
     expect(prisma.user.findFirst).toHaveBeenCalledWith({
-      where: { orgId: 'org1', role: UserRole.ORG_ADMIN, isActive: true },
+      where: { role: UserRole.ORG_ADMIN, isActive: true, organization: { phone: '9000000002' } },
       include: { organization: true },
     });
   });
 
-  it('rejects a no-mandalCode login for a phone with no matching organization, without ever querying users', async () => {
-    prisma.organization.findUnique.mockResolvedValue(null);
+  it('rejects a no-mandalCode login for a phone with no matching org-admin', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
 
     await expect(service.login({ phone: '9999999999', password: PASSWORD } as any))
       .rejects.toThrow(UnauthorizedException);
-    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { role: UserRole.ORG_ADMIN, isActive: true, organization: { phone: '9999999999' } },
+      include: { organization: true },
+    });
   });
 
   it('rejects an invalid password with a generic message (no user enumeration)', async () => {
@@ -104,5 +108,24 @@ describe('AuthService.login', () => {
     expect(prisma.user.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ organization: { mandalCode: 'AB12CD' } }) }),
     );
+  });
+
+  // The actual perf fix (2026-08-22): lastLoginAt and refreshToken used to
+  // be two separate sequential UPDATEs (the second one buried inside the
+  // old generateTokens helper). On a database where each round trip was
+  // measured costing 1.5-2s in production, that second UPDATE was pure
+  // waste — nothing about signing a JWT needs a second trip to the DB.
+  it('persists lastLoginAt and refreshToken in a single UPDATE, not two', async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      id: 'u1', phone: '9000000001', passwordHash, role: UserRole.COLLECTOR, orgId: 'org1', organization: {},
+    });
+
+    await service.login({ mandalCode: 'AB12CD', phone: '9000000001', password: PASSWORD } as any);
+
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { lastLoginAt: expect.any(Date), refreshToken: 'token' },
+    });
   });
 });
