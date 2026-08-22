@@ -8,7 +8,7 @@ import {
   PRICING_PLANS, formatCurrency, formatPlanLimit, MAX_ACTIVE_CAMPAIGNS_BY_PLAN, BRAND_NAME, BRAND_TAGLINE,
 } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
-import { ChevronDown, MessageCircle, ArrowRight } from 'lucide-react';
+import { MessageCircle, ArrowRight } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
@@ -98,7 +98,7 @@ const HOW_IT_WORKS = [
 const OCCASIONS: { en: string; mr: string; hi: string }[] = [
   { en: 'Ganesh Utsav Mandals', mr: 'गणेशोत्सव मंडळे', hi: 'गणेशोत्सव मंडल' },
   { en: 'Navratri Samitis', mr: 'नवरात्र समित्या', hi: 'नवरात्रि समितियां' },
-  { en: 'Bhandara & Community Drives', mr: 'भंडारा व सामुदायिक उपक्रम', hi: 'भंडारा और सामुदायिक अभियान' },
+  { en: 'Bhandara & Special Events', mr: 'भंडारा व विशेष इवेंट्स', hi: 'भंडारा और विशेष इवेंट्स' },
   { en: 'Temple & Public Trusts', mr: 'सार्वजनिक ट्रस्ट', hi: 'सार्वजनिक ट्रस्ट' },
   { en: 'Housing Society Funds', mr: 'गृहनिर्माण सोसायटी निधी', hi: 'हाउसिंग सोसाइटी फंड' },
 ];
@@ -222,7 +222,7 @@ const CARD_TONES = {
   },
   premium: {
     wrapper: 'border-2 border-gold-500/60 bg-gradient-to-b from-[#FBF5E8] via-white to-[#FDF8EF] dark:from-[#2A1F0E] dark:via-[#231A0C] dark:to-[#1E160A] shadow-xl shadow-gold-900/10 dark:shadow-gold-900/30',
-    badge: '👑 VIP Access',
+    badge: null,
     badgeCls: 'bg-gradient-to-r from-gold-500 to-gold-300 text-[#2A1A00] font-bold',
     eyebrow: 'text-gold-600 dark:text-gold-400',
     name: 'text-gold-800 dark:text-gold-300',
@@ -258,7 +258,9 @@ const PLAN_FEATURES: Record<string, { label: string; highlight?: boolean }[]> = 
     { label: 'Up to 10 collectors', highlight: true },
     { label: 'Run 2 festivals at once', highlight: true },
     { label: 'Your branding on every pavti', highlight: true },
-    { label: 'Mandal UPI ID on every pavti', highlight: true },
+    { label: 'Dynamic UPI QR for instant collection', highlight: true },
+    { label: 'Shareable payment link for unpaid pavtis', highlight: true },
+    { label: 'Cinematic 4-slide pavti experience', highlight: true },
     { label: 'PDF download & print' },
   ],
   PREMIUM: [
@@ -266,7 +268,8 @@ const PLAN_FEATURES: Record<string, { label: string; highlight?: boolean }[]> = 
     { label: 'Unlimited collectors', highlight: true },
     { label: 'Run up to 5 festivals at once', highlight: true },
     { label: 'Your branding on every pavti', highlight: true },
-    { label: 'Mandal UPI ID on every pavti', highlight: true },
+    { label: 'Dynamic UPI QR for instant collection', highlight: true },
+    { label: 'Shareable payment link for unpaid pavtis', highlight: true },
     { label: 'Cinematic 4-slide pavti experience', highlight: true },
     { label: 'Full activity log', highlight: true },
   ],
@@ -349,11 +352,6 @@ export default function HomePage() {
   const [lang, setLangState] = useState<Lang>('en');
   const [rotatorIdx, setRotatorIdx] = useState(0);
   const [navScrolled, setNavScrolled] = useState(false);
-  const [compareOpen, setCompareOpen] = useState(false);
-  // Hero demo — lets visitors flip the sample pavti between the cinematic
-  // interactive experience and the plain single-page one, same toggle a
-  // real donor gets on their own receipt (InteractivePavtiView's
-  // onSwitchToStandard / the standard view's "Interactive Darshan" CTA).
   const [demoView, setDemoView] = useState<'interactive' | 'standard'>('interactive');
 
   useEffect(() => {
@@ -469,9 +467,9 @@ export default function HomePage() {
             padding: navScrolled ? '14px 0' : '20px 0',
           }}
         >
-          <div className="max-w-6xl mx-auto px-5 md:px-8 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5 shrink-0">
-              <LogoMark size={32} className="rounded-xl" />
+          <div className="max-w-6xl mx-auto px-3 sm:px-5 md:px-8 flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+              <LogoMark size={28} className="rounded-xl sm:w-8 sm:h-8" />
               <BrandLogo size="md" />
             </div>
 
@@ -482,14 +480,14 @@ export default function HomePage() {
               <a href="#contact" className="hover:text-saffron-700 dark:hover:text-saffron-300 transition-colors">{t('Contact', 'संपर्क', 'संपर्क')}</a>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex border border-saffron-800/20 rounded-full p-[3px]" role="group" aria-label="Language">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <div className="flex border border-saffron-800/20 rounded-full p-[2px] sm:p-[3px]" role="group" aria-label="Language">
                 {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
                   <button
                     key={l}
                     type="button"
                     onClick={() => setLangState(l)}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all duration-200 ${
+                    className={`text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-all duration-200 ${
                       lang === l
                         ? 'bg-saffron-700 text-white'
                         : 'text-saffron-800/70 dark:text-saffron-200/70 hover:bg-saffron-100/60 dark:hover:bg-saffron-900/30'
@@ -500,13 +498,16 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <Link href="/login" className="hidden sm:inline-flex text-sm font-semibold text-saffron-800 dark:text-saffron-200 hover:text-saffron-600 transition-colors">
+              <Link
+                href="/login"
+                className="inline-flex items-center text-xs sm:text-sm font-semibold text-saffron-800 dark:text-saffron-200 hover:text-saffron-600 transition-colors px-1 sm:px-2 py-1 whitespace-nowrap shrink-0"
+              >
                 {t('Sign In', 'लॉग इन', 'लॉग इन')}
               </Link>
 
               <Link
                 href="/register"
-                className="btn-shimmer flex items-center gap-1.5 px-4 py-2 rounded-full bg-saffron-700 hover:bg-saffron-800 text-white text-sm font-semibold transition-all duration-200 hover:-translate-y-px hover:shadow-lg hover:shadow-saffron-700/25"
+                className="btn-shimmer inline-flex items-center gap-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-saffron-700 hover:bg-saffron-800 text-white text-xs sm:text-sm font-semibold transition-all duration-200 hover:-translate-y-px hover:shadow-lg hover:shadow-saffron-700/25 whitespace-nowrap shrink-0"
               >
                 {t('Get Started', 'सुरुवात करा', 'शुरू करें')}
               </Link>
@@ -697,7 +698,7 @@ export default function HomePage() {
           <Reveal>
             <div className="flex items-center gap-4 flex-wrap">
               <span className="text-xs font-semibold uppercase tracking-wider text-saffron-900/40 dark:text-saffron-100/40 shrink-0">
-                {t('Built for —', 'यांच्यासाठी खास —', 'इनके लिए खास —')}
+                {t('Events (e.g. Ganesh Utsav) —', 'इवेंट्स (उदा. गणेशोत्सव) —', 'इवेंट्स (जैसे गणेशोत्सव) —')}
               </span>
               {OCCASIONS.map((o, i) => (
                 <span
@@ -745,61 +746,6 @@ export default function HomePage() {
             </p>
           </Reveal>
 
-          {/* Collapsible comparison table */}
-          <div className="mt-10 text-center">
-            <button
-              type="button"
-              onClick={() => setCompareOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-saffron-600 hover:text-saffron-700 dark:text-saffron-400 transition-colors"
-            >
-              {compareOpen
-                ? t('Hide comparison', 'तुलना लपवा', 'तुलना छुपाएं')
-                : t('Compare all plans in detail', 'सर्व योजनांची तुलना करा', 'सभी योजनाओं की तुलना करें')}
-              <ChevronDown size={15} className={`transition-transform duration-300 ${compareOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {compareOpen && (
-              <div className="mt-6 rounded-2xl border border-saffron-200/50 dark:border-saffron-900/50 overflow-x-auto text-left" style={{ background: 'var(--card-bg)' }}>
-                <table className="w-full min-w-[540px] text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-saffron-200/40 dark:border-saffron-900/40">
-                      <th className="text-left py-3 px-5 text-saffron-900/40 dark:text-saffron-100/40 font-semibold uppercase tracking-wide">{t('Feature', 'वैशिष्ट्य', 'विशेषता')}</th>
-                      {PRICING_PLANS.map((p) => (
-                        <th key={p.id} className="text-left py-3 px-4 font-bold text-saffron-800 dark:text-saffron-200">{p.name}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      // Driven by the real plan data (MAX_*_BY_PLAN, both
-                      // already enforced server-side) rather than repeated
-                      // literals, so this table can't silently drift out of
-                      // sync the way a hand-copied ['1','1','2','5'] would.
-                      { label: t('Digital Pavtis', 'डिजिटल पावत्या', 'डिजिटल पावतियां'), values: PRICING_PLANS.map((p) => formatPlanLimit(p.receiptLimit, '')) },
-                      { label: t('Field Collectors', 'कार्यकर्ते', 'कार्यकर्ता'), values: PRICING_PLANS.map((p) => formatPlanLimit(p.collectorLimit, '')) },
-                      { label: t('Active Campaigns', 'मोहिमा', 'अभियान'), values: PRICING_PLANS.map((p) => String(MAX_ACTIVE_CAMPAIGNS_BY_PLAN[p.id])) },
-                      { label: t('WhatsApp Delivery', 'व्हॉट्सॲप शेअर', 'व्हाट्सएप शेयर'), values: ['✓', '✓', '✓', '✓'] },
-                      { label: t('QR Code Verification', 'QR पडताळणी', 'QR सत्यापन'), values: ['✓', '✓', '✓', '✓'] },
-                      // Every plan actually includes this (see the footnote
-                      // just above the table, and resolvePlanFeatures's FREE
-                      // entry) — was previously shown as "—" for FREE, which
-                      // directly contradicted that footnote on the same page.
-                      { label: t('Income & Expense Tracking', 'जमा-खर्च हिशोब', 'आय-व्यय ट्रैकिंग'), values: ['✓', '✓', '✓', '✓'] },
-                      { label: t('Custom Branding', 'कस्टम ब्रँडिंग', 'कस्टम ब्रांडिंग'), values: ['—', '—', '✓', '✓'] },
-                      { label: t('Devotional Pavti Experience', 'दर्शन पावती अनुभव', 'दर्शन पावती अनुभव'), values: ['—', '—', '—', '✓'] },
-                    ].map((row) => (
-                      <tr key={row.label} className="border-b border-saffron-200/30 dark:border-saffron-900/30 last:border-0">
-                        <td className="py-2.5 px-5 font-medium text-saffron-900/60 dark:text-saffron-100/60">{row.label}</td>
-                        {row.values.map((v, i) => (
-                          <td key={i} className={`py-2.5 px-4 font-semibold ${v === '✓' ? 'text-success-500' : v === '—' ? 'text-saffron-900/20 dark:text-saffron-100/20' : 'text-saffron-800 dark:text-saffron-200'}`}>{v}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </section>
 
         {/* ============================================================= CTA */}

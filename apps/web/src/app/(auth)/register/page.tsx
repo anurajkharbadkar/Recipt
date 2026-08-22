@@ -231,11 +231,6 @@ function RegisterForm() {
                         <Star size={9} className="fill-gold-500 text-gold-500" /> Popular
                       </span>
                     )}
-                    {isPremium && (
-                      <span className="absolute -top-2.5 right-3 badge-gold text-[9px] flex items-center gap-0.5 font-bold">
-                        👑 VIP
-                      </span>
-                    )}
                     {isFree && (
                       <span className="absolute -top-2.5 right-3 badge-neutral text-[9px] flex items-center gap-0.5 font-bold">
                         Instant

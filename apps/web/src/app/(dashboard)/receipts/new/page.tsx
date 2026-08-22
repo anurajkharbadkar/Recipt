@@ -214,10 +214,10 @@ export default function NewReceiptPage() {
                 same outcome through a worse path (2026-08-22). */}
             <div>
               <label className="form-label">
-                {language === 'mr' ? 'मोहीम' : 'Campaign'} *
+                {language === 'mr' ? 'इवेंट / उपक्रम' : language === 'hi' ? 'इवेंट / उत्सव' : 'Event'} *
               </label>
               <select {...register('campaignId')} className="form-select">
-                <option value="">Select campaign...</option>
+                <option value="">{language === 'mr' ? 'इवेंट निवडा...' : language === 'hi' ? 'इवेंट चुनें...' : 'Select event...'}</option>
                 {activeCampaigns.map((c: any) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}

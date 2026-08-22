@@ -6,8 +6,8 @@ import { campaignsApi } from '@/lib/api';
 import LogoMark from '@/components/brand/LogoMark';
 import { BRAND_NAME } from '@pavti/shared';
 
-const campaignLabel = { en: 'Festival / Drive:', hi: 'अभियान:', mr: 'मोहीम:' };
-const noCampaignLabel = { en: 'No active festival', hi: 'कोई सक्रिय अभियान नहीं', mr: 'सक्रिय मोहीम नाही' };
+const campaignLabel = { en: 'Event:', hi: 'इवेंट / उत्सव:', mr: 'इवेंट / उत्सव:' };
+const noCampaignLabel = { en: 'No active event', hi: 'कोई सक्रिय इवेंट नहीं', mr: 'सक्रिय इवेंट / उपक्रम नाही' };
 
 export default function TopBar() {
   const { language, activeCampaignId, setActiveCampaign, organization, user } = useAuthStore();

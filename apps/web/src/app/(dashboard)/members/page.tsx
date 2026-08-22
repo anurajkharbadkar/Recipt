@@ -607,19 +607,19 @@ function RegisteredMembersTab() {
 
 const internalLabels = {
   en: {
-    campaign: 'Festival / Drive:', selectCampaign: 'Select an active festival/drive…',
-    noCampaign: 'No active festival/drive — Member Contributions needs a running one to declare fees against. Activate one from the Festivals & Drives page first.',
-    pickCampaign: 'Pick a festival/drive above to manage its member-contribution roster.',
+    campaign: 'Event:', selectCampaign: 'Select an active event…',
+    noCampaign: 'No active event — Member Contributions needs a running event to declare fees against. Activate one from the Events page first.',
+    pickCampaign: 'Pick an active event above to manage its member-contribution roster.',
   },
   hi: {
-    campaign: 'अभियान:', selectCampaign: 'एक सक्रिय अभियान चुनें…',
-    noCampaign: 'कोई सक्रिय अभियान नहीं — सदस्य योगदान के लिए एक चालू अभियान आवश्यक है। पहले अभियान पेज से एक सक्रिय करें।',
-    pickCampaign: 'सदस्य योगदान सूची प्रबंधित करने हेतु ऊपर एक अभियान चुनें।',
+    campaign: 'इवेंट / उत्सव:', selectCampaign: 'एक सक्रिय इवेंट चुनें…',
+    noCampaign: 'कोई सक्रिय इवेंट नहीं — सदस्य योगदान के लिए एक सक्रिय इवेंट आवश्यक है। पहले इवेंट्स पेज से एक सक्रिय करें।',
+    pickCampaign: 'सदस्य योगदान सूची प्रबंधित करने हेतु ऊपर एक इवेंट चुनें।',
   },
   mr: {
-    campaign: 'मोहीम:', selectCampaign: 'सक्रिय मोहीम निवडा…',
-    noCampaign: 'सक्रिय मोहीम नाही — सभासद वर्गणीसाठी सुरू असलेली मोहीम आवश्यक आहे. आधी मोहीम पानावरून एक सक्रिय करा.',
-    pickCampaign: 'सभासद वर्गणी यादी व्यवस्थापित करण्यासाठी वरून मोहीम निवडा.',
+    campaign: 'इवेंट / उत्सव:', selectCampaign: 'सक्रिय इवेंट निवडा…',
+    noCampaign: 'सक्रिय इवेंट / उपक्रम नाही — सभासद वर्गणीसाठी सुरू असलेला इवेंट आवश्यक आहे. आधी इवेंट्स पानावरून एक सक्रिय करा.',
+    pickCampaign: 'सभासद वर्गणी यादी व्यवस्थापित करण्यासाठी वरून इवेंट निवडा.',
   },
 };
 

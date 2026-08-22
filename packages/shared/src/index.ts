@@ -262,7 +262,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     // page overpromising what BASIC actually buys (2026-08-22).
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
-      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.FREE]} Active Festivals/Drives at Once`, category: 'collections', key: 'activeFestivals' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.FREE]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE], 'Collectors'), category: 'team', key: 'collectors' },
       { label: 'Internal Collection & Expense Tracking', category: 'collections', key: 'internalCollection' },
       { label: 'Multi-Role Access', category: 'team', key: 'multiRole' },
@@ -292,7 +292,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC], 'Collectors'), category: 'team', key: 'collectors' },
-      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.BASIC]} Active Festival/Drive at a Time`, category: 'collections', key: 'activeFestivals' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.BASIC]} Active Event at a Time`, category: 'collections', key: 'activeFestivals' },
     ],
   },
   {
@@ -316,8 +316,9 @@ export const PRICING_PLANS: PricingPlan[] = [
     // subscriber can actually use today.
     features: [
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD], 'Collectors'), category: 'team', key: 'collectors' },
-      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.STANDARD]} Active Festivals/Drives at Once`, category: 'collections', key: 'activeFestivals' },
-      { label: 'UPI ID on Every Receipt', category: 'payments', key: 'upiId' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.STANDARD]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
+      { label: 'Dynamic UPI QR for Instant Collection', category: 'payments', key: 'upiId' },
+      { label: 'Shareable WhatsApp Link for Unpaid Pavtis', category: 'payments', key: 'unpaidLink' },
       { label: 'Custom Branded Receipt Design', category: 'branding', key: 'customBranding' },
     ],
   },
@@ -326,7 +327,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Premium',
     tagline: 'For mandals who want the highest limits',
     positioningLine: 'Elevate the Experience',
-    marathiDescriptor: 'देवस्थान · VIP',
+    marathiDescriptor: 'मोठ्या देवस्थान व संस्थांसाठी',
     priceInr: 1999,
     priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
@@ -344,7 +345,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     // instead, without claiming exclusivity that isn't real.
     features: [
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM], 'Collectors'), category: 'team', key: 'collectors' },
-      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.PREMIUM]} Active Festivals/Drives at Once`, category: 'collections', key: 'activeFestivals' },
+      { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.PREMIUM]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
     ],
   },
 ];

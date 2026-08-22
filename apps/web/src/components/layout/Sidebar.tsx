@@ -22,7 +22,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड', module: 'Dashboard' },
   { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', highlight: true, module: 'Receipts' },
   { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या', module: 'Receipts' },
-  { href: '/campaigns', label: 'Festivals & Drives', icon: Megaphone, labelMr: 'मोहीम', module: 'Campaigns' },
+  { href: '/campaigns', label: 'Events', icon: Megaphone, labelMr: 'इवेंट्स / उपक्रम', module: 'Campaigns' },
   { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद', module: 'Members', altModule: 'Collectors' },
   { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', module: 'Expenses' },
   { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', module: 'Reports' },
