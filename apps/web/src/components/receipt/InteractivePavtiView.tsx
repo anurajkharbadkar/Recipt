@@ -219,7 +219,11 @@ export default function InteractivePavtiView({
       .to(envFlapRef.current, { rotateX: -172, duration: 1.15, ease: 'power2.inOut', transformPerspective: 1000 }, 0.5)
       .to(insideGlowRef.current, { opacity: 0.85, duration: 0.5, ease: 'power1.out' }, 0.95)
       .to(insideGlowRef.current, { opacity: 0, duration: 0.65, ease: 'power1.in' }, 1.55)
-      .to(insideLetterRef.current, { opacity: 1, y: -30, scale: 1.03, duration: 0.85, ease: 'elastic.out(1,0.65)' }, 1.2)
+      // yPercent, not a fixed px y — see .inside-letter's own comment. -68%
+      // of the letter's own height clears envelope-pocket's slanted edge
+      // and settles the letter just above the whole card, regardless of
+      // how big the envelope itself actually rendered.
+      .to(insideLetterRef.current, { opacity: 1, yPercent: -68, scale: 1.03, duration: 0.85, ease: 'elastic.out(1,0.65)' }, 1.2)
       .call(() => goToSlide(1), undefined, 2.3);
   };
 
@@ -679,12 +683,23 @@ export default function InteractivePavtiView({
         }
         /* Rising letter — tucked inside the pocket (below the flap, behind
            its V-opening) until the open timeline lifts it up and out. */
+        /* Sized to its own two lines of text (not stretched to 60% of the
+           envelope like the pocket underneath it) and risen by a percentage
+           of its OWN height (yPercent, in the open timeline below) rather
+           than a fixed pixel amount — a fixed px rise looked fine at the
+           one size it was eyeballed at, but was nowhere near enough to
+           clear envelope-pocket's slanted top edge (z-index 3, above this
+           at z-index 2) once this got rendered at the landing page's
+           smaller embedded size: the pocket's diagonal edge cut straight
+           across the second line of real donor text. yPercent scales with
+           whatever size this actually rendered at, so it clears the same
+           way in both places. */
         .inside-letter {
           position: absolute;
           left: 8%;
           right: 8%;
-          bottom: 6%;
-          top: 34%;
+          top: 26%;
+          height: 40%;
           z-index: 2;
           background: linear-gradient(170deg, #fffdf7, var(--parchment-dark));
           border-radius: 4px;
@@ -695,8 +710,9 @@ export default function InteractivePavtiView({
           justify-content: center;
           align-items: center;
           text-align: center;
-          padding: 10px 14px;
+          padding: 8px 12px;
           border: 1px solid rgba(150, 105, 35, 0.3);
+          overflow: hidden;
         }
         .inside-letter p:first-child {
           font-family: var(--font-devotional);
