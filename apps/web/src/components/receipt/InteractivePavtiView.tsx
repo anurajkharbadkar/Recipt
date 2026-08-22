@@ -118,6 +118,7 @@ export default function InteractivePavtiView({
   const glowBurstRef = useRef<HTMLDivElement>(null);
   const glowBurstOuterRef = useRef<HTMLDivElement>(null);
   const envFlapRef = useRef<HTMLDivElement>(null);
+  const insideGlowRef = useRef<HTMLDivElement>(null);
   const insideLetterRef = useRef<HTMLDivElement>(null);
 
   // Ganpati/darshan slide refs (slide 1)
@@ -215,9 +216,11 @@ export default function InteractivePavtiView({
       .to(glowBurstRef.current, { scale: 9, opacity: 0.95, duration: 0.6, ease: 'power1.out' }, 0.32)
       .to(glowBurstRef.current, { opacity: 0, duration: 0.6 }, 0.8)
       .to(glowBurstOuterRef.current, { opacity: 0, duration: 0.7 }, 0.85)
-      .to(envFlapRef.current, { rotateX: -172, duration: 1.1, ease: 'power2.inOut', transformPerspective: 1000 }, 0.5)
-      .to(insideLetterRef.current, { opacity: 1, y: -40, scale: 1.02, duration: 0.8, ease: 'elastic.out(1,0.65)' }, 1.15)
-      .call(() => goToSlide(1), undefined, 1.95);
+      .to(envFlapRef.current, { rotateX: -172, duration: 1.15, ease: 'power2.inOut', transformPerspective: 1000 }, 0.5)
+      .to(insideGlowRef.current, { opacity: 0.85, duration: 0.5, ease: 'power1.out' }, 0.95)
+      .to(insideGlowRef.current, { opacity: 0, duration: 0.65, ease: 'power1.in' }, 1.55)
+      .to(insideLetterRef.current, { opacity: 1, y: -30, scale: 1.03, duration: 0.85, ease: 'elastic.out(1,0.65)' }, 1.2)
+      .call(() => goToSlide(1), undefined, 2.3);
   };
 
   // Ganpati/darshan slide: chakra + diyas fade-in, temple bell, and a
@@ -584,8 +587,8 @@ export default function InteractivePavtiView({
 
         .envelope-wrap {
           perspective: 1900px;
-          width: min(380px, 86vw);
-          height: min(250px, 56vw);
+          width: min(500px, 92vw);
+          height: min(253px, 46vw);
           position: relative;
           z-index: 5;
         }
@@ -594,54 +597,138 @@ export default function InteractivePavtiView({
           width: 100%;
           height: 100%;
           transform-style: preserve-3d;
-          filter: drop-shadow(0 24px 38px rgba(8, 2, 2, 0.7));
+          filter: drop-shadow(0 26px 40px rgba(8, 2, 2, 0.6));
         }
-        .envelope-body {
+        /* Back panel — the whole card's base layer, stamped with a fine
+           inset border and a dotted "stitched edge" trim so it reads as a
+           real envelope card, not a flat rounded rectangle. */
+        .envelope-back {
           position: absolute;
           inset: 0;
-          border-radius: 8px;
+          z-index: 1;
+          border-radius: 7px;
           background:
-            repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 8px),
+            repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 7px),
+            linear-gradient(155deg, rgba(92, 18, 32, 0.4), rgba(0, 0, 0, 0.35) 60%, rgba(0, 0, 0, 0.5) 100%),
             linear-gradient(145deg, #7c1a2c, #480c16 65%, #2a050c);
-          border: 1.5px solid rgba(244, 221, 154, 0.4);
-          overflow: hidden;
+          box-shadow: 0 0 0 1.5px rgba(201, 162, 74, 0.9), inset 0 0 0 1px rgba(120, 80, 20, 0.35);
         }
-        .envelope-body::after {
+        .envelope-back::before {
           content: '';
           position: absolute;
-          inset: 8px;
-          border: 1px solid rgba(244, 221, 154, 0.22);
-          border-radius: 4px;
+          inset: 9px;
+          border: 1px solid rgba(244, 221, 154, 0.28);
+          border-radius: 3px;
           pointer-events: none;
+        }
+        .envelope-back::after {
+          content: '';
+          position: absolute;
+          inset: 9px;
+          border-radius: 3px;
+          pointer-events: none;
+          background-image: radial-gradient(circle at 4px 4px, rgba(244, 221, 154, 0.55) 1.1px, transparent 1.6px);
+          background-size: 100% 16px, 16px 100%;
+          background-position: top left, top left;
+          background-repeat: repeat-x, repeat-y;
+          opacity: 0.3;
+        }
+        /* A brief flash of light from inside the envelope right as the
+           letter starts rising through the pocket opening. */
+        .inside-glow {
+          position: absolute;
+          inset: 6% 8% 0 8%;
+          top: 2%;
+          height: 58%;
+          z-index: 2;
+          border-radius: 4px;
+          background: radial-gradient(ellipse at 50% 0%, rgba(255, 224, 150, 0.9), rgba(255, 190, 90, 0.25) 55%, transparent 80%);
+          opacity: 0;
+          pointer-events: none;
+        }
+        /* Front pocket — the V-notched lower two-thirds every real envelope
+           has, sitting in front of the letter so it only becomes visible
+           once risen past the pocket's own peak. */
+        .envelope-pocket {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 62%;
+          z-index: 3;
+          clip-path: polygon(0 100%, 100% 100%, 100% 4%, 50% 16%, 0 4%);
+          background:
+            repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 7px),
+            linear-gradient(200deg, rgba(92, 18, 32, 0.05), rgba(0, 0, 0, 0.14) 100%),
+            linear-gradient(145deg, #7c1a2c, #480c16 65%, #2a050c);
+          border-radius: 0 0 7px 7px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        /* Rising letter — tucked inside the pocket (below the flap, behind
+           its V-opening) until the open timeline lifts it up and out. */
+        .inside-letter {
+          position: absolute;
+          left: 8%;
+          right: 8%;
+          bottom: 6%;
+          top: 34%;
+          z-index: 2;
+          background: linear-gradient(170deg, var(--parchment), var(--parchment-dark));
+          border-radius: 4px;
+          box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.2);
+          opacity: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          padding: 10px 14px;
+          border: 1px solid rgba(120, 80, 20, 0.3);
+        }
+        .inside-letter p:first-child {
+          font-family: var(--font-devotional);
+          font-size: 0.85rem;
+          color: var(--maroon);
+        }
+        .inside-letter p:last-child {
+          font-family: var(--font-display);
+          font-style: italic;
+          font-size: 0.72rem;
+          color: #5a4322;
+          margin-top: 3px;
         }
         .envelope-flap {
           position: absolute;
           top: 0;
           left: 0;
-          width: 100%;
-          height: 52%;
-          background:
-            repeating-linear-gradient(70deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 8px),
-            linear-gradient(180deg, #8a1e32 0%, #601120 100%);
-          clip-path: polygon(0 0, 100% 0, 50% 100%);
+          right: 0;
+          height: 60%;
+          z-index: 5;
           transform-origin: top center;
-          border-top: 1.5px solid rgba(244, 221, 154, 0.5);
-          z-index: 8;
+          transform-style: preserve-3d;
+          clip-path: polygon(0 0, 100% 0, 50% 80%);
+          background:
+            repeating-linear-gradient(70deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 8px),
+            linear-gradient(200deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.08) 60%, rgba(0, 0, 0, 0.14) 100%),
+            linear-gradient(180deg, #8a1e32 0%, #601120 100%);
+          border-radius: 7px 7px 0 0;
+          box-shadow: inset 0 -8px 16px rgba(90, 55, 10, 0.2), 0 0 0 1.5px rgba(201, 162, 74, 0.7);
         }
-        .flap-corner-motif { position: absolute; width: 18px; height: 18px; top: 10%; opacity: 0.5; pointer-events: none; }
-        .flap-corner-motif.left { left: 12%; }
-        .flap-corner-motif.right { right: 12%; transform: scaleX(-1); }
+        .flap-flourish { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: 110px; opacity: 0.35; pointer-events: none; }
+        .flap-corner-motif { position: absolute; width: 20px; height: 20px; top: 9%; opacity: 0.42; pointer-events: none; }
+        .flap-corner-motif.left { left: 11%; }
+        .flap-corner-motif.right { right: 11%; transform: scaleX(-1); }
 
-        /* Wax Seal — now splits into two halves + a golden light burst
-           instead of just shrinking to nothing, driven by handleOpenEnvelope's
-           GSAP timeline rather than a CSS class toggle. */
+        /* Wax Seal — splits into two halves + a golden light burst instead
+           of just shrinking to nothing, driven by handleOpenEnvelope's GSAP
+           timeline rather than a CSS class toggle. */
         .wax-seal {
           position: absolute;
           top: 48%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 64px;
-          height: 64px;
+          width: 66px;
+          height: 66px;
           border-radius: 50%;
           background: radial-gradient(circle at 35% 35%, #e6a832, #b87814 60%, #6d4107);
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.4);
@@ -649,7 +736,7 @@ export default function InteractivePavtiView({
           align-items: center;
           justify-content: center;
           color: #fff8dc;
-          font-size: 1.8rem;
+          font-size: 1.9rem;
           font-family: var(--font-devotional);
           cursor: pointer;
           z-index: 15;
@@ -661,9 +748,9 @@ export default function InteractivePavtiView({
           position: absolute;
           top: 48%;
           left: 50%;
-          width: 64px;
-          height: 64px;
-          margin: -32px 0 0 -32px;
+          width: 66px;
+          height: 66px;
+          margin: -33px 0 0 -33px;
           border-radius: 50%;
           border: 1.4px solid var(--gold-light);
           opacity: 0;
@@ -676,17 +763,17 @@ export default function InteractivePavtiView({
         .seal-half {
           position: absolute;
           top: 48%;
-          width: 32px;
-          height: 64px;
-          margin-top: -32px;
+          width: 33px;
+          height: 66px;
+          margin-top: -33px;
           background: radial-gradient(circle at 35% 35%, #e6a832, #b87814 60%, #6d4107);
           opacity: 0;
           pointer-events: none;
           z-index: 16;
           overflow: hidden;
         }
-        .seal-half.left { left: calc(50% - 32px); border-radius: 32px 0 0 32px; }
-        .seal-half.right { left: calc(50% - 0px); border-radius: 0 32px 32px 0; }
+        .seal-half.left { left: calc(50% - 33px); border-radius: 33px 0 0 33px; }
+        .seal-half.right { left: calc(50% - 0px); border-radius: 0 33px 33px 0; }
         .glow-burst, .glow-burst-outer {
           position: absolute;
           top: 48%;
@@ -700,37 +787,6 @@ export default function InteractivePavtiView({
         }
         .glow-burst { background: radial-gradient(circle, rgba(255, 232, 180, 0.98), rgba(255, 195, 100, 0.4) 42%, transparent 72%); z-index: 13; }
         .glow-burst-outer { background: radial-gradient(circle, rgba(255, 210, 140, 0.55), transparent 70%); z-index: 12; }
-
-        /* Inside Rising Letter */
-        .inside-letter {
-          position: absolute;
-          inset: 12px;
-          background: linear-gradient(170deg, var(--parchment), var(--parchment-dark));
-          color: var(--maroon);
-          border-radius: 4px;
-          padding: 16px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.2);
-          z-index: 4;
-          opacity: 0;
-          border: 1px solid rgba(120, 80, 20, 0.3);
-        }
-        .inside-letter p:first-child {
-          font-family: var(--font-devotional);
-          font-size: 1rem;
-          color: var(--maroon);
-        }
-        .inside-letter p:last-child {
-          font-family: var(--font-display);
-          font-style: italic;
-          font-size: 0.9rem;
-          color: #5a4322;
-          margin-top: 4px;
-        }
 
         .open-hint {
           position: absolute;
@@ -1012,7 +1068,7 @@ export default function InteractivePavtiView({
         /* Elements this file continuously animates should get their own
            compositing layer — cheap insurance against jank on the mid-range
            phones most donors are actually opening this on. */
-        .divine-chakra, .brass-diya, .darshan-frame, .envelope-box, .envelope-flap,
+        .divine-chakra, .brass-diya, .darshan-frame, .envelope-box, .envelope-flap, .envelope-pocket, .inside-glow,
         .wax-seal, .seal-half, .glow-burst, .glow-burst-outer, .ambient-spark,
         .smoke-wisp, .flower-petal, .burst-petal, .bless-icon-wrap, .bless-glow-ring {
           will-change: transform, opacity;
@@ -1082,34 +1138,33 @@ export default function InteractivePavtiView({
             />
           ))}
 
-          {/* Title Header */}
-          <div className="absolute top-[8%] left-1/2 -translate-x-1/2 text-center z-10 w-[90%] max-w-md">
-            <p className="text-[0.72rem] tracking-widest text-amber-300/90 font-medium uppercase">
-              {org.nameMarathi || org.name || "श्री गणेश मंडळ"}
-            </p>
-            <h1 className="text-xl sm:text-2xl font-bold text-amber-100 mt-1 drop-shadow-md">
-              एक पवित्र पावती तुमची वाट पाहत आहे
-            </h1>
-            <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-300 to-transparent mx-auto mt-3 opacity-80" />
-          </div>
-
           {/* 3D Envelope Component */}
           <div className="envelope-stage-wrap">
             <div className="envelope-back-glow" />
             <div className="envelope-wrap">
               <div className="envelope-box">
-                <div className="envelope-body">
-                  {/* Inside Letter that rises */}
-                  <div ref={insideLetterRef} className="inside-letter">
-                    <p>|| श्री गणेशाय नमः ||</p>
-                    <p>{receipt.donorName} जी, आपले सहकार्य प्राप्त झाले आहे</p>
-                  </div>
+                {/* Layer order matters here — it's what makes this read as a
+                    real envelope: the back panel, a light flash, the letter
+                    (tucked inside, hidden below the pocket's V-cut until it
+                    rises), then the front pocket sitting in front of it, and
+                    finally the flap on top of everything. */}
+                <div className="envelope-back" />
+                <div ref={insideGlowRef} className="inside-glow" />
+                <div ref={insideLetterRef} className="inside-letter">
+                  <p>|| श्री गणेशाय नमः ||</p>
+                  <p>{receipt.donorName} जी, आपले सहकार्य प्राप्त झाले आहे</p>
                 </div>
+                <div className="envelope-pocket" />
 
                 {/* Envelope Flap */}
                 <div ref={envFlapRef} className="envelope-flap">
                   <svg className="flap-corner-motif left" viewBox="0 0 24 24" fill="none" stroke="#7a5222" strokeWidth="1"><path d="M2 12c4 0 6-6 10-6M2 12c4 0 6 6 10 6" /><circle cx="12" cy="12" r="2" /></svg>
                   <svg className="flap-corner-motif right" viewBox="0 0 24 24" fill="none" stroke="#7a5222" strokeWidth="1"><path d="M2 12c4 0 6-6 10-6M2 12c4 0 6 6 10 6" /><circle cx="12" cy="12" r="2" /></svg>
+                  <svg className="flap-flourish" viewBox="0 0 120 20" fill="none" stroke="#7a5222" strokeWidth="1">
+                    <path d="M4 10 Q30 2 58 10 Q30 12 4 10 Z" />
+                    <path d="M116 10 Q90 2 62 10 Q90 12 116 10 Z" />
+                    <circle cx="60" cy="10" r="1.6" fill="#7a5222" />
+                  </svg>
                 </div>
 
                 {/* Wax Seal + split-halves + light burst */}
@@ -1235,11 +1290,26 @@ export default function InteractivePavtiView({
                 <div className="darshan-aura" />
                 <div className="darshan-frame">
                   <div className="darshan-frame-inner">
-                    <img
-                      src={customDarshan || "https://images.unsplash.com/photo-1567591370504-8b6540c4a4e1?w=600&auto=format&fit=crop&q=80"}
-                      alt="Shree Ganesh Darshan"
-                      className="darshan-img"
-                    />
+                    {customDarshan ? (
+                      <img src={customDarshan} alt="Shree Ganesh Darshan" className="darshan-img" />
+                    ) : (
+                      // No org-uploaded darshan photo — a self-contained SVG
+                      // glyph instead of a hotlinked stock photo. The
+                      // previous default (an Unsplash URL) quietly 404'd at
+                      // some point after this shipped and every org without
+                      // a custom image silently showed a broken image; an
+                      // inline drawing can't rot the same way.
+                      <svg viewBox="0 0 200 200" className="darshan-img" role="img" aria-label="Shree Ganesh Darshan">
+                        <rect width="200" height="200" fill="#2b0e08" />
+                        <circle cx="100" cy="100" r="86" fill="none" stroke="#c9a24a" strokeWidth="1.5" opacity="0.35" />
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <ellipse key={i} cx="100" cy="46" rx="7" ry="18" fill="#c9a24a" opacity="0.3" transform={`rotate(${i * 30} 100 100)`} />
+                        ))}
+                        <text x="100" y="126" textAnchor="middle" fontSize="88" fontFamily="var(--font-devotional), serif" fill="#f4dd9a">
+                          ॐ
+                        </text>
+                      </svg>
+                    )}
                   </div>
                 </div>
               </div>
