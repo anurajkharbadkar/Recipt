@@ -11,6 +11,7 @@ import { platformWhatsappLink } from '@/lib/platform';
 import { ChevronDown, MessageCircle, ArrowRight } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
+import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 
 // Sample receipt — same structure the real portal uses when issuing a pavti.
 // FESTIVE theme is the closest built-in design to the landing page's saffron
@@ -349,6 +350,11 @@ export default function HomePage() {
   const [rotatorIdx, setRotatorIdx] = useState(0);
   const [navScrolled, setNavScrolled] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  // Hero demo — lets visitors flip the sample pavti between the cinematic
+  // interactive experience and the plain single-page one, same toggle a
+  // real donor gets on their own receipt (InteractivePavtiView's
+  // onSwitchToStandard / the standard view's "Interactive Darshan" CTA).
+  const [demoView, setDemoView] = useState<'interactive' | 'standard'>('interactive');
 
   useEffect(() => {
     if (isAuthenticated) router.push('/dashboard');
@@ -579,17 +585,49 @@ export default function HomePage() {
                 className="rounded-[2rem] overflow-hidden border-2 border-saffron-900/20 shadow-2xl shadow-saffron-900/20"
                 style={{ height: '580px', position: 'relative' }}
               >
-                <InteractivePavtiView
-                  receipt={HERO_PREVIEW_RECEIPT}
-                  language="mr"
-                  defaultMuted={true}
-                  embedded={true}
-                />
+                {demoView === 'interactive' ? (
+                  <InteractivePavtiView
+                    receipt={HERO_PREVIEW_RECEIPT}
+                    language="mr"
+                    defaultMuted={true}
+                    embedded={true}
+                    onSwitchToStandard={() => setDemoView('standard')}
+                  />
+                ) : (
+                  <div className="h-full overflow-y-auto bg-[#1A120B] p-3">
+                    <ReceiptPreview receipt={HERO_PREVIEW_RECEIPT} language="mr" qrPath="/receipt/preview" />
+                    <button
+                      type="button"
+                      onClick={() => setDemoView('interactive')}
+                      className="w-full mt-3 py-2.5 px-4 rounded-xl bg-gradient-to-r from-saffron-700 via-amber-700 to-saffron-700 text-white text-xs font-bold shadow-lg"
+                    >
+                      {t('View Interactive Darshan', 'इंटेरॅक्टिव्ह दर्शन पहा', 'इंटरैक्टिव दर्शन देखें')}
+                    </button>
+                  </div>
+                )}
               </div>
-              {/* Scroll hint */}
-              <p className="text-center text-[10px] text-saffron-900/35 dark:text-saffron-100/30 mt-2.5">
-                Scroll inside to explore all 4 slides
-              </p>
+              {/* Toggle + scroll hint */}
+              <div className="flex items-center justify-center gap-1.5 mt-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDemoView('interactive')}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors ${demoView === 'interactive' ? 'bg-saffron-600 text-white' : 'bg-saffron-900/10 text-saffron-900/50 dark:text-saffron-100/40'}`}
+                >
+                  {t('Interactive', 'इंटेरॅक्टिव्ह', 'इंटरैक्टिव')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDemoView('standard')}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors ${demoView === 'standard' ? 'bg-saffron-600 text-white' : 'bg-saffron-900/10 text-saffron-900/50 dark:text-saffron-100/40'}`}
+                >
+                  {t('Basic Pavti', 'साधी पावती', 'सामान्य पावती')}
+                </button>
+              </div>
+              {demoView === 'interactive' && (
+                <p className="text-center text-[10px] text-saffron-900/35 dark:text-saffron-100/30 mt-1.5">
+                  Scroll inside to explore all 4 slides
+                </p>
+              )}
             </div>
           </Reveal>
         </header>

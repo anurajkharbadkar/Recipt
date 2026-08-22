@@ -230,15 +230,20 @@ export default function InteractivePavtiView({
     if (revealedRef.current.has(1)) return;
     revealedRef.current.add(1);
 
+    // Softened from the first pass — gentler starting offsets, no springy
+    // overshoot on the diyas, and more overlap between the three so nothing
+    // arrives as a separate hard "beat"; the flower burst is delayed a beat
+    // and thinned out so it drifts in after the darshan settles instead of
+    // detonating at the same instant.
     const tl = gsap.timeline();
     activeTimelinesRef.current.push(tl);
-    tl.fromTo(darshanWrapRef.current, { opacity: 0, y: 40, scale: 0.85 }, { opacity: 1, y: 0, scale: 1, duration: 1.2, ease: 'power3.out' })
-      .fromTo(chakraRef.current, { opacity: 0, scale: 0.6 }, { opacity: 0.85, scale: 1, duration: 1.4, ease: 'power2.out' }, '-=1.0')
+    tl.fromTo(darshanWrapRef.current, { opacity: 0, y: 24, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 1.6, ease: 'power2.out' })
+      .fromTo(chakraRef.current, { opacity: 0, scale: 0.75 }, { opacity: 0.85, scale: 1, duration: 1.9, ease: 'power2.out' }, '-=1.4')
       .fromTo(
         diyaRefs.current.filter(Boolean),
-        { opacity: 0, y: -36 },
-        { opacity: 1, y: 0, duration: 1, stagger: 0.2, ease: 'back.out(1.5)' },
-        '-=0.9'
+        { opacity: 0, y: -20 },
+        { opacity: 1, y: 0, duration: 1.3, stagger: 0.25, ease: 'power2.out' },
+        '-=1.3'
       );
 
     if (!isSoundMuted) playTempleBell();
@@ -247,14 +252,16 @@ export default function InteractivePavtiView({
     const slideEl = slidesRef.current[1];
     if (layer && slideEl) {
       const rect = slideEl.getBoundingClientRect();
-      burstPetals(layer, rect.width / 2, rect.height * 0.4, {
-        count: 30,
-        colors: ['#ff9f43', '#ee5253', '#fabca1', '#e2883f', '#f5b942', '#ffffff'],
-        angleMin: 0,
-        angleMax: 360,
-        minDist: 60,
-        maxDist: 260,
-      });
+      window.setTimeout(() => {
+        burstPetals(layer, rect.width / 2, rect.height * 0.4, {
+          count: 20,
+          colors: ['#ff9f43', '#ee5253', '#fabca1', '#e2883f', '#f5b942', '#ffffff'],
+          angleMin: 0,
+          angleMax: 360,
+          minDist: 50,
+          maxDist: 220,
+        });
+      }, 450);
     }
   };
 
@@ -599,40 +606,33 @@ export default function InteractivePavtiView({
           transform-style: preserve-3d;
           filter: drop-shadow(0 26px 40px rgba(8, 2, 2, 0.6));
         }
-        /* Back panel — the whole card's base layer, stamped with a fine
-           inset border and a dotted "stitched edge" trim so it reads as a
-           real envelope card, not a flat rounded rectangle. */
+        /* Back panel — an ivory card (not a maroon one) with a fine double
+           gold border, matching a real shagun/ceremonial envelope rather
+           than a "royal letter" one. */
         .envelope-back {
           position: absolute;
           inset: 0;
           z-index: 1;
-          border-radius: 7px;
+          border-radius: 6px;
           background:
-            repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.06) 0 2px, transparent 2px 7px),
-            linear-gradient(155deg, rgba(92, 18, 32, 0.4), rgba(0, 0, 0, 0.35) 60%, rgba(0, 0, 0, 0.5) 100%),
-            linear-gradient(145deg, #7c1a2c, #480c16 65%, #2a050c);
-          box-shadow: 0 0 0 1.5px rgba(201, 162, 74, 0.9), inset 0 0 0 1px rgba(120, 80, 20, 0.35);
+            radial-gradient(ellipse at 30% 20%, rgba(255, 250, 235, 0.6), transparent 55%),
+            linear-gradient(155deg, var(--parchment) 0%, var(--parchment-dark) 100%);
+          box-shadow: 0 0 0 1.5px var(--gold), inset 0 0 0 1px rgba(120, 80, 20, 0.2);
         }
         .envelope-back::before {
           content: '';
           position: absolute;
-          inset: 9px;
-          border: 1px solid rgba(244, 221, 154, 0.28);
+          inset: 7px;
+          border: 1px solid rgba(150, 105, 35, 0.55);
           border-radius: 3px;
           pointer-events: none;
         }
-        .envelope-back::after {
-          content: '';
-          position: absolute;
-          inset: 9px;
-          border-radius: 3px;
-          pointer-events: none;
-          background-image: radial-gradient(circle at 4px 4px, rgba(244, 221, 154, 0.55) 1.1px, transparent 1.6px);
-          background-size: 100% 16px, 16px 100%;
-          background-position: top left, top left;
-          background-repeat: repeat-x, repeat-y;
-          opacity: 0.3;
-        }
+        .corner-ornament { position: absolute; width: 15%; max-width: 64px; opacity: 0.55; pointer-events: none; z-index: 2; }
+        .corner-ornament.tl { top: 10px; left: 10px; }
+        .corner-ornament.tr { top: 10px; right: 10px; transform: scaleX(-1); }
+        .corner-ornament.bl { bottom: 10px; left: 10px; transform: scaleY(-1); }
+        .corner-ornament.br { bottom: 10px; right: 10px; transform: scale(-1, -1); }
+
         /* A brief flash of light from inside the envelope right as the
            letter starts rising through the pocket opening. */
         .inside-glow {
@@ -648,7 +648,8 @@ export default function InteractivePavtiView({
         }
         /* Front pocket — the V-notched lower two-thirds every real envelope
            has, sitting in front of the letter so it only becomes visible
-           once risen past the pocket's own peak. */
+           once risen past the pocket's own peak. Same ivory as the back
+           panel, just enough shading to still read as a separate fold. */
         .envelope-pocket {
           position: absolute;
           left: 0;
@@ -658,11 +659,11 @@ export default function InteractivePavtiView({
           z-index: 3;
           clip-path: polygon(0 100%, 100% 100%, 100% 4%, 50% 16%, 0 4%);
           background:
-            repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 7px),
-            linear-gradient(200deg, rgba(92, 18, 32, 0.05), rgba(0, 0, 0, 0.14) 100%),
-            linear-gradient(145deg, #7c1a2c, #480c16 65%, #2a050c);
-          border-radius: 0 0 7px 7px;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            radial-gradient(ellipse at 30% 100%, rgba(255, 250, 235, 0.5), transparent 60%),
+            linear-gradient(200deg, rgba(150, 105, 35, 0.08), transparent 60%),
+            linear-gradient(155deg, var(--parchment) 0%, var(--parchment-dark) 100%);
+          border-radius: 0 0 6px 6px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
         }
         /* Rising letter — tucked inside the pocket (below the flap, behind
            its V-opening) until the open timeline lifts it up and out. */
@@ -673,9 +674,9 @@ export default function InteractivePavtiView({
           bottom: 6%;
           top: 34%;
           z-index: 2;
-          background: linear-gradient(170deg, var(--parchment), var(--parchment-dark));
+          background: linear-gradient(170deg, #fffdf7, var(--parchment-dark));
           border-radius: 4px;
-          box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 -4px 18px rgba(120, 80, 20, 0.15);
           opacity: 0;
           display: flex;
           flex-direction: column;
@@ -683,7 +684,7 @@ export default function InteractivePavtiView({
           align-items: center;
           text-align: center;
           padding: 10px 14px;
-          border: 1px solid rgba(120, 80, 20, 0.3);
+          border: 1px solid rgba(150, 105, 35, 0.3);
         }
         .inside-letter p:first-child {
           font-family: var(--font-devotional);
@@ -697,6 +698,10 @@ export default function InteractivePavtiView({
           color: #5a4322;
           margin-top: 3px;
         }
+        /* The flap is now just a positioning/rotation shell — its visible
+           shape is the scalloped SVG crown inside it (.flap-shape), not a
+           CSS clip-path, so the ornate lobed edge is an actual outline
+           instead of a straight-sided polygon. */
         .envelope-flap {
           position: absolute;
           top: 0;
@@ -706,47 +711,50 @@ export default function InteractivePavtiView({
           z-index: 5;
           transform-origin: top center;
           transform-style: preserve-3d;
-          clip-path: polygon(0 0, 100% 0, 50% 80%);
-          background:
-            repeating-linear-gradient(70deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 8px),
-            linear-gradient(200deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.08) 60%, rgba(0, 0, 0, 0.14) 100%),
-            linear-gradient(180deg, #8a1e32 0%, #601120 100%);
-          border-radius: 7px 7px 0 0;
-          box-shadow: inset 0 -8px 16px rgba(90, 55, 10, 0.2), 0 0 0 1.5px rgba(201, 162, 74, 0.7);
         }
-        .flap-flourish { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: 110px; opacity: 0.35; pointer-events: none; }
-        .flap-corner-motif { position: absolute; width: 20px; height: 20px; top: 9%; opacity: 0.42; pointer-events: none; }
-        .flap-corner-motif.left { left: 11%; }
-        .flap-corner-motif.right { right: 11%; transform: scaleX(-1); }
+        .flap-shape { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 6px 10px rgba(90, 55, 10, 0.25)); }
 
-        /* Wax Seal — splits into two halves + a golden light burst instead
-           of just shrinking to nothing, driven by handleOpenEnvelope's GSAP
-           timeline rather than a CSS class toggle. */
+        /* Gold medallion seal — replaces a wax blob with the ceremonial
+           coin-like emblem the reference envelope centers on its flap.
+           Still splits into two halves + a light burst on open; just
+           recolored from amber wax to gold/ivory. */
         .wax-seal {
           position: absolute;
-          top: 48%;
+          top: 54%;
           left: 50%;
           transform: translate(-50%, -50%);
           width: 66px;
           height: 66px;
           border-radius: 50%;
-          background: radial-gradient(circle at 35% 35%, #e6a832, #b87814 60%, #6d4107);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+          background: radial-gradient(circle at 35% 35%, #fff4d0, var(--gold) 55%, #8a6a2a 100%);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.6), inset 0 0 0 5px rgba(255, 255, 255, 0.15);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #fff8dc;
-          font-size: 1.9rem;
+          color: var(--maroon);
+          font-size: 1.7rem;
           font-family: var(--font-devotional);
           cursor: pointer;
           z-index: 15;
           transition: box-shadow 0.3s ease;
-          border: 2px solid rgba(255, 215, 0, 0.4);
+          border: 2px solid #fff4d0;
         }
-        .wax-seal:hover { box-shadow: 0 0 20px rgba(244, 221, 154, 0.8); }
+        .wax-seal::before, .wax-seal::after {
+          content: '';
+          position: absolute;
+          top: 8px;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 35% 35%, #ff8b8b, #b3261e);
+          box-shadow: 0 0 3px rgba(179, 38, 30, 0.7);
+        }
+        .wax-seal::before { left: 10px; }
+        .wax-seal::after { right: 10px; }
+        .wax-seal:hover { box-shadow: 0 0 18px rgba(244, 221, 154, 0.9); }
         .seal-ring {
           position: absolute;
-          top: 48%;
+          top: 54%;
           left: 50%;
           width: 66px;
           height: 66px;
@@ -762,11 +770,11 @@ export default function InteractivePavtiView({
         @keyframes ringPulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
         .seal-half {
           position: absolute;
-          top: 48%;
+          top: 54%;
           width: 33px;
           height: 66px;
           margin-top: -33px;
-          background: radial-gradient(circle at 35% 35%, #e6a832, #b87814 60%, #6d4107);
+          background: radial-gradient(circle at 35% 35%, #fff4d0, var(--gold) 55%, #8a6a2a 100%);
           opacity: 0;
           pointer-events: none;
           z-index: 16;
@@ -776,7 +784,7 @@ export default function InteractivePavtiView({
         .seal-half.right { left: calc(50% - 0px); border-radius: 0 33px 33px 0; }
         .glow-burst, .glow-burst-outer {
           position: absolute;
-          top: 48%;
+          top: 54%;
           left: 50%;
           width: 20px;
           height: 20px;
@@ -785,8 +793,8 @@ export default function InteractivePavtiView({
           opacity: 0;
           pointer-events: none;
         }
-        .glow-burst { background: radial-gradient(circle, rgba(255, 232, 180, 0.98), rgba(255, 195, 100, 0.4) 42%, transparent 72%); z-index: 13; }
-        .glow-burst-outer { background: radial-gradient(circle, rgba(255, 210, 140, 0.55), transparent 70%); z-index: 12; }
+        .glow-burst { background: radial-gradient(circle, rgba(255, 250, 235, 0.98), rgba(244, 221, 154, 0.5) 42%, transparent 72%); z-index: 13; }
+        .glow-burst-outer { background: radial-gradient(circle, rgba(244, 221, 154, 0.55), transparent 70%); z-index: 12; }
 
         .open-hint {
           position: absolute;
@@ -1148,7 +1156,12 @@ export default function InteractivePavtiView({
                     (tucked inside, hidden below the pocket's V-cut until it
                     rises), then the front pocket sitting in front of it, and
                     finally the flap on top of everything. */}
-                <div className="envelope-back" />
+                <div className="envelope-back">
+                  <svg className="corner-ornament tl" viewBox="0 0 60 60" fill="none" stroke="#8a6a2a" strokeWidth="1.2"><path d="M4 4 Q4 30 30 30 M4 4 Q30 4 30 30 M10 4 Q10 22 26 22 M4 10 Q22 10 22 26" /><circle cx="6" cy="6" r="1.6" fill="#8a6a2a" /></svg>
+                  <svg className="corner-ornament tr" viewBox="0 0 60 60" fill="none" stroke="#8a6a2a" strokeWidth="1.2"><path d="M4 4 Q4 30 30 30 M4 4 Q30 4 30 30 M10 4 Q10 22 26 22 M4 10 Q22 10 22 26" /><circle cx="6" cy="6" r="1.6" fill="#8a6a2a" /></svg>
+                  <svg className="corner-ornament bl" viewBox="0 0 60 60" fill="none" stroke="#8a6a2a" strokeWidth="1.2"><path d="M4 4 Q4 30 30 30 M4 4 Q30 4 30 30 M10 4 Q10 22 26 22 M4 10 Q22 10 22 26" /><circle cx="6" cy="6" r="1.6" fill="#8a6a2a" /></svg>
+                  <svg className="corner-ornament br" viewBox="0 0 60 60" fill="none" stroke="#8a6a2a" strokeWidth="1.2"><path d="M4 4 Q4 30 30 30 M4 4 Q30 4 30 30 M10 4 Q10 22 26 22 M4 10 Q22 10 22 26" /><circle cx="6" cy="6" r="1.6" fill="#8a6a2a" /></svg>
+                </div>
                 <div ref={insideGlowRef} className="inside-glow" />
                 <div ref={insideLetterRef} className="inside-letter">
                   <p>|| श्री गणेशाय नमः ||</p>
@@ -1156,24 +1169,28 @@ export default function InteractivePavtiView({
                 </div>
                 <div className="envelope-pocket" />
 
-                {/* Envelope Flap */}
+                {/* Envelope Flap — a scalloped SVG crown (matching a real
+                    ceremonial/shagun envelope) instead of a straight-edged
+                    polygon; the medallion seal sits right at its center dip. */}
                 <div ref={envFlapRef} className="envelope-flap">
-                  <svg className="flap-corner-motif left" viewBox="0 0 24 24" fill="none" stroke="#7a5222" strokeWidth="1"><path d="M2 12c4 0 6-6 10-6M2 12c4 0 6 6 10 6" /><circle cx="12" cy="12" r="2" /></svg>
-                  <svg className="flap-corner-motif right" viewBox="0 0 24 24" fill="none" stroke="#7a5222" strokeWidth="1"><path d="M2 12c4 0 6-6 10-6M2 12c4 0 6 6 10 6" /><circle cx="12" cy="12" r="2" /></svg>
-                  <svg className="flap-flourish" viewBox="0 0 120 20" fill="none" stroke="#7a5222" strokeWidth="1">
-                    <path d="M4 10 Q30 2 58 10 Q30 12 4 10 Z" />
-                    <path d="M116 10 Q90 2 62 10 Q90 12 116 10 Z" />
-                    <circle cx="60" cy="10" r="1.6" fill="#7a5222" />
+                  <svg className="flap-shape" viewBox="0 0 500 160" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id={`${uid}-flap`} x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#fffdf7" />
+                        <stop offset="100%" stopColor="#f3ede0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M 0,0 L 500,0 L 500,45 Q 470,80 440,60 Q 410,40 380,75 Q 350,110 320,85 Q 290,60 250,150 Q 210,60 180,85 Q 150,110 120,75 Q 90,40 60,60 Q 30,80 0,45 Z"
+                      fill={`url(#${uid}-flap)`}
+                      stroke="#c9a24a"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                    />
                   </svg>
                 </div>
 
-                {/* Wax Seal + split-halves + light burst */}
-                <div className="seal-ring r1" />
-                <div className="seal-ring r2" />
-                <div ref={glowBurstOuterRef} className="glow-burst-outer" />
-                <div ref={glowBurstRef} className="glow-burst" />
-                <div ref={sealLeftRef} className="seal-half left" />
-                <div ref={sealRightRef} className="seal-half right" />
+                {/* Gold medallion seal + split-halves + light burst */}
                 <div
                   ref={sealRef}
                   className={`wax-seal ${isEnvelopeOpen ? 'opened' : ''}`}
@@ -1184,6 +1201,12 @@ export default function InteractivePavtiView({
                 >
                   <span>ॐ</span>
                 </div>
+                <div className="seal-ring r1" />
+                <div className="seal-ring r2" />
+                <div ref={glowBurstOuterRef} className="glow-burst-outer" />
+                <div ref={glowBurstRef} className="glow-burst" />
+                <div ref={sealLeftRef} className="seal-half left" />
+                <div ref={sealRightRef} className="seal-half right" />
               </div>
             </div>
           </div>
