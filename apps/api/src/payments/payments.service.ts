@@ -113,6 +113,15 @@ export class PaymentsService {
     donorEmail?: string;
     /** Set for a real donation payment; omitted for the sandbox test flow. */
     receiptId?: string;
+    /**
+     * The exact payment_session_id Cashfree returned from creating this
+     * order — stored so a later idempotent-reuse (re-clicking "Pay") can
+     * hand back the one session actually known to work, instead of
+     * re-deriving one via GET /orders/{id} (found live, 2026-08-23: that
+     * endpoint mints a *different* session string on every call, even for
+     * a still-ACTIVE order — see Payment.paymentSessionId's schema comment).
+     */
+    paymentSessionId?: string;
   }) {
     return this.prisma.payment.create({
       data: {
@@ -125,8 +134,28 @@ export class PaymentsService {
         donorPhone: params.donorPhone,
         donorEmail: params.donorEmail,
         status: PaymentStatus.ORDER_CREATED,
+        paymentSessionId: params.paymentSessionId,
       },
     });
+  }
+
+  /**
+   * How long a stored payment_session_id is trusted for reuse without
+   * re-creating the order. Deliberately short and conservative: Cashfree's
+   * own checkout sessions are short-lived, and the exact TTL isn't
+   * something this integration has verified — safer to err toward "just
+   * create a fresh order" (harmless; see the orphaned-order comments in
+   * both payment controllers) than to hand a likely-dead session to the
+   * frontend. Covers the actual reuse case that matters: closing the
+   * checkout tab and immediately clicking "Pay" again.
+   */
+  static readonly SESSION_REUSE_WINDOW_MS = 5 * 60 * 1000;
+
+  /** Whether an existingPayment's stored session is still worth handing
+   *  back as-is, rather than creating a fresh order. */
+  isPaymentSessionReusable(payment: { paymentSessionId: string | null; createdAt: Date }): boolean {
+    if (!payment.paymentSessionId) return false;
+    return Date.now() - payment.createdAt.getTime() < PaymentsService.SESSION_REUSE_WINDOW_MS;
   }
 
   /**

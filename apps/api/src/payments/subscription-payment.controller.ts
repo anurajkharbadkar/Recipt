@@ -42,21 +42,20 @@ export class SubscriptionPaymentController {
     let orderId: string | undefined;
     let paymentSessionId: string | undefined;
 
-    if (existingPayment) {
-      // Same idempotent-reuse reasoning as DonationsController — an admin
-      // re-clicking "Pay Now" (e.g. after closing the checkout without
-      // finishing) must not create a second Cashfree order/charge. But
-      // only reuse a session Cashfree still considers ACTIVE — see
-      // CashfreeService.isOrderSessionUsable's comment for the stale-
-      // session bug this guards (found live 2026-08-22: reusing an
-      // order created hours/sessions earlier handed the frontend an
-      // expired payment_session_id Cashfree's checkout page flatly
-      // rejects, rather than a fresh one).
-      const order = await this.cashfreeService.getOrder(existingPayment.orderId);
-      if (this.cashfreeService.isOrderSessionUsable(order)) {
-        orderId = existingPayment.orderId;
-        paymentSessionId = order.payment_session_id;
-      }
+    // Idempotent reuse — an admin re-clicking "Pay Now" (e.g. after closing
+    // the checkout without finishing) must not create a second Cashfree
+    // order/charge. Reuses the *stored* session from when the order was
+    // created, never one re-derived via GET /orders/{id} — found live
+    // (2026-08-23): that endpoint hands back a *different*
+    // payment_session_id string on every single call, even for a still-
+    // ACTIVE order created a second earlier, which is exactly what was
+    // producing "payment_session_id is not present or is invalid" on
+    // Cashfree's own checkout page. See Payment.paymentSessionId's schema
+    // comment and PaymentsService.isPaymentSessionReusable's time-window
+    // reasoning for why this is the trustworthy source instead.
+    if (existingPayment && this.paymentsService.isPaymentSessionReusable(existingPayment)) {
+      orderId = existingPayment.orderId;
+      paymentSessionId = existingPayment.paymentSessionId!;
     }
 
     if (!paymentSessionId) {
@@ -79,15 +78,16 @@ export class SubscriptionPaymentController {
         donorName: organization.name,
         donorPhone: organization.phone,
         donorEmail: organization.email ?? undefined,
+        paymentSessionId,
       });
 
       if (saved.orderId !== orderId) {
         // Lost a race to a concurrent request (e.g. two admin tabs) — reuse
-        // the winner's order instead of leaving an orphaned duplicate.
+        // the winner's own stored session (not a fresh GET) instead of
+        // leaving an orphaned duplicate.
         this.logger.warn(`Race on orgId=${organization.id}: using existing orderId=${saved.orderId} instead of ${orderId}`);
         orderId = saved.orderId;
-        const order = await this.cashfreeService.getOrder(orderId);
-        paymentSessionId = order.payment_session_id;
+        paymentSessionId = saved.paymentSessionId ?? undefined;
       }
     }
 

@@ -45,24 +45,21 @@ export class DonationsController {
     let orderId: string | undefined;
     let paymentSessionId: string | undefined;
 
-    if (existingPayment) {
-      // Idempotent reuse (handover doc section 15) — a collector re-tapping
-      // "Collect Online Payment" must not create a second Cashfree order.
-      // The order stays open across multiple payment attempts regardless
-      // (verified earlier: a failed UPI attempt leaves order_status ACTIVE),
-      // so re-fetching the same session is correct for that case. But a
-      // *much later* re-tap (order created a while ago, never retried) is a
-      // different failure mode that same earlier check never covered —
-      // Cashfree's session itself can expire independent of attempt
-      // outcome, and its checkout page flatly rejects a stale session_id
-      // rather than refreshing it (found live 2026-08-22 on the
-      // subscription-order twin of this code). isOrderSessionUsable checks
-      // order_status is still ACTIVE before trusting the reuse.
-      const order = await this.cashfreeService.getOrder(existingPayment.orderId);
-      if (this.cashfreeService.isOrderSessionUsable(order)) {
-        orderId = existingPayment.orderId;
-        paymentSessionId = order.payment_session_id;
-      }
+    // Idempotent reuse (handover doc section 15) — a collector re-tapping
+    // "Collect Online Payment" must not create a second Cashfree order.
+    // Reuses the *stored* session from when the order was created, never
+    // one re-derived via GET /orders/{id} — found live (2026-08-23): that
+    // endpoint hands back a *different* payment_session_id string on every
+    // single call, even for a still-ACTIVE order created a second earlier,
+    // which is exactly what was producing "payment_session_id is not
+    // present or is invalid" on Cashfree's own checkout page (and would
+    // have broken the QR/UPI-intent generation below the same way, since
+    // both take this same session id). See Payment.paymentSessionId's
+    // schema comment and PaymentsService.isPaymentSessionReusable's time-
+    // window reasoning for why this is the trustworthy source instead.
+    if (existingPayment && this.paymentsService.isPaymentSessionReusable(existingPayment)) {
+      orderId = existingPayment.orderId;
+      paymentSessionId = existingPayment.paymentSessionId!;
     }
 
     if (!paymentSessionId) {
@@ -89,16 +86,17 @@ export class DonationsController {
         donorName: receipt.donorName,
         donorPhone: receipt.donorPhone!,
         receiptId: receipt.id,
+        paymentSessionId,
       });
 
       if (saved.orderId !== orderId) {
         // Lost a race to a concurrent request for the same receipt — the
         // order we just created has no Payment row and is now a harmless
-        // orphan on Cashfree's side; use the winner's order instead.
+        // orphan on Cashfree's side; reuse the winner's own stored session
+        // (not a fresh GET) instead.
         this.logger.warn(`Race on receiptId=${receiptId}: using existing orderId=${saved.orderId} instead of ${orderId}`);
         orderId = saved.orderId;
-        const order = await this.cashfreeService.getOrder(orderId);
-        paymentSessionId = order.payment_session_id;
+        paymentSessionId = saved.paymentSessionId ?? undefined;
       }
     }
 

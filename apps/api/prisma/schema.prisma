@@ -361,6 +361,15 @@ model Payment {
   cashfreeOrderId   String? @unique
   cashfreePaymentId String?
   cashfreeSplitId   String?
+  // The exact session handed to the frontend at creation (2026-08-23 fix) —
+  // found live: Cashfree's GET /orders/{id} returns a *different*
+  // payment_session_id string on every call, even seconds apart, for the
+  // same still-ACTIVE order. Re-deriving a "reusable" session from that
+  // endpoint is what was producing "payment_session_id is not present or
+  // is invalid" on Cashfree's own checkout page. Storing the original here
+  // means idempotent reuse hands back the one session actually known to
+  // have been valid, instead of gambling on GET minting something usable.
+  paymentSessionId String?
 
   amountPaise       Int
   platformFeePaise  Int    @default(0)
