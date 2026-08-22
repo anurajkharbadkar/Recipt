@@ -39,26 +39,37 @@ export class SubscriptionPaymentController {
   async createSubscriptionOrder(@CurrentUser() user: AuthenticatedUser) {
     const { organization, plan, existingPayment } = await this.paymentsService.resolveSubscriptionPaymentContext(user.orgId);
 
-    let orderId: string;
+    let orderId: string | undefined;
     let paymentSessionId: string | undefined;
 
     if (existingPayment) {
       // Same idempotent-reuse reasoning as DonationsController — an admin
       // re-clicking "Pay Now" (e.g. after closing the checkout without
-      // finishing) must not create a second Cashfree order/charge.
-      orderId = existingPayment.orderId;
-      const order = await this.cashfreeService.getOrder(orderId);
-      paymentSessionId = order.payment_session_id;
-    } else {
-      orderId = `${CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX}_${Date.now()}_${randomUUID().slice(0, 8)}`;
+      // finishing) must not create a second Cashfree order/charge. But
+      // only reuse a session Cashfree still considers ACTIVE — see
+      // CashfreeService.isOrderSessionUsable's comment for the stale-
+      // session bug this guards (found live 2026-08-22: reusing an
+      // order created hours/sessions earlier handed the frontend an
+      // expired payment_session_id Cashfree's checkout page flatly
+      // rejects, rather than a fresh one).
+      const order = await this.cashfreeService.getOrder(existingPayment.orderId);
+      if (this.cashfreeService.isOrderSessionUsable(order)) {
+        orderId = existingPayment.orderId;
+        paymentSessionId = order.payment_session_id;
+      }
+    }
+
+    if (!paymentSessionId) {
+      const freshOrderId = `${CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX}_${Date.now()}_${randomUUID().slice(0, 8)}`;
       const cfOrder = await this.cashfreeService.createOrder({
-        orderId,
+        orderId: freshOrderId,
         amount: plan.priceInr,
         customerId: organization.id,
         customerPhone: organization.phone,
         customerEmail: organization.email ?? undefined,
         // No orderSplits — plain order, the org itself is the payee.
       });
+      orderId = freshOrderId;
       paymentSessionId = cfOrder.payment_session_id;
 
       const saved = await this.paymentsService.recordOrderCreated({
@@ -80,7 +91,7 @@ export class SubscriptionPaymentController {
       }
     }
 
-    if (!paymentSessionId) {
+    if (!paymentSessionId || !orderId) {
       throw new ServiceUnavailableException('Cashfree did not return an active payment session for this order');
     }
 

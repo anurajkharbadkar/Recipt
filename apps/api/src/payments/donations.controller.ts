@@ -42,7 +42,7 @@ export class DonationsController {
   async createDonationPayment(@Param('receiptId') receiptId: string, @CurrentUser('orgId') orgId: string) {
     const { receipt, organization, existingPayment } = await this.paymentsService.resolveDonationPaymentContext(receiptId, orgId);
 
-    let orderId: string;
+    let orderId: string | undefined;
     let paymentSessionId: string | undefined;
 
     if (existingPayment) {
@@ -50,15 +50,26 @@ export class DonationsController {
       // "Collect Online Payment" must not create a second Cashfree order.
       // The order stays open across multiple payment attempts regardless
       // (verified earlier: a failed UPI attempt leaves order_status ACTIVE),
-      // so re-fetching the same session is correct, not just convenient.
-      orderId = existingPayment.orderId;
-      const order = await this.cashfreeService.getOrder(orderId);
-      paymentSessionId = order.payment_session_id;
-    } else {
-      orderId = `${CASHFREE_DONATION_ORDER_ID_PREFIX}_${Date.now()}_${randomUUID().slice(0, 8)}`;
+      // so re-fetching the same session is correct for that case. But a
+      // *much later* re-tap (order created a while ago, never retried) is a
+      // different failure mode that same earlier check never covered —
+      // Cashfree's session itself can expire independent of attempt
+      // outcome, and its checkout page flatly rejects a stale session_id
+      // rather than refreshing it (found live 2026-08-22 on the
+      // subscription-order twin of this code). isOrderSessionUsable checks
+      // order_status is still ACTIVE before trusting the reuse.
+      const order = await this.cashfreeService.getOrder(existingPayment.orderId);
+      if (this.cashfreeService.isOrderSessionUsable(order)) {
+        orderId = existingPayment.orderId;
+        paymentSessionId = order.payment_session_id;
+      }
+    }
+
+    if (!paymentSessionId) {
+      const freshOrderId = `${CASHFREE_DONATION_ORDER_ID_PREFIX}_${Date.now()}_${randomUUID().slice(0, 8)}`;
       const policy = DEFAULT_DONATION_SPLIT_POLICY;
       const cfOrder = await this.cashfreeService.createOrder({
-        orderId,
+        orderId: freshOrderId,
         amount: receipt.amount,
         customerId: receipt.id,
         customerPhone: receipt.donorPhone!, // validated non-null in resolveDonationPaymentContext
@@ -68,6 +79,7 @@ export class DonationsController {
             : { vendorId: organization.cashfreeVendorId!, amount: policy.vendorShare },
         ],
       });
+      orderId = freshOrderId;
       paymentSessionId = cfOrder.payment_session_id;
 
       const saved = await this.paymentsService.recordOrderCreated({
@@ -90,7 +102,7 @@ export class DonationsController {
       }
     }
 
-    if (!paymentSessionId) {
+    if (!paymentSessionId || !orderId) {
       throw new ServiceUnavailableException('Cashfree did not return an active payment session for this order');
     }
 

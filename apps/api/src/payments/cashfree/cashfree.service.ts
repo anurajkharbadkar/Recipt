@@ -163,6 +163,26 @@ export class CashfreeService {
   }
 
   /**
+   * Whether a previously-created order's payment_session_id is still safe
+   * to hand to the frontend checkout, rather than just non-empty. Found
+   * live (2026-08-22): re-fetching a Payment row's orderId weeks/hours
+   * after it was first created (an admin who abandoned checkout once and
+   * never retried, or a paused-then-resumed retry) returns a stale
+   * payment_session_id — Cashfree's checkout page rejects it outright
+   * ("payment_session_id is not present or is invalid") rather than
+   * silently refreshing it. That's a distinct failure mode from the
+   * already-verified "failed payment attempt, order still ACTIVE" case
+   * getOrder()'s callers rely on (see DonationsController) — this only
+   * guards the time-based expiry that case never exercised. `order_status`
+   * reads 'ACTIVE' for an order whose session can still be checked out
+   * against; anything else (EXPIRED, TERMINATED, PAID) means the caller
+   * must create a fresh order instead of reusing this one.
+   */
+  isOrderSessionUsable(order: CashfreeOrderResponse): boolean {
+    return order.order_status === 'ACTIVE' && !!order.payment_session_id;
+  }
+
+  /**
    * Step 7 (handover doc section 18/section 30's
    * `GET /payments/cashfree/:orderId`): ask Cashfree directly whether an
    * order was actually paid, instead of trusting the frontend's own report
