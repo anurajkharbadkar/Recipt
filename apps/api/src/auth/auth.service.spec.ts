@@ -129,3 +129,60 @@ describe('AuthService.login', () => {
     });
   });
 });
+
+// Regression coverage for the 2026-08-23 self-service account page —
+// distinct from CollectorsService.update's admin-sets-anyone's-password
+// path, this is someone changing their own, so it must actually verify
+// they know the current one first rather than just overwriting it.
+describe('AuthService.changePassword', () => {
+  let service: AuthService;
+  let prisma: {
+    user: { findUnique: jest.Mock; update: jest.Mock };
+  };
+
+  const PASSWORD = 'correct-horse-battery-staple';
+  let passwordHash: string;
+
+  beforeAll(async () => {
+    passwordHash = await bcrypt.hash(PASSWORD, 12);
+  });
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
+    };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
+    }).compile();
+
+    service = moduleRef.get(AuthService);
+  });
+
+  it('rejects the change when the current password is wrong, without touching the row', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1', passwordHash });
+
+    await expect(service.changePassword('u1', { currentPassword: 'wrong', newPassword: 'new-password-1' } as any))
+      .rejects.toThrow(UnauthorizedException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('hashes and saves the new password once the current one checks out', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1', passwordHash });
+
+    await service.changePassword('u1', { currentPassword: PASSWORD, newPassword: 'new-password-1' } as any);
+
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    const call = prisma.user.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 'u1' });
+    // Never store the plaintext, and never hand back the raw new password
+    // as-is either — it must actually go through bcrypt.
+    expect(call.data.passwordHash).not.toBe('new-password-1');
+    await expect(bcrypt.compare('new-password-1', call.data.passwordHash)).resolves.toBe(true);
+  });
+});

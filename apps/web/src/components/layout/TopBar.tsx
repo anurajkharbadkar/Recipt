@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { campaignsApi } from '@/lib/api';
@@ -78,7 +79,7 @@ export default function TopBar() {
 
         {/* User Pill (Tablet/Desktop) */}
         {user && (
-          <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-theme-fg/10">
+          <Link href="/profile" className="hidden sm:flex items-center gap-2 pl-3 border-l border-theme-fg/10 hover:opacity-80 transition-opacity">
             <div className="w-7 h-7 rounded-full bg-saffron-100 dark:bg-saffron-900/40 text-saffron-700 dark:text-saffron-300 flex items-center justify-center font-bold text-xs">
               {user.name[0]}
             </div>
@@ -86,7 +87,7 @@ export default function TopBar() {
               <p className="text-xs font-semibold text-theme-fg leading-none">{user.name}</p>
               <p className="text-[10px] text-theme-fg/50 leading-none mt-0.5">{user.role}</p>
             </div>
-          </div>
+          </Link>
         )}
       </div>
     </header>

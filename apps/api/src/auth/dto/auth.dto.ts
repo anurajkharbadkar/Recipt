@@ -89,3 +89,33 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken: string;
 }
+
+// Self-service profile edit (the account page) — deliberately narrower than
+// CollectorsService's UpdateCollectorDto (no role/isActive/areaId; those are
+// an admin managing *someone else's* account, not this). Phone isn't here
+// either: it's the login identifier and (for the ORG_ADMIN) must stay equal
+// to Organization.phone per AuthService.findOrgAdminByPhone's whole reason
+// for existing — changing it needs its own, more careful flow, not a plain
+// field edit.
+export class UpdateProfileDto {
+  @ApiPropertyOptional({ example: 'Rajesh Kumar' })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({ example: 'admin@mandal.org' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ example: 'OldSecurePassword@123' })
+  @IsString()
+  currentPassword: string;
+
+  @ApiProperty({ example: 'NewSecurePassword@456' })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}

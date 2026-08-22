@@ -132,7 +132,7 @@ export default function Sidebar() {
       {/* User, Theme Toggle & Logout */}
       <div className="p-3 border-t border-theme">
         {user && (
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+          <Link href="/profile" className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg hover:bg-theme-fg/5 transition-colors">
             <div className="w-8 h-8 rounded-full bg-saffron-600/20 flex items-center justify-center text-saffron-400 font-semibold text-sm">
               {user.name[0]}
             </div>
@@ -140,7 +140,7 @@ export default function Sidebar() {
               <p className="text-xs font-semibold truncate">{user.name}</p>
               <p className="text-[10px] opacity-60">{USER_ROLE_LABELS[user.role as UserRole]?.[language] || user.role}</p>
             </div>
-          </div>
+          </Link>
         )}
         
         {/* Theme Toggle Button */}

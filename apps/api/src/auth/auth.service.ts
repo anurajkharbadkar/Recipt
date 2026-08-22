@@ -14,6 +14,8 @@ import {
   RegisterDto,
   LoginDto,
   RefreshTokenDto,
+  UpdateProfileDto,
+  ChangePasswordDto,
 } from './dto/auth.dto';
 import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS, FREE_TRIAL_PERIOD_DAYS } from '@pavti/shared';
 
@@ -201,6 +203,36 @@ export class AuthService {
 
     if (!user) throw new NotFoundException('User not found');
     return user;
+  }
+
+  /** The account page's own editable fields — see UpdateProfileDto for why
+   *  this is deliberately narrower than CollectorsService.update. */
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { name: dto.name, email: dto.email },
+      include: { organization: true, area: true },
+    });
+  }
+
+  /** Self-service password change — requires the current password (unlike
+   *  CollectorsService.update's admin-sets-anyone's-password path, this is
+   *  someone changing their own, so proving they already know it first is
+   *  the whole point). */
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.passwordHash) {
+      throw new BadRequestException('This account has no password set — contact your admin.');
+    }
+
+    const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isCurrentValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: newPasswordHash } });
+    return { success: true };
   }
 
   // Pure JWT signing — no DB access. Split out from generateTokens (below,

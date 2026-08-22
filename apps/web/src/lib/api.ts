@@ -108,6 +108,12 @@ export const authApi = {
   login: (phone: string, password: string, mandalCode?: string) =>
     apiClient.post('/auth/login', mandalCode ? { mandalCode, phone, password } : { phone, password }).then(r => r.data),
   getMe: () => apiClient.get('/auth/me').then(r => r.data),
+  /** The account page's own editable fields — name/email only, see the
+   *  backend's UpdateProfileDto for why phone isn't here. */
+  updateProfile: (data: { name?: string; email?: string }) =>
+    apiClient.patch('/auth/me', data).then(r => r.data),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    apiClient.patch('/auth/me/password', data).then(r => r.data),
 };
 
 // Organizations
