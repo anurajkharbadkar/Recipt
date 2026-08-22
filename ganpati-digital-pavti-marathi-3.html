@@ -346,11 +346,6 @@ button{font-family:inherit;}
 
 .r-sign-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;}
 .r-sign-line{border-top:1px solid #7a5a2a;width:130px;text-align:center;padding-top:4px;font-size:.66rem;letter-spacing:.03em;font-family:'Tiro Devanagari Marathi','Marcellus',serif;color:#7a5a2a;}
-.stamp{width:74px;height:74px;border-radius:50%;border:2.5px solid var(--maroon);
-  display:flex;align-items:center;justify-content:center;text-align:center;
-  transform:scale(1.5) rotate(-18deg);opacity:0;color:var(--maroon);
-  font-family:'Yatra One',serif;font-size:.62rem;line-height:1.15;letter-spacing:.02em;
-  box-shadow:0 0 0 3px rgba(92,18,32,.08) inset;}
 
 .r-footnote{margin-top:20px;text-align:center;font-size:.68rem;color:#8a6a34;font-style:italic;}
 
@@ -588,7 +583,7 @@ button{font-family:inherit;}
 .stage,.stage-wrap,.back-glow,.envelope,.env-flap,.seal,.seal-ring,.seal-half,
 .glow-burst,.glow-burst-outer,.spark,.petal,.smoke-a,.smoke-b,.rays,.aura,
 .ganpati-figure,.bless-hand,.bless-palm-halo,.bless-glow-ring,.receipt-card,
-#stamp,.down-cue,.divine-halo,.brass-diya{
+.down-cue,.divine-halo,.brass-diya{
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -832,7 +827,6 @@ button{font-family:inherit;}
 
       <div class="r-sign-row">
         <div class="r-sign-line">अधिकृत स्वाक्षरी</div>
-        <div class="stamp" id="stamp">श्री<br>गणेश<br>मंडळ</div>
       </div>
 
       <div class="r-footnote">ही पावती मंडळाच्या वतीने तुमच्या गणपती उत्सव देणगीसाठी डिजिटल पद्धतीने तयार करण्यात आली आहे. गणपती बाप्पा मोरया 🙏</div>
@@ -1072,10 +1066,6 @@ function revealSlide(idx){
   }
   if(idx===2){
     gsap.to('#receiptCard', {opacity:1, y:0, duration:0.7, ease:'power2.out'});
-    gsap.fromTo('#stamp',
-      {scale:1.6, rotate:-20, opacity:0},
-      {scale:1, rotate:-8, opacity:1, duration:0.6, delay:0.55, ease:'back.out(2.2)'}
-    );
     triggerPavtiFlowerBlast();
   }
   if(idx===3){

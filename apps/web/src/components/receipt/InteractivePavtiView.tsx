@@ -136,7 +136,6 @@ export default function InteractivePavtiView({
 
   // Receipt slide refs (slide 2)
   const receiptCardRef = useRef<HTMLDivElement>(null);
-  const stampRef = useRef<HTMLDivElement>(null);
   const receiptPetalLayerRef = useRef<HTMLDivElement>(null);
 
   // Blessing slide refs (slide 3)
@@ -291,10 +290,6 @@ export default function InteractivePavtiView({
   const revealReceiptSlide = () => {
     if (revealedRef.current.has(2)) return;
     revealedRef.current.add(2);
-
-    const tl = gsap.timeline();
-    activeTimelinesRef.current.push(tl);
-    tl.fromTo(stampRef.current, { scale: 1.6, rotate: -20, opacity: 0 }, { scale: 1, rotate: -8, opacity: 1, duration: 0.6, delay: 0.4, ease: 'back.out(2.2)' });
 
     const layer = receiptPetalLayerRef.current;
     const card = receiptCardRef.current;
@@ -1002,28 +997,6 @@ export default function InteractivePavtiView({
         .authentic-card > * { position: relative; z-index: 1; }
         .om-mark { font-family: var(--font-devotional); font-size: 1.4rem; color: var(--maroon); line-height: 1; margin-bottom: 2px; }
 
-        .mandal-stamp {
-          width: 66px;
-          height: 66px;
-          border-radius: 50%;
-          border: 2px solid var(--maroon);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          transform: scale(1.4) rotate(-14deg);
-          opacity: 0;
-          color: var(--maroon);
-          font-family: 'Noto Sans Devanagari', sans-serif;
-          font-size: 0.58rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: 0.04em;
-          background: rgba(92, 18, 32, 0.06);
-          box-shadow: 0 0 0 2px rgba(92, 18, 32, 0.15) inset;
-        }
-
         /* ============ Slide 4: Divine Ashirwad ============ */
         .blessing-slide {
           background: radial-gradient(circle at 50% 40%, #451712 0%, #2b0a0c 55%, #1a0405 100%);
@@ -1507,7 +1480,7 @@ export default function InteractivePavtiView({
                 </p>
               </div>
 
-              {/* Signatures & Dynamic Mandal Stamp */}
+              {/* Signatures */}
               <div className="flex justify-between items-end pt-2 mt-2">
                 <div className="text-center w-24">
                   <div className="border-t border-amber-950/40 pt-1">
@@ -1516,12 +1489,6 @@ export default function InteractivePavtiView({
                       {receipt.collector?.name || "कार्यकर्ता"}
                     </span>
                   </div>
-                </div>
-
-                <div ref={stampRef} className="mandal-stamp">
-                  <span className="text-[8px] tracking-wider uppercase font-sans font-bold opacity-80">ACCEPTED</span>
-                  <span className="text-[9px] font-bold font-devanagari">स्वीकृत</span>
-                  <span className="text-[10px] font-bold text-emerald-800">✓</span>
                 </div>
 
                 <div className="text-center w-24">
