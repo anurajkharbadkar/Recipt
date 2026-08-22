@@ -1191,7 +1191,7 @@ export default function InteractivePavtiView({
                 <div ref={insideGlowRef} className="inside-glow" />
                 <div ref={insideLetterRef} className="inside-letter">
                   <p>|| श्री गणेशाय नमः ||</p>
-                  <p>{receipt.donorName} जी, आपले सहकार्य प्राप्त झाले आहे</p>
+                  <p>{receipt.donorName} जी, आपले मोलाचे योगदान प्राप्त झाले आहे</p>
                 </div>
                 <div className="envelope-pocket" />
 
