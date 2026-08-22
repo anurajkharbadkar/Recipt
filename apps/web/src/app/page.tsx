@@ -620,7 +620,7 @@ export default function HomePage() {
                   onClick={() => setDemoView('standard')}
                   className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-colors ${demoView === 'standard' ? 'bg-saffron-600 text-white' : 'bg-saffron-900/10 text-saffron-900/50 dark:text-saffron-100/40'}`}
                 >
-                  {t('Basic Pavti', 'साधी पावती', 'सामान्य पावती')}
+                  {t('Standard Pavti', 'सामान्य पावती', 'सामान्य पावती')}
                 </button>
               </div>
               {demoView === 'interactive' && (
