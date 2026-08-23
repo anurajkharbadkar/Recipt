@@ -303,10 +303,20 @@ export class ReceiptsService {
         campaign: {
           include: {
             organization: {
-              // Include theme + UPI so the public verify page (which reuses
-              // ReceiptPreview) renders identically to the dashboard preview
-              // and the PDF, instead of silently falling back to defaults.
-              select: { name: true, nameMarathi: true, logoUrl: true, address: true, upiId: true, receiptTemplateSettings: true },
+              // Include theme + UPI + payment config so public payment links work
+              select: {
+                id: true,
+                name: true,
+                nameMarathi: true,
+                logoUrl: true,
+                address: true,
+                phone: true,
+                upiId: true,
+                paymentEnabled: true,
+                cashfreeVendorStatus: true,
+                cashfreeVendorId: true,
+                receiptTemplateSettings: true,
+              },
             },
           },
         },
@@ -314,14 +324,17 @@ export class ReceiptsService {
       },
     });
     if (!receipt) throw new NotFoundException('Receipt not found');
-    // Return only public fields
+    // Return public fields including payment status & organization payment config
     return {
+      id: receipt.id,
       receiptNumber: receipt.receiptNumber,
       donorName: receipt.donorName,
+      donorPhone: receipt.donorPhone,
       amount: receipt.amount,
       amountInWords: receipt.amountInWords,
       category: receipt.category,
       paymentMode: receipt.paymentMode,
+      status: receipt.status,
       createdAt: receipt.createdAt,
       isVoided: receipt.isVoided,
       collector: receipt.collector,
