@@ -30,6 +30,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
   const { data: receipt, isLoading, isError } = useQuery({
     queryKey: ['receipt-public', params.id],
     queryFn: () => receiptsApi.verifyPublic(params.id),
+    refetchInterval: (query) => (query.state.data?.status === 'PENDING' ? 3000 : false),
   });
 
   // If receipt is loaded and viewMode is 'interactive' and not voided, render the 4-Slide Cinematic Experience!

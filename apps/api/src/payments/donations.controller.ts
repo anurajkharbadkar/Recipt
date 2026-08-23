@@ -118,6 +118,7 @@ export class DonationsController {
       orderId,
       receiptId: receipt.id,
       amount: receipt.amount,
+      paymentSessionId,
       qr: qr.data?.payload?.qrcode ?? null,
       intent: intent.data?.payload ?? null,
     };

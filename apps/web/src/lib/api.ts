@@ -244,6 +244,7 @@ export const donationPaymentApi = {
     orderId: string;
     receiptId: string;
     amount: number;
+    paymentSessionId: string;
     qr: string | null;
     intent: {
       default?: string;
@@ -253,5 +254,5 @@ export const donationPaymentApi = {
       bhim?: string;
       web?: string;
     } | null;
-  }> => apiClient.post(`/payments/receipts/${receiptId}/order`).then(r => r.data),
+  }> => apiClient.post(`/payments/donations/${receiptId}`).then(r => r.data),
 };

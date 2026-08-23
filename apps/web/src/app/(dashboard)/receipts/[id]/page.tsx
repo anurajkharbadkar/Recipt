@@ -33,6 +33,7 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
   const { data: receipt, isLoading } = useQuery({
     queryKey: ['receipt', params.id],
     queryFn: () => receiptsApi.get(params.id),
+    refetchInterval: (query) => (query.state.data?.status === 'PENDING' ? 3000 : false),
   });
 
   // Fetch the pavti image in the background as soon as the receipt is on

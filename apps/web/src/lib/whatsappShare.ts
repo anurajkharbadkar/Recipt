@@ -43,20 +43,15 @@ function buildCaption(params: WhatsAppShareParams): { message: string; waUrl: st
   // receipt with a UPI ID on file, not just ones originally logged as
   // UPI-mode — the point is giving a remote donor a way to pay whatever's
   // still owed (2026-08-21 payments architecture decision).
-  if (params.status === 'PENDING' && params.organization?.upiId) {
-    const upiLink = buildUpiPaymentLink({
-      upiId: params.organization.upiId,
-      payeeName: params.organization?.name || 'Mandal',
-      amount: params.amount,
-      note: params.receiptNumber,
-    });
+  if (params.status === 'PENDING') {
     const payLine = settings.language === 'mr'
-      ? `\n\n💳 पैसे भरण्यासाठी: ${upiLink}`
+      ? `\n\n💳 ऑनलाईन वर्गणी भरण्यासाठी खालील लिंकवर क्लिक करा:\n${receiptUrl}`
       : settings.language === 'hi'
-      ? `\n\n💳 भुगतान करने के लिए: ${upiLink}`
-      : `\n\n💳 Pay now: ${upiLink}`;
+      ? `\n\n💳 ऑनलाइन चंदा देने के लिए नीचे दिए गए लिंक पर क्लिक करें:\n${receiptUrl}`
+      : `\n\n💳 Click the link below to pay your donation online:\n${receiptUrl}`;
     message += payLine;
   }
+
 
   const cleanPhone = params.donorPhone ? params.donorPhone.replace(/\D/g, '') : '';
   const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;

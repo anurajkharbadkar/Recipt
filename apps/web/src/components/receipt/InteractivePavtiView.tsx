@@ -13,6 +13,7 @@ import {
 import { playSealCrackSound, playTempleBell, playAshirwadChimes } from '@/lib/templeAudio';
 import { buildUpiPaymentLink } from '@/lib/upi';
 import { donationPaymentApi } from '@/lib/api';
+import { launchCashfreeCheckout } from '@/lib/cashfreeCheckout';
 import { QRCodeSVG } from 'qrcode.react';
 import { shareReceiptViaWhatsApp, shareReceiptGeneric } from '@/lib/whatsappShare';
 import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-react';
@@ -360,6 +361,7 @@ export default function InteractivePavtiView({
 
   // Cashfree Production Online Payment Order State
   const [cashfreeOrder, setCashfreeOrder] = useState<{
+    paymentSessionId?: string;
     qr: string | null;
     intent: { default?: string; gpay?: string; phonepe?: string; paytm?: string; bhim?: string; web?: string } | null;
   } | null>(null);
@@ -1562,7 +1564,21 @@ export default function InteractivePavtiView({
                         <span>ऑनलाइन वर्गणी द्या (Cashfree Auto-Verified)</span>
                       </div>
 
-                      {/* Cashfree Official Dynamic QR Code */}
+                      {/* Primary Official Cashfree Web Checkout Button */}
+                      {cashfreeOrder.paymentSessionId && (
+                        <div className="pt-1">
+                          <button
+                            type="button"
+                            onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                            className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          >
+                            <Sparkles size={14} className="text-amber-300 animate-pulse" />
+                            <span>कॅशफ्री ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Cashfree S2S Embedded Dynamic QR Code (When S2S Active) */}
                       {cashfreeOrder.qr ? (
                         <div className="p-2 bg-white rounded-lg inline-block border border-amber-900/10 shadow-sm mx-auto">
                           <img
@@ -1574,7 +1590,7 @@ export default function InteractivePavtiView({
                         </div>
                       ) : null}
 
-                      {/* Cashfree Official UPI Intent App Buttons */}
+                      {/* Cashfree S2S Embedded Intent App Buttons (When S2S Active) */}
                       {cashfreeOrder.intent && (
                         <div className="flex flex-wrap gap-1.5 justify-center pt-1">
                           {cashfreeOrder.intent.gpay && (
@@ -1610,7 +1626,7 @@ export default function InteractivePavtiView({
                               onClick={() => { window.location.href = cashfreeOrder.intent!.web || cashfreeOrder.intent!.default!; }}
                               className="px-2.5 py-1 rounded bg-amber-900 hover:bg-amber-800 text-amber-100 text-[0.62rem] font-bold shadow-sm"
                             >
-                              Pay Online
+                              Direct Pay
                             </button>
                           )}
                         </div>

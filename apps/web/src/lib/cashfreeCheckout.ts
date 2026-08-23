@@ -29,3 +29,12 @@ export async function launchSubscriptionCheckout(targetPlan?: string): Promise<v
   const cashfree = await getCashfree();
   await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
 }
+
+/**
+ * Launches Cashfree's official checkout flow for a donation or payment order.
+ */
+export async function launchCashfreeCheckout(paymentSessionId: string, redirectTarget: '_self' | '_blank' | '_modal' = '_modal'): Promise<void> {
+  const cashfree = await getCashfree();
+  await cashfree.checkout({ paymentSessionId, redirectTarget });
+}
+
