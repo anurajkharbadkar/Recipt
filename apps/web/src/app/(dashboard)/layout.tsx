@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <TopBar />
         <PendingPaymentBanner />
         <NoActiveCampaignBanner />
-        <main className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8 pt-0">
+        <main className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8 pt-5 sm:pt-6 md:pt-6">
           <div className="max-w-7xl mx-auto animate-fade-in">
             {children}
           </div>
