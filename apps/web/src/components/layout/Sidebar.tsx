@@ -9,7 +9,7 @@ import { USER_ROLE_LABELS, UserRole, BRAND_NAME } from '@pavti/shared';
 import {
   Home, Plus, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
-  IndianRupee, Sun, Moon, UserSquare2, CreditCard
+  IndianRupee, Sun, Moon, UserSquare2, CreditCard, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import LogoMark from '@/components/brand/LogoMark';
@@ -144,6 +144,18 @@ export default function Sidebar() {
           </Link>
         )}
         
+        {/* Tour / Margdarshan Guide Button */}
+        <button
+          onClick={() => {
+            useAuthStore.setState({ completedTours: {} });
+            setMobileOpen(false);
+          }}
+          className="nav-link w-full mb-2 flex items-center gap-3 bg-saffron-500/10 text-saffron-700 dark:text-saffron-300 font-semibold border border-saffron-500/20 hover:bg-saffron-500/20 transition-all rounded-lg"
+        >
+          <Sparkles size={16} className="text-saffron-500" />
+          <span className="text-[13px]">{language === 'mr' ? '✨ मार्गदर्शन' : language === 'hi' ? '✨ मार्गदर्शन' : '✨ Page Guide'}</span>
+        </button>
+
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}

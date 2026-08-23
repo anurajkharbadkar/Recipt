@@ -65,7 +65,7 @@ export default function PageGuideSpotlight() {
     return (
       <button
         onClick={() => setMinimized(false)}
-        className="fixed bottom-5 right-5 z-40 bg-saffron-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-full shadow-lg flex items-center gap-2 hover:bg-saffron-600 transition-all animate-bounce"
+        className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-40 bg-saffron-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-full shadow-lg flex items-center gap-2 hover:bg-saffron-600 transition-all"
       >
         <HelpCircle size={15} />
         <span>{language === 'mr' ? 'मार्गदर्शन पुन्हा पहा' : 'Page Guide'}</span>
@@ -74,7 +74,7 @@ export default function PageGuideSpotlight() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 max-w-sm w-full p-4 glass-card bg-white/95 dark:bg-[#1C1510]/95 border-2 border-saffron-500/40 shadow-2xl rounded-2xl animate-slide-up">
+    <div className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-5 z-40 sm:max-w-sm p-4 glass-card bg-white/95 dark:bg-[#1C1510]/95 border-2 border-saffron-500/40 shadow-2xl rounded-2xl animate-slide-up">
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-theme/20">
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-saffron-500 shrink-0" />
