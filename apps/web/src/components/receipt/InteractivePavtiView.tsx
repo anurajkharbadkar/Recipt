@@ -11,6 +11,8 @@ import {
   RECEIPT_FIELD_LABELS
 } from '@pavti/shared';
 import { playSealCrackSound, playTempleBell, playAshirwadChimes } from '@/lib/templeAudio';
+import { buildUpiPaymentLink } from '@/lib/upi';
+import { QRCodeSVG } from 'qrcode.react';
 import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-react';
 // Real static files under public/, not base64 embedded in JS — these were
 // briefly wired up as ~140KB + ~34KB base64 string constants imported from
@@ -1191,7 +1193,7 @@ export default function InteractivePavtiView({
                 <div ref={insideGlowRef} className="inside-glow" />
                 <div ref={insideLetterRef} className="inside-letter">
                   <p>|| श्री गणेशाय नमः ||</p>
-                  <p>{receipt.donorName} जी, आपले मोलाचे योगदान प्राप्त झाले आहे</p>
+                  <p>{receipt.donorName} जी, आपली देणगी यशस्वीरीत्या प्राप्त झाली आहे</p>
                 </div>
                 <div className="envelope-pocket" />
 
@@ -1479,6 +1481,35 @@ export default function InteractivePavtiView({
                   अक्षरी: {amountInWords}
                 </p>
               </div>
+
+              {/* UPI Payment QR — unpaid receipts only, and only once the
+                  Mandal has a UPI ID configured (Settings). QR only,
+                  deliberately no raw VPA text alongside it — the QR itself
+                  is what a donor's phone actually needs; printing the
+                  mandal's UPI ID as plain text on every pavti has no real
+                  upside and is one more thing to accidentally mistype
+                  copying by hand. Direct UPI deep link, not Cashfree — see
+                  lib/upi.ts for why (no payment-aggregator approval on this
+                  account, so this never touches the app's own account at
+                  all). */}
+              {isUnpaid && org.upiId && (
+                <div className="my-2.5 p-3 bg-white/60 border border-amber-700/30 rounded-lg flex flex-col items-center gap-1.5">
+                  <span className="text-[0.62rem] text-amber-900 font-bold uppercase tracking-wider">
+                    यूपीआय स्कॅन करा / Scan to Pay via UPI
+                  </span>
+                  <div className="p-2 bg-white rounded-md">
+                    <QRCodeSVG
+                      value={buildUpiPaymentLink({
+                        upiId: org.upiId,
+                        payeeName: org.name || 'Mandal',
+                        amount: receipt.amount,
+                        note: receipt.receiptNumber,
+                      })}
+                      size={104}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Signatures */}
               <div className="flex justify-between items-end pt-2 mt-2">

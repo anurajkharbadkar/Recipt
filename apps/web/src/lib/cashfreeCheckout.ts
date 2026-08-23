@@ -19,9 +19,13 @@ async function getCashfree() {
  * CASHFREE_RETURN_URL (apps/api/.env) — /payment/cashfree/return — which
  * verifies the outcome server-side and, for a subscription order,
  * refreshes the org's subscriptionStatus in the auth store.
+ *
+ * @param targetPlan Omitted for a plain renewal of the org's current plan
+ *   (the PendingPaymentBanner's "Pay Now"). Set for the subscription
+ *   page's Change Plan action to pay for a different plan instead.
  */
-export async function launchSubscriptionCheckout(): Promise<void> {
-  const { paymentSessionId } = await subscriptionPaymentApi.createOrder();
+export async function launchSubscriptionCheckout(targetPlan?: string): Promise<void> {
+  const { paymentSessionId } = await subscriptionPaymentApi.createOrder(targetPlan);
   const cashfree = await getCashfree();
   await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
 }

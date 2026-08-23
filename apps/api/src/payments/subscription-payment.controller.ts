@@ -1,10 +1,11 @@
-import { Controller, Logger, Post, ServiceUnavailableException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Post, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
 import { UserRole } from '@pavti/shared';
 import { CashfreeService } from './cashfree/cashfree.service';
 import { CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX } from './cashfree/cashfree.constants';
 import { PaymentsService } from './payments.service';
+import { CreateSubscriptionOrderDto } from './dto/subscription-order.dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
 import { CurrentUser, AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,9 +36,9 @@ export class SubscriptionPaymentController {
   @Roles(UserRole.ORG_ADMIN)
   @SkipSubscriptionGate()
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Create (or reuse) a Cashfree order for this org's own subscription fee" })
-  async createSubscriptionOrder(@CurrentUser() user: AuthenticatedUser) {
-    const { organization, plan, existingPayment } = await this.paymentsService.resolveSubscriptionPaymentContext(user.orgId);
+  @ApiOperation({ summary: "Create (or reuse) a Cashfree order for this org's own subscription fee — renewal, or a Change Plan upgrade/downgrade when targetPlan is set" })
+  async createSubscriptionOrder(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateSubscriptionOrderDto) {
+    const { organization, plan, existingPayment } = await this.paymentsService.resolveSubscriptionPaymentContext(user.orgId, dto.targetPlan);
 
     let orderId: string | undefined;
     let paymentSessionId: string | undefined;
@@ -79,6 +80,7 @@ export class SubscriptionPaymentController {
         donorPhone: organization.phone,
         donorEmail: organization.email ?? undefined,
         paymentSessionId,
+        targetPlan: plan.id,
       });
 
       if (saved.orderId !== orderId) {
@@ -96,5 +98,15 @@ export class SubscriptionPaymentController {
     }
 
     return { orderId, amount: plan.priceInr, planName: plan.name, paymentSessionId };
+  }
+
+  @Get('history')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ORG_ADMIN)
+  @SkipSubscriptionGate()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "This org's subscription payment history — the subscription page's own record of renewals/plan changes" })
+  getHistory(@CurrentUser('orgId') orgId: string) {
+    return this.paymentsService.getSubscriptionPaymentHistory(orgId);
   }
 }

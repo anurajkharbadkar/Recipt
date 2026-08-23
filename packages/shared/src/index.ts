@@ -1256,7 +1256,7 @@ export function formatReceiptDateTime(date: Date | string): string {
 // was scaffolded alongside this and never wired to anything; it was removed
 // in the 2026-08 roles audit rather than left as dead schema/code.
 export const PERMISSION_MODULES = [
-  'Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings',
+  'Receipts', 'Expenses', 'Campaigns', 'Collectors', 'Members', 'Reports', 'Settings', 'Subscription',
 ] as const;
 export type PermissionModule = typeof PERMISSION_MODULES[number];
 
@@ -1270,6 +1270,7 @@ export function inferRouteModule(pathname: string): PermissionModule | 'Dashboar
   if (pathname.startsWith('/expenses')) return 'Expenses';
   if (pathname.startsWith('/reports')) return 'Reports';
   if (pathname.startsWith('/settings')) return 'Settings';
+  if (pathname.startsWith('/subscription')) return 'Subscription';
   return null;
 }
 

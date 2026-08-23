@@ -9,7 +9,7 @@ import { USER_ROLE_LABELS, UserRole, BRAND_NAME } from '@pavti/shared';
 import {
   Home, Plus, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
-  IndianRupee, Sun, Moon, UserSquare2
+  IndianRupee, Sun, Moon, UserSquare2, CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import LogoMark from '@/components/brand/LogoMark';
@@ -27,6 +27,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', module: 'Expenses' },
   { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', module: 'Reports' },
   { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स', module: 'Settings' },
+  { href: '/subscription', label: 'Subscription', icon: CreditCard, labelMr: 'सदस्यता', module: 'Subscription' },
 ];
 
 export default function Sidebar() {

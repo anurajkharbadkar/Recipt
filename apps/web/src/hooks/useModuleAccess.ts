@@ -17,7 +17,10 @@ export function useModuleAccessResolver() {
       return moduleName === 'Receipts';
     }
     if (user.role === 'TREASURER') {
-      return moduleName !== 'Settings';
+      // Subscription (billing/plan changes) is admin territory, same as
+      // Settings — a Treasurer manages money the org collects, not what
+      // the org itself pays this app.
+      return moduleName !== 'Settings' && moduleName !== 'Subscription';
     }
     if (user.role === 'VIEWER') {
       return ['Receipts', 'Reports'].includes(moduleName);

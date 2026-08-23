@@ -46,3 +46,56 @@ describe('PaymentsService.isPaymentSessionReusable', () => {
     expect(service.isPaymentSessionReusable({ paymentSessionId: null, createdAt: new Date() })).toBe(false);
   });
 });
+
+// Regression coverage for the 2026-08-23 subscription page's Change Plan
+// action: resolveSubscriptionPaymentContext used to unconditionally refuse
+// an already-ACTIVE org ("Your subscription is already active.") — correct
+// for a plain re-pay, but it would have blocked upgrading/downgrading an
+// active subscription entirely, since that's also "already ACTIVE" from
+// the old check's point of view.
+describe('PaymentsService.resolveSubscriptionPaymentContext', () => {
+  let service: PaymentsService;
+  let prisma: {
+    organization: { findUniqueOrThrow: jest.Mock };
+    payment: { findFirst: jest.Mock };
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      organization: { findUniqueOrThrow: jest.fn() },
+      payment: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PaymentsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ReceiptsService, useValue: {} },
+      ],
+    }).compile();
+    service = moduleRef.get(PaymentsService);
+  });
+
+  it('refuses a plain re-pay when already ACTIVE on the same plan (no targetPlan given)', async () => {
+    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'ACTIVE' });
+    await expect(service.resolveSubscriptionPaymentContext('org1')).rejects.toThrow('already active on this plan');
+  });
+
+  it('allows an ACTIVE org to price a different plan — the actual Change Plan case this fixes', async () => {
+    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'ACTIVE' });
+    const { plan } = await service.resolveSubscriptionPaymentContext('org1', 'PREMIUM' as any);
+    expect(plan.id).toBe('PREMIUM');
+  });
+
+  it('still refuses FREE as a target — nothing to pay for it', async () => {
+    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'ACTIVE' });
+    await expect(service.resolveSubscriptionPaymentContext('org1', 'FREE' as any)).rejects.toThrow('nothing to pay');
+  });
+
+  it('scopes the existing-payment lookup to the plan actually being priced', async () => {
+    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'PENDING_PAYMENT' });
+    await service.resolveSubscriptionPaymentContext('org1', 'PREMIUM' as any);
+    expect(prisma.payment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ targetPlan: 'PREMIUM' }) }),
+    );
+  });
+});

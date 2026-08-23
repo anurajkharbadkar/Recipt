@@ -228,6 +228,11 @@ export const cashfreeApi = {
 // above (the sandbox test surface) and from the (now-unreachable, EasySplit-
 // based) donations flow.
 export const subscriptionPaymentApi = {
-  createOrder: (): Promise<{ orderId: string; amount: number; planName: string; paymentSessionId: string }> =>
-    apiClient.post('/payments/subscription/order').then(r => r.data),
+  // targetPlan omitted = plain renewal of the org's current plan (original
+  // behavior, unchanged). Set it for the subscription page's Change Plan
+  // action to price/pay for a different plan instead.
+  createOrder: (targetPlan?: string): Promise<{ orderId: string; amount: number; planName: string; paymentSessionId: string }> =>
+    apiClient.post('/payments/subscription/order', targetPlan ? { targetPlan } : {}).then(r => r.data),
+  getHistory: (): Promise<Array<{ orderId: string; targetPlan: string | null; amountPaise: number; status: string; createdAt: string; paidAt: string | null }>> =>
+    apiClient.get('/payments/subscription/history').then(r => r.data),
 };

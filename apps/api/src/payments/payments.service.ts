@@ -80,23 +80,61 @@ export class PaymentsService {
    * FREE (nothing to pay) or already-ACTIVE (nothing owed) rather than
    * silently letting a second order get created.
    */
-  async resolveSubscriptionPaymentContext(orgId: string) {
+  /**
+   * @param targetPlanId Omitted for a plain renewal (prices the org's
+   *   current plan, matching this method's original behavior exactly).
+   *   Set by the subscription page's Change Plan action to price a
+   *   *different* plan — the only real difference an upgrade/downgrade
+   *   makes at this layer is which plan gets priced and, once paid,
+   *   applied (see the webhook's use of Payment.targetPlan).
+   */
+  async resolveSubscriptionPaymentContext(orgId: string, targetPlanId?: SubscriptionPlan) {
     const organization = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
-    const plan = PRICING_PLANS.find((p) => p.id === organization.subscriptionPlan);
+    const planId = targetPlanId ?? (organization.subscriptionPlan as SubscriptionPlan);
+    const plan = PRICING_PLANS.find((p) => p.id === planId);
     if (!plan) throw new BadRequestException('Unknown subscription plan');
     if (plan.id === SubscriptionPlan.FREE) {
       throw new BadRequestException('The Free Trial plan has nothing to pay.');
     }
-    if (organization.subscriptionStatus === SubscriptionStatus.ACTIVE) {
-      throw new BadRequestException('Your subscription is already active.');
+    // Only refuse when there's genuinely nothing to do — already ACTIVE on
+    // the exact plan being requested. An ACTIVE org choosing a *different*
+    // plan (Change Plan — upgrade or downgrade) is exactly what this
+    // param exists for, so it must not get caught by this guard.
+    if (organization.subscriptionStatus === SubscriptionStatus.ACTIVE && planId === organization.subscriptionPlan) {
+      throw new BadRequestException('Your subscription is already active on this plan.');
     }
 
     const existingPayment = await this.prisma.payment.findFirst({
-      where: { orgId, orderId: { startsWith: CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX }, status: { not: PaymentStatus.PAYMENT_FAILED } },
+      where: {
+        orgId,
+        orderId: { startsWith: CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX },
+        status: { not: PaymentStatus.PAYMENT_FAILED },
+        // Scoped to orders already created *for this exact plan* — reusing
+        // one priced for a different plan would hand back a session for
+        // the wrong amount/target.
+        targetPlan: planId,
+      },
       orderBy: { createdAt: 'desc' },
     });
 
     return { organization, plan, existingPayment };
+  }
+
+  /** Every subscription order (renewal or Change Plan) this org has ever
+   *  created, newest first — the subscription page's payment history. */
+  async getSubscriptionPaymentHistory(orgId: string) {
+    return this.prisma.payment.findMany({
+      where: { orgId, orderId: { startsWith: CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        orderId: true,
+        targetPlan: true,
+        amountPaise: true,
+        status: true,
+        createdAt: true,
+        paidAt: true,
+      },
+    });
   }
 
   /**
@@ -122,6 +160,9 @@ export class PaymentsService {
      * a still-ACTIVE order — see Payment.paymentSessionId's schema comment).
      */
     paymentSessionId?: string;
+    /** Which plan this order is FOR — set on subscription orders only (see
+     *  Payment.targetPlan's schema comment); never set for a donation. */
+    targetPlan?: string;
   }) {
     return this.prisma.payment.create({
       data: {
@@ -135,6 +176,7 @@ export class PaymentsService {
         donorEmail: params.donorEmail,
         status: PaymentStatus.ORDER_CREATED,
         paymentSessionId: params.paymentSessionId,
+        targetPlan: params.targetPlan,
       },
     });
   }
@@ -264,11 +306,20 @@ export class PaymentsService {
         // "30 days from signup" contract, just re-anchored to when they
         // actually paid rather than when they merely registered.
         if (updatedPayment.orderId.startsWith(CASHFREE_SUBSCRIPTION_ORDER_ID_PREFIX)) {
+          // targetPlan is what the Change Plan action (subscription page)
+          // actually paid for — apply it here so a paid upgrade/downgrade
+          // takes effect, not just a renewal of whatever plan the org
+          // happened to be on before. Null on Payment rows created before
+          // this column existed (or if it's somehow not a real plan id
+          // anymore) — those stay a plain renewal, same as this code
+          // always did.
+          const isValidPlan = Object.values(SubscriptionPlan).includes(updatedPayment.targetPlan as SubscriptionPlan);
           await tx.organization.update({
             where: { id: updatedPayment.orgId },
             data: {
               subscriptionStatus: SubscriptionStatus.ACTIVE,
               subscriptionExpiry: new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000),
+              ...(isValidPlan ? { subscriptionPlan: updatedPayment.targetPlan as SubscriptionPlan } : {}),
             },
           });
         }

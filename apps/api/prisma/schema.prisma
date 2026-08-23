@@ -370,6 +370,12 @@ model Payment {
   // means idempotent reuse hands back the one session actually known to
   // have been valid, instead of gambling on GET minting something usable.
   paymentSessionId String?
+  // Which plan this order is actually FOR — distinct from the org's plan
+  // at the moment the order was created. A plain renewal sets this to the
+  // org's current plan; a Change Plan action (subscription page) sets it
+  // to the newly-chosen plan. Null on Payment rows created before this
+  // column existed — the webhook falls back to "no plan change" for those.
+  targetPlan String?
 
   amountPaise       Int
   platformFeePaise  Int    @default(0)
