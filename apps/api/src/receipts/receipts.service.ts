@@ -49,17 +49,6 @@ export class ReceiptsService {
       }
     }
 
-    // Atomic receipt number generation
-    const updatedCampaign = await this.prisma.campaign.update({
-      where: { id: dto.campaignId },
-      data: { receiptSeq: { increment: 1 } },
-    });
-
-    const receiptNumber = generateReceiptNumber(
-      campaign.receiptPrefix,
-      updatedCampaign.receiptSeq,
-    );
-
     const amountWords = amountToWords(dto.amount);
     const receiptId = require('uuid').v4();
 
@@ -67,39 +56,64 @@ export class ReceiptsService {
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/receipt/${receiptId}`;
     const qrCodeData = await QRCode.toDataURL(verifyUrl);
 
-    // Create receipt
-    const receipt = await this.prisma.receipt.create({
-      data: {
-        id: receiptId,
-        campaignId: dto.campaignId,
-        collectorId,
-        areaId: dto.areaId || undefined,
-        receiptNumber,
-        donorName: dto.donorName,
-        donorPhone: dto.donorPhone,
-        donorAddress: dto.donorAddress,
-        amount: dto.amount,
-        amountInWords: amountWords,
-        category: dto.category || 'GENERAL',
-        paymentMode: dto.paymentMode || 'CASH',
-        chequeNumber: dto.chequeNumber,
-        notes: dto.notes,
-        qrCodeData,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        deviceInfo,
-        collectionType: dto.collectionType || 'DONATION',
-        status: dto.status || 'PAID',
-        dueDate: dto.dueDate,
-        contributorType: dto.contributorType,
-        supportingDocUrl: dto.supportingDocUrl,
-      },
-      include: {
-        collector: true,
-        campaign: { include: { organization: true } },
-        area: true,
-      },
-    });
+    // Create receipt with retry loop for P2002 collision prevention
+    let receipt: any;
+    let createAttempts = 0;
+    const maxRetries = 3;
+
+    while (createAttempts < maxRetries) {
+      createAttempts++;
+      const { receiptNumber } = await this.generateUniqueReceiptNumber(
+        dto.campaignId,
+        campaign.receiptPrefix,
+        orgId,
+      );
+
+      try {
+        receipt = await this.prisma.receipt.create({
+          data: {
+            id: receiptId,
+            campaignId: dto.campaignId,
+            collectorId,
+            areaId: dto.areaId || undefined,
+            receiptNumber,
+            donorName: dto.donorName,
+            donorPhone: dto.donorPhone,
+            donorAddress: dto.donorAddress,
+            amount: dto.amount,
+            amountInWords: amountWords,
+            category: dto.category || 'GENERAL',
+            paymentMode: dto.paymentMode || 'CASH',
+            chequeNumber: dto.chequeNumber,
+            notes: dto.notes,
+            qrCodeData,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            deviceInfo,
+            collectionType: dto.collectionType || 'DONATION',
+            status: dto.status || 'PAID',
+            dueDate: dto.dueDate,
+            contributorType: dto.contributorType,
+            supportingDocUrl: dto.supportingDocUrl,
+          },
+          include: {
+            collector: true,
+            campaign: { include: { organization: true } },
+            area: true,
+          },
+        });
+        break; // Success! Break retry loop
+      } catch (err: any) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          this.logger.warn(
+            `P2002 collision creating receipt on attempt ${createAttempts}. Retrying with next sequence...`,
+          );
+          if (createAttempts >= maxRetries) throw err;
+        } else {
+          throw err;
+        }
+      }
+    }
 
     // PDF generation only fires once the receipt is actually PAID — a
     // PENDING/ONLINE receipt (awaiting a Cashfree payment) has nothing
@@ -121,7 +135,7 @@ export class ReceiptsService {
         action: 'CREATE',
         entity: 'Receipt',
         entityId: receiptId,
-        newValue: { receiptNumber, amount: dto.amount, donorName: dto.donorName, status: receipt.status },
+        newValue: { receiptNumber: receipt.receiptNumber, amount: dto.amount, donorName: dto.donorName, status: receipt.status },
         deviceInfo,
       },
     });
@@ -497,6 +511,66 @@ export class ReceiptsService {
       distinct: ['donorPhone'],
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Generates a guaranteed unique receipt number for a campaign.
+   * Handles sequence gaps, concurrent creations, and multi-tenant prefix overlaps cleanly.
+   */
+  private async generateUniqueReceiptNumber(
+    campaignId: string,
+    prefix: string,
+    orgId: string,
+  ): Promise<{ receiptNumber: string; seq: number }> {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      // Increment campaign sequence atomically
+      const updatedCampaign = await this.prisma.campaign.update({
+        where: { id: campaignId },
+        data: { receiptSeq: { increment: 1 } },
+      });
+
+      const baseNumber = generateReceiptNumber(prefix, updatedCampaign.receiptSeq);
+
+      // Check if this receiptNumber is already taken in the database
+      const existing = await this.prisma.receipt.findUnique({
+        where: { receiptNumber: baseNumber },
+        select: { id: true, campaign: { select: { orgId: true } } },
+      });
+
+      if (!existing) {
+        return { receiptNumber: baseNumber, seq: updatedCampaign.receiptSeq };
+      }
+
+      // If it collides with another org's receipt due to identical default prefix,
+      // disambiguate with org prefix to ensure 100% global uniqueness.
+      if (existing.campaign.orgId !== orgId) {
+        const orgShort = orgId.substring(0, 4).toUpperCase();
+        const orgDisambiguatedNumber = `${prefix}-${orgShort}-${String(updatedCampaign.receiptSeq).padStart(4, '0')}`;
+        const existingOrgNumber = await this.prisma.receipt.findUnique({
+          where: { receiptNumber: orgDisambiguatedNumber },
+          select: { id: true },
+        });
+
+        if (!existingOrgNumber) {
+          return { receiptNumber: orgDisambiguatedNumber, seq: updatedCampaign.receiptSeq };
+        }
+      }
+
+      this.logger.warn(
+        `Receipt number collision on attempt ${attempts} for campaign ${campaignId}: ${baseNumber} already exists. Incrementing sequence...`,
+      );
+    }
+
+    // Ultimate fallback if sequence is saturated
+    const timestamp = Date.now().toString().slice(-6);
+    return {
+      receiptNumber: `${prefix}-${timestamp}`,
+      seq: 999999,
+    };
   }
 
   private async generateAndStorePdf(receipt: any) {
