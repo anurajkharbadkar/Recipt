@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 import { MAX_ACTIVE_CAMPAIGNS_BY_PLAN, SubscriptionPlan } from '@pavti/shared';
+import { CampaignStatus } from '@prisma/client';
 
 @Injectable()
 export class CampaignsService {
@@ -34,6 +35,26 @@ export class CampaignsService {
     const prefix = data.receiptPrefix ||
       `${data.name.substring(0, 3).toUpperCase()}-${year}`;
 
+    const org = await this.prisma.organization.findUnique({ where: { id: orgId } });
+    const plan = (org?.subscriptionPlan as SubscriptionPlan) || SubscriptionPlan.FREE;
+    const limit = MAX_ACTIVE_CAMPAIGNS_BY_PLAN[plan] ?? 1;
+
+    let initialStatus: CampaignStatus = (data.status as CampaignStatus) || CampaignStatus.ACTIVE;
+    if (initialStatus === 'ACTIVE') {
+      const activeCount = await this.prisma.campaign.count({
+        where: { orgId, status: 'ACTIVE' },
+      });
+      if (activeCount >= limit) {
+        if (data.status === 'ACTIVE') {
+          throw new ForbiddenException(
+            `Your ${plan} plan allows up to ${limit} active campaign${limit === 1 ? '' : 's'} at a time. Complete or pause an existing campaign, or upgrade your plan to run this one alongside it.`,
+          );
+        }
+        // If status was omitted/defaulted to ACTIVE, set to DRAFT so campaign creation succeeds without violating limits
+        initialStatus = 'DRAFT';
+      }
+    }
+
     return this.prisma.campaign.create({
       data: {
         orgId,
@@ -45,7 +66,7 @@ export class CampaignsService {
         endDate: data.endDate ? new Date(data.endDate) : null,
         targetAmount: data.targetAmount,
         receiptPrefix: prefix,
-        status: data.status || 'ACTIVE',
+        status: initialStatus,
         description: data.description,
       },
     });
