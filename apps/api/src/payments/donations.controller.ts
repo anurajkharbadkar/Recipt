@@ -69,11 +69,14 @@ export class DonationsController {
     if (!paymentSessionId) {
       const freshOrderId = `${CASHFREE_DONATION_ORDER_ID_PREFIX}_${Date.now()}_${randomUUID().slice(0, 8)}`;
       const policy = DEFAULT_DONATION_SPLIT_POLICY;
+      const rawPhone = (receipt.donorPhone || organization.phone || '').replace(/\D/g, '');
+      const customerPhone = rawPhone.length === 10 ? rawPhone : '9999999999';
+
       const cfOrder = await this.cashfreeService.createOrder({
         orderId: freshOrderId,
         amount: receipt.amount,
         customerId: receipt.id,
-        customerPhone: receipt.donorPhone!, // validated non-null in resolveDonationPaymentContext
+        customerPhone,
         orderSplits: [
           policy.vendorShareType === 'PERCENTAGE'
             ? { vendorId: organization.cashfreeVendorId!, percentage: policy.vendorShare } // non-null: validated above

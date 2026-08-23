@@ -61,11 +61,6 @@ export class PaymentsService {
       // message; this is the server-side backstop.
       throw new BadRequestException(`Receipt is ${receipt.status}, not PENDING`);
     }
-    if (!receipt.donorPhone) {
-      // Cashfree's Create Order API requires customer_phone. Surfaced here
-      // as a clear precondition rather than a confusing Cashfree 400 later.
-      throw new BadRequestException('Receipt has no donor phone — required for online payment');
-    }
     if (!organization.paymentEnabled || organization.cashfreeVendorStatus !== 'ACTIVE' || !organization.cashfreeVendorId) {
       throw new ForbiddenException('Online donations are not enabled for this organization yet');
     }

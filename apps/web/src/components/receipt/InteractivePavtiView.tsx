@@ -369,7 +369,7 @@ export default function InteractivePavtiView({
   const [showDirectUpi, setShowDirectUpi] = useState(false);
 
   useEffect(() => {
-    if (isUnpaid && org.paymentEnabled && receipt.donorPhone) {
+    if (isUnpaid && org.paymentEnabled) {
       setCashfreeLoading(true);
       donationPaymentApi
         .createOrder(receipt.id)
@@ -383,7 +383,7 @@ export default function InteractivePavtiView({
           setCashfreeLoading(false);
         });
     }
-  }, [isUnpaid, org.paymentEnabled, receipt.donorPhone, receipt.id]);
+  }, [isUnpaid, org.paymentEnabled, receipt.id]);
 
   // Kill any in-flight timelines on unmount (e.g. navigating away from the
   // receipt page mid-animation) rather than letting them tick against
