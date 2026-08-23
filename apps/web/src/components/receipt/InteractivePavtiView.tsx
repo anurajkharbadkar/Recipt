@@ -16,6 +16,7 @@ import { donationPaymentApi } from '@/lib/api';
 import { launchCashfreeCheckout } from '@/lib/cashfreeCheckout';
 import { QRCodeSVG } from 'qrcode.react';
 import { shareReceiptViaWhatsApp, shareReceiptGeneric } from '@/lib/whatsappShare';
+import LogoMark from '@/components/brand/LogoMark';
 import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-react';
 // Real static files under public/, not base64 embedded in JS — these were
 // briefly wired up as ~140KB + ~34KB base64 string constants imported from
@@ -1225,6 +1226,82 @@ export default function InteractivePavtiView({
           />
         ))}
       </div>
+
+      {/* Instant Payment Screen Overlay for Unpaid Receipts */}
+      {isUnpaid && (
+        <div className="absolute inset-0 z-40 bg-[#160608]/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-sm p-6 bg-gradient-to-b from-[#2d120a] to-[#1a0805] border-2 border-amber-500/60 rounded-2xl shadow-2xl text-center space-y-4 animate-scale-in">
+            <div className="flex flex-col items-center gap-1.5 border-b border-amber-500/20 pb-3">
+              <LogoMark size={44} className="shadow-lg rounded-xl" />
+              <h2 className="text-sm font-bold text-amber-100">{org.name || 'Shree Ganesh Mandal'}</h2>
+              <p className="text-[0.68rem] text-amber-300/80 font-devanagari">श्री गणेशोत्सव देणगी ऑनलाईन भरणा</p>
+            </div>
+
+            <div className="py-2.5 px-3 bg-amber-500/10 border border-amber-500/25 rounded-xl">
+              <p className="text-[0.65rem] text-amber-200/80 font-bold uppercase tracking-wider">देणगी रक्कम / Amount Owed</p>
+              <p className="text-3xl font-extrabold text-amber-400 mt-0.5">₹ {receipt.amount.toLocaleString('en-IN')}</p>
+              <p className="text-[0.72rem] text-amber-200/70 italic mt-1">
+                पावती क्र: <strong className="text-amber-100">{receipt.receiptNumber}</strong> • {receipt.donorName}
+              </p>
+            </div>
+
+            {cashfreeOrder?.paymentSessionId ? (
+              <button
+                type="button"
+                onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Sparkles size={18} className="text-amber-200 animate-pulse" />
+                <span>कॅशफ्री द्वारे ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, QR)</span>
+              </button>
+            ) : (
+              <div className="py-3 text-amber-200/70 text-xs flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                <span>कॅशफ्री पेमेंट लोड होत आहे...</span>
+              </div>
+            )}
+
+            {/* Direct Mandal VPA Fallback */}
+            {org.upiId && (
+              <div className="pt-2 border-t border-amber-500/20 text-center">
+                {!showDirectUpi ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDirectUpi(true)}
+                    className="text-[0.65rem] text-amber-300/70 hover:text-amber-200 underline"
+                  >
+                    थेट मॅन्युअल UPI QR (Direct VPA)
+                  </button>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[0.6rem] text-amber-200 font-bold block">
+                      Direct Mandal VPA (Manual Verification)
+                    </span>
+                    <div className="p-2 bg-white rounded-lg inline-block">
+                      <QRCodeSVG
+                        value={buildUpiPaymentLink({
+                          upiId: org.upiId,
+                          payeeName: org.name || 'Mandal',
+                          amount: receipt.amount,
+                          note: receipt.receiptNumber,
+                        })}
+                        size={110}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDirectUpi(false)}
+                      className="text-[0.6rem] text-amber-200/50 hover:underline block mx-auto"
+                    >
+                      Hide Direct QR
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Slides Container */}
       <div ref={appContainerRef} className={`app-shell ${!isEnvelopeOpen ? 'locked' : ''}`}>
