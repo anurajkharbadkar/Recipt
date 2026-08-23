@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
-import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, Check, Play, Lock, KeyRound, Copy, CheckCheck } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, Check, Play, Lock, KeyRound, Copy, CheckCheck, CreditCard, ArrowRight, ChevronRight, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
@@ -716,9 +716,9 @@ export default function SettingsPage() {
       </>
       )}
 
-      {/* 8. Social Media Links — grouped into General since it's small and
-          about "who we are", same category as org info/branding. */}
+      {/* 8. Social Media Links & 9. Subscription & Billing Section */}
       {activeTab === 'general' && (
+      <>
       <div className="glass-card p-6 sm:p-8">
         <div className="flex items-center gap-2.5 mb-6 pb-4 border-b border-theme">
           <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
@@ -743,6 +743,57 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+
+      {/* 9. Subscription & Billing Section (Drill-down to /subscription) */}
+      <div className="glass-card p-6 sm:p-8">
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4 pb-4 border-b border-theme">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-400">
+              <CreditCard size={18} />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-theme-fg">
+                {language === 'mr' ? 'सदस्यता व प्लॅन (Subscription & Billing)' : language === 'hi' ? 'सदस्यता और प्लान' : 'Subscription & Billing'}
+              </h3>
+              <p className="text-xs text-theme-fg/50">
+                {language === 'mr' ? 'मंडळाची सध्याची योजना, बिलिंग सायकल व नूतनीकरण' : language === 'hi' ? 'वर्तमान प्लान, बिलिंग स्थिति और नवीनीकरण' : 'Current active plan, billing status, and plan upgrades'}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/subscription"
+            className="btn-primary text-xs font-semibold px-4 py-2 flex items-center gap-1.5 shadow-sm"
+          >
+            <span>{language === 'mr' ? 'योजना व बिलिंग व्यवस्थापित करा' : language === 'hi' ? 'प्लान प्रबंधित करें' : 'Manage Subscription'}</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        <div className="p-4 rounded-xl bg-theme-fg/[0.02] border border-theme-fg/10 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p className="text-xs font-medium text-theme-fg/50">{language === 'mr' ? 'सध्याचा प्लॅन' : 'Current Plan'}</p>
+            <p className="text-lg font-bold text-theme-fg mt-0.5">
+              {org?.subscriptionPlan || 'STANDARD'}
+            </p>
+            {org?.subscriptionExpiry && (
+              <p className="text-xs text-theme-fg/60 mt-1 flex items-center gap-1">
+                <Clock size={12} className="text-saffron-500 shrink-0" />
+                <span>
+                  Expires on {new Date(org.subscriptionExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              </p>
+            )}
+          </div>
+          <Link
+            href="/subscription"
+            className="text-xs font-semibold text-saffron-600 dark:text-saffron-400 hover:underline flex items-center gap-1"
+          >
+            <span>{language === 'mr' ? 'प्लान बदला / नूतनीकरण करा' : 'Change or Renew Plan'}</span>
+            <ChevronRight size={14} />
+          </Link>
+        </div>
+      </div>
+      </>
       )}
 
       {/* Integrations status — ORG_ADMIN only */}

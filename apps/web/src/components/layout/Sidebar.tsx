@@ -27,7 +27,6 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', module: 'Expenses' },
   { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', module: 'Reports' },
   { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स', module: 'Settings' },
-  { href: '/subscription', label: 'Subscription', icon: CreditCard, labelMr: 'सदस्यता', module: 'Subscription' },
 ];
 
 export default function Sidebar() {
