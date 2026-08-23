@@ -88,16 +88,20 @@ function CashfreeReturnContent() {
         ? 'Your plan is active — you can create receipts, add collectors, and everything else right away.'
         : 'Cashfree confirmed this order as PAID (server-side check).',
     },
-    failed: { icon: <XCircle className="text-red-500" size={40} />, title: 'Payment did not succeed', body: 'Cashfree reports this order as expired, or the latest payment attempt as failed.' },
-    pending: { icon: <Loader2 size={40} />, title: 'Payment pending', body: 'Not confirmed as PAID yet. Retry the status check in a moment.' },
-    unknown: { icon: <HelpCircle size={40} />, title: 'Could not verify', body: orderId ? 'The status check itself failed — see raw response below.' : 'No order_id was present in the return URL.' },
+    failed: { icon: <XCircle className="text-red-500" size={40} />, title: 'Payment did not succeed', body: 'Cashfree reports this order as expired, or the latest payment attempt as failed. No charge was made — you can try again from your dashboard.' },
+    pending: { icon: <Loader2 size={40} />, title: 'Payment not completed', body: 'This checkout was cancelled or closed before finishing — no charge was made. You can try again any time from your dashboard.' },
+    unknown: { icon: <HelpCircle size={40} />, title: 'Could not verify', body: orderId ? 'We couldn’t confirm this payment’s status right now — check back from your dashboard in a moment, or try again if it still shows pending.' : 'No order_id was present in the return URL.' },
   };
 
   const c = copy[outcome];
-  // The raw Cashfree dump is a debugging aid for the sandbox test surface
-  // and failure cases — not something a Mandal admin who just paid their
-  // subscription successfully needs to see.
-  const showRawDump = raw && !(isSubscriptionOrder && outcome === 'paid');
+  // The raw Cashfree dump is a debugging aid for CashfreeController's
+  // sandbox test surface (donation/split testing, internal staff only) —
+  // never shown for a real subscription payment, no matter the outcome.
+  // Originally this only hid on a *successful* subscription payment, which
+  // missed the actual common case: a real admin cancelling or failing their
+  // own real payment still got a wall of internal JSON (customer ids,
+  // webhook URLs, order internals) dumped at them (found live, 2026-08-23).
+  const showRawDump = raw && !isSubscriptionOrder;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-navy-900 p-6">

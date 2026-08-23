@@ -243,10 +243,10 @@ export interface PricingPlan {
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: SubscriptionPlan.FREE,
-    name: 'Free Trial',
-    tagline: `Try ${BRAND_SHORT_NAME} before committing to a plan`,
+    name: 'Take your first step towards digital collections',
+    tagline: 'Experience the Future of Digital Receipts',
     positioningLine: 'Experience',
-    marathiDescriptor: 'अनुभव घ्या',
+    marathiDescriptor: 'डिजिटल पावती',
     priceInr: 0,
     priceNote: `Free for ${FREE_TRIAL_PERIOD_DAYS} days, no payment needed`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE],
@@ -255,11 +255,11 @@ export const PRICING_PLANS: PricingPlan[] = [
     // custom branding) that FREE also gets during its 7-day window — those
     // are unlocked functionally (see organizations.service.ts's PREMIUM_
     // FEATURE_PLANS), but adding them here as keyed bullets would bubble
-    // up through BASIC's `includesFrom: 'Free Trial'` inheritance and
-    // falsely claim BASIC has them too — this ladder has no way to grant a
-    // lower tier something a higher one intentionally doesn't get. A
-    // trial user discovers those in the app itself rather than the pricing
-    // page overpromising what BASIC actually buys (2026-08-22).
+    // up through BASIC's `includesFrom` inheritance and falsely claim BASIC
+    // has them too — this ladder has no way to grant a lower tier something
+    // a higher one intentionally doesn't get. A trial user discovers those
+    // in the app itself rather than the pricing page overpromising what
+    // BASIC actually buys (2026-08-22).
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.FREE]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
@@ -275,20 +275,12 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Basic',
     tagline: 'For small mandals starting their digital journey',
     positioningLine: 'Go Digital',
-    marathiDescriptor: 'नव्या मंडळासाठी',
+    marathiDescriptor: 'छोट्या मंडळांसाठी',
     priceInr: 499,
     priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC],
-    includesFrom: 'Free Trial',
-    // Explicit collectors/activeFestivals overrides, not inherited from
-    // Free Trial — they used to be identical and safe to inherit, but
-    // Free Trial's own numbers now describe its 7-day promotional window
-    // (matches Premium), not a permanent BASIC-tier entitlement. Without
-    // these, resolvePlanFeatures would have BASIC's comparison-table row
-    // silently inherit Free Trial's unlimited-collectors bullet — a real
-    // overpromise for what a ₹499 subscription actually buys
-    // (2026-08-22 free-trial rework).
+    includesFrom: 'Take your first step towards digital collections',
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC], 'Collectors'), category: 'team', key: 'collectors' },
@@ -298,22 +290,15 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: SubscriptionPlan.STANDARD,
     name: 'Standard',
-    tagline: 'For growing mandals who want more',
+    tagline: 'For apartments, societies & public mandals',
     positioningLine: 'Manage Better',
-    marathiDescriptor: 'मोठ्या मंडळासाठी',
+    marathiDescriptor: 'अपार्टमेंट्स, सोसायट्या व मंडळांसाठी',
     priceInr: 799,
     priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     highlighted: true,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.STANDARD],
     includesFrom: 'Basic',
-    // Reports & Analytics itself is NOT plan-gated anywhere (backend or
-    // frontend) — every plan already gets the full reports suite, so an
-    // "Advanced Reports & Analytics" bullet here would be a false claim.
-    // UPI ID and custom receipt themes ARE server-enforced Standard+-only
-    // (OrganizationsService.update's STANDARD_PLUS check) — those two are
-    // real. No comingSoon items — a plan card should only list what a
-    // subscriber can actually use today.
     features: [
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD], 'Collectors'), category: 'team', key: 'collectors' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.STANDARD]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
