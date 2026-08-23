@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orgsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Building2, Phone, Mail, MapPin, Landmark, Save, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, Check, Play, Lock, KeyRound, Copy, CheckCheck, CreditCard, ArrowRight, ChevronRight, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
@@ -253,6 +254,7 @@ function IntegrationRow({ label, ok, okLabel, missingLabel, envHint, showTechnic
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { language, setLanguage, organization, setOrganization, user } = useAuthStore();
   const queryClient = useQueryClient();
   const sl = settingsLabels[language] || settingsLabels.en;
@@ -869,9 +871,9 @@ export default function SettingsPage() {
             {!hasPremiumFeatures && (
               <p className="text-[11px] text-theme-fg/45 mt-1.5">
                 Available on the Standard plan and up.{' '}
-                <a href={upgradeWhatsappLink} target="_blank" rel="noopener noreferrer" className="text-saffron-400 hover:underline font-medium">
+                <Link href="/subscription" className="text-saffron-400 hover:underline font-medium">
                   Upgrade →
-                </a>
+                </Link>
               </p>
             )}
           </div>
@@ -972,7 +974,7 @@ export default function SettingsPage() {
                       }))}
                       onLockedClick={() => {
                         toast.error(`${t.label} needs the Standard plan.`);
-                        window.open(upgradeWhatsappLink, '_blank');
+                        router.push('/subscription');
                       }}
                     />
                   );

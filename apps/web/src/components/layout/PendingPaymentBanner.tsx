@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { PRICING_PLANS, SubscriptionPlan, formatCurrency } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
@@ -31,7 +32,7 @@ import toast from 'react-hot-toast';
  * rather than the urgent amber/red treatment the paid-plan states use.
  */
 export default function PendingPaymentBanner() {
-  const { organization, user } = useAuthStore();
+  const { organization, user, language } = useAuthStore();
   const [payingViaCheckout, setPayingViaCheckout] = useState(false);
 
   if (!organization || user?.role !== 'ORG_ADMIN') return null;
@@ -110,14 +111,12 @@ export default function PendingPaymentBanner() {
             Valid until {organization.subscriptionExpiry ? new Date(organization.subscriptionExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}.
           </span>
         </div>
-        <a
-          href={platformWhatsappLink(upgradeMessage)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 min-h-[40px] text-xs font-semibold text-white bg-saffron-600 hover:bg-saffron-500 px-4 rounded-lg shrink-0"
+        <Link
+          href="/subscription"
+          className="flex items-center justify-center gap-1.5 min-h-[36px] text-xs font-semibold text-white bg-saffron-600 hover:bg-saffron-500 px-4 rounded-lg shrink-0 shadow-xs"
         >
-          <MessageCircle size={13} /> Upgrade Plan
-        </a>
+          <Sparkles size={13} /> {language === 'mr' ? 'प्लॅन अपग्रेड करा' : language === 'hi' ? 'अपग्रेड प्लान' : 'Upgrade Plan'}
+        </Link>
       </div>
     </div>
   );
