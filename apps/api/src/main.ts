@@ -58,10 +58,58 @@ async function bootstrap() {
   // Serve static uploads
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
-  // Security
+  const isProd = configService.get('NODE_ENV') === 'production';
+
+  // Security — explicit headers hardened for production
+  // contentSecurityPolicy: next-pwa injects an inline service-worker
+  // registration snippet that must be allowed; 'unsafe-inline' is the
+  // pragmatic baseline here because Next.js also generates many inline
+  // <script> tags at build time that we don't control. For a stricter setup
+  // you'd extract a per-page nonce and thread it through the CSP header, but
+  // that requires edge middleware and is a separate, larger project. The
+  // frame-ancestors directive below already blocks clickjacking regardless.
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // Strict-Transport-Security: max-age=1 year, include subdomains
+      hsts: isProd
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
+      // Prevent framing / clickjacking
+      frameguard: { action: 'deny' },
+      // No X-Powered-By leakage
+      hidePoweredBy: true,
+      // Disable browser MIME-type sniffing
+      noSniff: true,
+      // XSS protection legacy header (belt-and-suspenders for older browsers)
+      xssFilter: true,
+      // Content Security Policy
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'", // Next.js build-time inline scripts
+            "'unsafe-eval'",   // Next.js dev-mode hot reload (remove in production if possible)
+            'https://www.googletagmanager.com',
+          ],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://*.r2.dev', 'https://*.cloudflare.com'],
+          connectSrc: [
+            "'self'",
+            'https://api.epavtibook.com',
+            'https://api.cashfree.com',
+            'wss://*.vercel.app', // Vercel real-time preview
+          ],
+          frameSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          upgradeInsecureRequests: isProd ? [] : null,
+        } as Record<string, string[] | null>,
+      },
     }),
   );
 

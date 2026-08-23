@@ -23,15 +23,15 @@ export default function TopBar() {
 
   return (
     <header className="h-16 border-b border-theme/40 px-3.5 sm:px-6 flex items-center justify-between bg-white dark:bg-[#1A120B] sticky top-0 z-30 transition-all shadow-xs">
-      {/* Mobile Branding (Aligned to left since menu is on the right) */}
-      <div className="flex items-center gap-2.5 md:hidden min-w-0 pr-2">
+      {/* Mobile Branding */}
+      <div className="flex items-center gap-2 md:hidden min-w-0 flex-1 pr-2">
         {organization?.logoUrl ? (
           <img src={organization.logoUrl} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0 shadow-sm border border-black/5" />
         ) : (
-          <LogoMark size={28} className="rounded-lg shadow-sm shrink-0" />
+          <LogoMark size={26} className="rounded-lg shadow-sm shrink-0" />
         )}
-        <div className="min-w-0">
-          <h1 className="font-bold text-xs sm:text-sm text-theme-fg truncate leading-tight">
+        <div className="min-w-0 max-w-[140px] xs:max-w-[200px]">
+          <h1 className="font-bold text-xs text-theme-fg truncate leading-tight">
             {organization ? (language === 'mr' && organization.nameMarathi ? organization.nameMarathi : organization.name) : BRAND_NAME}
           </h1>
           <p className="text-[10px] text-saffron-700 dark:text-saffron-300 font-devanagari leading-none mt-0.5 truncate font-medium">
@@ -61,14 +61,14 @@ export default function TopBar() {
       </div>
 
       {/* Right Side: Mobile Campaign Selector & User Pill (pr-12 leaves space for right hamburger) */}
-      <div className="flex items-center gap-2 shrink-0 pr-12 md:pr-0">
+      <div className="flex items-center gap-1.5 shrink-0 pr-12 md:pr-0">
         {/* Mobile Campaign Selector */}
         {activeCampaigns.length > 0 && (
           <div className="md:hidden">
             <select
               value={activeCampaignId || ''}
               onChange={(e) => setActiveCampaign(e.target.value)}
-              className="form-select text-[11px] py-3 pl-2.5 pr-7 max-w-[125px] sm:max-w-[160px] font-medium"
+              className="form-select text-[11px] py-1 px-2.5 pr-7 max-w-[115px] xs:max-w-[150px] font-semibold rounded-lg truncate shadow-xs"
             >
               {activeCampaigns.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.name}</option>

@@ -241,12 +241,7 @@ const CARD_TONES = {
 // multi-role, PDF download) are surfaced in the footnote below the grid so
 // the cards stay short and scannable.
 const PLAN_FEATURES: Record<string, { label: string; highlight?: boolean }[]> = {
-  FREE: [
-    { label: 'Up to 10 digital pavtis' },
-    { label: 'Up to 5 collectors' },
-    { label: '1 active festival or drive' },
-    { label: 'No payment needed to start', highlight: true },
-  ],
+  FREE: [],
   BASIC: [
     { label: 'Unlimited digital pavtis', highlight: true },
     { label: 'Up to 5 collectors' },
@@ -299,14 +294,26 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
         </span>
       )}
 
-      <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${tone.eyebrow}`}>{plan.positioningLine}</p>
+      <p className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${tone.eyebrow}`}>{plan.positioningLine}</p>
 
-      <div className="flex items-baseline gap-2 flex-wrap mb-1">
-        <h3 className={`text-[1.35rem] font-bold leading-tight ${tone.name}`}>{plan.name}</h3>
-        <span className={`text-xs ${tone.tagline}`}>{plan.marathiDescriptor}</span>
+      <div className="flex flex-col gap-1 mb-2">
+        <Link
+          href={`/register?plan=${plan.id.toLowerCase()}`}
+          className="group inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer"
+        >
+          <h3 className={`${plan.name.length > 20 ? 'text-base sm:text-[1.05rem]' : 'text-[1.35rem]'} font-bold leading-snug ${tone.name} group-hover:underline underline-offset-4 decoration-saffron-600/50`}>
+            {plan.name}
+          </h3>
+          <ArrowRight size={16} className="shrink-0 group-hover:translate-x-1 transition-transform text-saffron-700 dark:text-saffron-300" />
+        </Link>
+        {plan.marathiDescriptor && (
+          <span className={`text-xs ${tone.tagline}`}>{plan.marathiDescriptor}</span>
+        )}
       </div>
 
-      <p className={`text-xs leading-relaxed mb-4 ${tone.tagline}`}>{plan.tagline}</p>
+      {plan.tagline && (
+        <p className={`text-xs leading-relaxed mb-4 ${tone.tagline}`}>{plan.tagline}</p>
+      )}
 
       <div className="flex items-baseline gap-1.5 mb-0.5">
         <span className={`text-[1.75rem] font-extrabold leading-none ${tone.price}`}>{formatCurrency(plan.priceInr)}</span>
@@ -314,18 +321,22 @@ function PricingCard({ plan }: { plan: (typeof PRICING_PLANS)[number] }) {
       </div>
       <p className={`text-[11px] mb-4 ${tone.priceUnit}`}>{plan.priceNote}</p>
 
-      <div className={`border-t mb-4 ${tone.divider}`} />
+      {features.length > 0 && <div className={`border-t mb-4 ${tone.divider}`} />}
 
-      <ul className="space-y-2.5 mb-5 flex-1">
-        {features.map((f) => (
-          <li key={f.label} className="flex items-start gap-2 text-[12px]">
-            <span className={`shrink-0 mt-[3px] w-[5px] h-[5px] rounded-full ${f.highlight ? 'bg-current opacity-80' : 'opacity-30 bg-current'}`} />
-            <span className={`leading-snug ${f.highlight ? `font-semibold ${tone.featureText}` : `${tone.featureText} opacity-75`}`}>
-              {f.label}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {features.length > 0 ? (
+        <ul className="space-y-2.5 mb-5 flex-1">
+          {features.map((f) => (
+            <li key={f.label} className="flex items-start gap-2 text-[12px]">
+              <span className={`shrink-0 mt-[3px] w-[5px] h-[5px] rounded-full ${f.highlight ? 'bg-current opacity-80' : 'opacity-30 bg-current'}`} />
+              <span className={`leading-snug ${f.highlight ? `font-semibold ${tone.featureText}` : `${tone.featureText} opacity-75`}`}>
+                {f.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="flex-1 min-h-[1rem]" />
+      )}
 
       <Link
         href={`/register?plan=${plan.id.toLowerCase()}`}
@@ -481,7 +492,8 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-              <div className="flex border border-saffron-800/20 rounded-full p-[2px] sm:p-[3px]" role="group" aria-label="Language">
+              {/* Language Switcher - hidden on mobile header to prevent nav overflow */}
+              <div className="hidden md:flex border border-saffron-800/20 rounded-full p-[2px] sm:p-[3px]" role="group" aria-label="Language">
                 {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
                   <button
                     key={l}
@@ -493,7 +505,7 @@ export default function HomePage() {
                         : 'text-saffron-800/70 dark:text-saffron-200/70 hover:bg-saffron-100/60 dark:hover:bg-saffron-900/30'
                     }`}
                   >
-                    {l === 'en' ? 'EN' : l === 'mr' ? 'मर' : 'हि'}
+                    {l === 'en' ? 'EN' : l === 'mr' ? 'मराठी' : 'हिंदी'}
                   </button>
                 ))}
               </div>
@@ -516,8 +528,29 @@ export default function HomePage() {
         </nav>
 
         {/* =========================================================== HERO */}
-        <header className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center max-w-6xl mx-auto px-5 md:px-8 pt-40 pb-20">
+        <header className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center max-w-6xl mx-auto px-5 md:px-8 pt-20 sm:pt-24 lg:pt-28 pb-12 sm:pb-16">
           <Reveal dir="right" threshold={0.05}>
+            {/* Mobile Language Switcher (Prominent in Hero) */}
+            <div className="md:hidden flex items-center mb-5">
+              <div className="inline-flex items-center gap-1 bg-saffron-900/5 dark:bg-saffron-100/5 border border-saffron-800/15 dark:border-saffron-200/15 rounded-full p-1 shadow-sm" role="group" aria-label="Language Selector">
+                <span className="text-[11px] font-medium text-saffron-900/60 dark:text-saffron-100/60 pl-2.5 pr-1">🌐 भाषा:</span>
+                {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setLangState(l)}
+                    className={`text-xs font-semibold px-3 py-1 rounded-full transition-all duration-200 ${
+                      lang === l
+                        ? 'bg-saffron-700 text-white shadow-sm'
+                        : 'text-saffron-800/70 dark:text-saffron-200/70 hover:bg-saffron-100/60 dark:hover:bg-saffron-900/30'
+                    }`}
+                  >
+                    {l === 'en' ? 'English' : l === 'mr' ? 'मराठी' : 'हिंदी'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-saffron-700 border border-saffron-500/50 rounded-full px-4 py-1.5 mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
               {t('Digital Pavtis · Honest Accounts', 'डिजिटल पावती · प्रामाणिक हिशोब', 'डिजिटल पावती · ईमानदार हिसाब')}
@@ -862,6 +895,26 @@ export default function HomePage() {
             </div>
           </div>
         </footer>
+
+        {/* Floating Mobile Language Switcher (mobile only) */}
+        <div className="md:hidden fixed bottom-4 right-4 z-40">
+          <div className="flex items-center gap-1 bg-white/95 dark:bg-[#18110b]/95 border border-saffron-600/30 shadow-xl shadow-saffron-900/20 backdrop-blur-md rounded-full p-1">
+            {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setLangState(l)}
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${
+                  lang === l
+                    ? 'bg-saffron-700 text-white shadow-sm'
+                    : 'text-saffron-900/70 dark:text-saffron-200/70'
+                }`}
+              >
+                {l === 'en' ? 'EN' : l === 'mr' ? 'मराठी' : 'हिंदी'}
+              </button>
+            ))}
+          </div>
+        </div>
 
       </div>
     </>

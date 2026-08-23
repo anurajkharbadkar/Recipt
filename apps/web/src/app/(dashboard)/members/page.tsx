@@ -245,7 +245,7 @@ function StaffTab() {
             />
           ))}
           {!collectors?.length && (
-            <div className="col-span-3 glass-card p-12 text-center text-theme-fg/30">
+            <div className="col-span-full glass-card p-12 text-center text-theme-fg/30">
               {sl.empty}
             </div>
           )}

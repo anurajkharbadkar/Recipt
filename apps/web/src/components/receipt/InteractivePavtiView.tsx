@@ -20,7 +20,8 @@ import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-
 // every visitor regardless of whether they ever open a receipt. Extracted
 // to actual image files instead, same as every other brand asset.
 const ENV_TEXTURE_URL = '/brand/pavti/envelope-texture.jpg';
-const GANPATI_IMAGE_URL = '/brand/pavti/ganpati-darshan.jpg';
+const GANPATI_IMAGE_URL = 'https://pub-b087a5790d1e4f0f9943ea8e70d1f4ae.r2.dev/defaults/ganpati_portrait.jpg';
+const ASHIRVAAD_IMAGE_URL = 'https://pub-b087a5790d1e4f0f9943ea8e70d1f4ae.r2.dev/defaults/bappa_ashirvaad.jpg';
 
 interface InteractivePavtiViewProps {
   receipt: Receipt;
@@ -874,7 +875,21 @@ export default function InteractivePavtiView({
         .chakra-hub { transform-origin: 250px 250px; animation: chakraPulseGlow 3.5s ease-in-out infinite alternate; }
         @keyframes chakraSpinCW { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes chakraSpinCCW { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-        @keyframes chakraPulseGlow { 0% { opacity: 0.82; transform: scale(0.97); } 100% { opacity: 1; transform: scale(1.03); } }
+        .upload-hint {
+          position: absolute;
+          top: 3.8%;
+          left: 50%;
+          transform: translateX(-50%);
+          text-align: center;
+          z-index: 6;
+          font-family: var(--font-eyebrow), serif;
+          font-size: clamp(0.76rem, 2.1vw, 0.92rem);
+          color: var(--gold-light);
+          letter-spacing: 0.02em;
+          opacity: 0.85;
+          text-shadow: 0 0 10px rgba(244, 221, 154, 0.4);
+          pointer-events: none;
+        }
 
         .darshan-idol-wrap {
           position: relative;
@@ -1024,21 +1039,31 @@ export default function InteractivePavtiView({
         .royal-vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 0 90px 30px rgba(10, 2, 3, 0.75); }
         @keyframes raysSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        .bless-icon-wrap { position: relative; width: 84px; height: 84px; opacity: 0; margin-bottom: 6px; }
-        .bless-icon {
+        .bless-icon-wrap { position: relative; width: 110px; height: 110px; opacity: 0; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; }
+        .bless-palm-img {
+          display: block;
           width: 100%;
           height: 100%;
           border-radius: 50%;
-          background: linear-gradient(135deg, #d9a13a, #f4dd9a);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2.1rem;
-          box-shadow: 0 0 30px rgba(244, 221, 154, 0.45);
-          border: 2px solid var(--gold-light);
+          background-size: cover;
+          background-position: center;
+          background-color: rgba(244, 221, 154, .08);
+          filter: saturate(1.1) drop-shadow(0 0 25px rgba(244, 221, 154, 0.65));
+          -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 68%, transparent 98%);
+          mask-image: radial-gradient(circle at 50% 50%, #000 68%, transparent 98%);
           position: relative;
           z-index: 2;
         }
+        .bless-palm-halo {
+          position: absolute;
+          inset: -12px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 50% 50%, rgba(244, 221, 154, 0.35), rgba(226, 136, 63, 0.15) 50%, transparent 75%);
+          pointer-events: none;
+          z-index: 1;
+          animation: pulseHalo 3.6s ease-in-out infinite;
+        }
+        @keyframes pulseHalo { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 1; } }
         .bless-glow-ring { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; transform: translate(-50%, -50%); border-radius: 50%; border: 1.4px solid rgba(244, 221, 154, 0.75); pointer-events: none; z-index: 1; animation: blessRingPulse 2.6s ease-out infinite; }
         .bless-glow-ring.r2 { animation-delay: 1.3s; }
         @keyframes blessRingPulse { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; } 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
@@ -1252,6 +1277,8 @@ export default function InteractivePavtiView({
           <div className="frame-corner fc-tr" />
           <div className="frame-corner fc-bl" />
           <div className="frame-corner fc-br" />
+
+          <div className="upload-hint">आपल्या मंडळाच्या मूर्तीचा फोटो लावा.</div>
 
           {/* Layer the one-shot flower burst is appended into — kept empty
               of React-rendered children so the manual DOM nodes never
@@ -1578,9 +1605,15 @@ export default function InteractivePavtiView({
           <div className="frame-corner fc-br" />
 
           <div className="flex flex-col items-center text-center z-10 px-6 max-w-md">
-            {/* Divine Ashirwad Icon */}
+            {/* Divine Ashirwad Icon / Palm */}
             <div ref={blessHandRef} className="bless-icon-wrap">
-              <div className="bless-icon">🙏</div>
+              <div
+                className="bless-palm-img"
+                role="img"
+                aria-label="श्री गणपती आशीर्वाद हस्त"
+                style={{ backgroundImage: `url(${ASHIRVAAD_IMAGE_URL})` }}
+              />
+              <div className="bless-palm-halo" />
               <div className="bless-glow-ring r1" />
               <div className="bless-glow-ring r2" />
             </div>

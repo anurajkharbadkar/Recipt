@@ -14,33 +14,33 @@ import toast from 'react-hot-toast';
 
 const labels = {
   en: {
-    title: 'Subscription', subtitle: "Your Mandal's plan, billing status, and payment history.",
+    title: 'Subscription', subtitle: "Plan, billing status, and payment history.",
     currentPlan: 'Current Plan', status: 'Status', expiresOn: 'Expires on', daysLeft: 'days left', expired: 'Expired',
     payNow: 'Pay Now', renewNow: 'Renew Now', processing: 'Processing…',
     active: 'Active', pendingPayment: 'Payment Pending', freeTrial: 'Free Trial',
     changePlan: 'Change Plan', currentPlanBadge: 'Current Plan', switchTo: 'Switch to this plan',
     history: 'Payment History', noHistory: 'No payments yet.',
-    adminOnly: 'Only your Mandal Admin can manage the subscription — contact them for plan changes or payments.',
+    adminOnly: 'Only your Mandal Admin can manage the subscription.',
     perMonth: '/ 30 days',
   },
   hi: {
-    title: 'सदस्यता', subtitle: 'आपके मंडल की योजना, भुगतान स्थिति और भुगतान इतिहास।',
+    title: 'सदस्यता', subtitle: 'योजना, भुगतान स्थिति और इतिहास।',
     currentPlan: 'वर्तमान योजना', status: 'स्थिति', expiresOn: 'समाप्ति तिथि', daysLeft: 'दिन शेष', expired: 'समाप्त',
     payNow: 'अभी भुगतान करें', renewNow: 'नवीनीकरण करें', processing: 'प्रक्रिया जारी है…',
     active: 'सक्रिय', pendingPayment: 'भुगतान लंबित', freeTrial: 'निःशुल्क ट्रायल',
     changePlan: 'योजना बदलें', currentPlanBadge: 'वर्तमान योजना', switchTo: 'इस योजना पर स्विच करें',
     history: 'भुगतान इतिहास', noHistory: 'अभी तक कोई भुगतान नहीं।',
-    adminOnly: 'केवल आपका मंडल एडमिन सदस्यता प्रबंधित कर सकता है — योजना बदलने या भुगतान के लिए उनसे संपर्क करें।',
+    adminOnly: 'केवल आपका मंडल एडमिन सदस्यता प्रबंधित कर सकता है।',
     perMonth: '/ 30 दिन',
   },
   mr: {
-    title: 'सदस्यता', subtitle: 'तुमच्या मंडळाची योजना, बिलिंग स्थिती आणि पेमेंट इतिहास.',
+    title: 'सदस्यता', subtitle: 'योजना, बिलिंग स्थिती आणि इतिहास.',
     currentPlan: 'सध्याची योजना', status: 'स्थिती', expiresOn: 'समाप्ती तारीख', daysLeft: 'दिवस शिल्लक', expired: 'समाप्त',
     payNow: 'आता पैसे भरा', renewNow: 'नूतनीकरण करा', processing: 'प्रक्रिया सुरू आहे…',
     active: 'सक्रिय', pendingPayment: 'पेमेंट प्रलंबित', freeTrial: 'मोफत ट्रायल',
     changePlan: 'योजना बदला', currentPlanBadge: 'सध्याची योजना', switchTo: 'या योजनेवर स्विच करा',
     history: 'पेमेंट इतिहास', noHistory: 'अद्याप कोणतेही पेमेंट नाही.',
-    adminOnly: 'फक्त तुमचा मंडळ अ‍ॅडमिन सदस्यता व्यवस्थापित करू शकतो — योजना बदलण्यासाठी किंवा पेमेंटसाठी त्यांच्याशी संपर्क साधा.',
+    adminOnly: 'फक्त तुमचा मंडळ अ‍ॅडमिन सदस्यता व्यवस्थापित करू शकतो.',
     perMonth: '/ ३० दिवस',
   },
 };
@@ -96,10 +96,10 @@ export default function SubscriptionPage() {
     : { icon: <CheckCircle2 size={13} />, text: l.active, className: 'bg-emerald-500/10 text-emerald-600' };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl mx-auto pb-12">
       <div>
         <h1 className="text-2xl font-bold text-theme-fg">{l.title}</h1>
-        <p className="text-sm text-theme-fg/50 mt-0.5">{l.subtitle}</p>
+        <p className="text-xs sm:text-sm text-theme-fg/50 mt-0.5">{l.subtitle}</p>
       </div>
 
       {!isAdmin && (
@@ -110,7 +110,7 @@ export default function SubscriptionPage() {
       )}
 
       {/* Current plan */}
-      <div className="glass-card p-6">
+      <div className="glass-card p-5 sm:p-6">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <p className="form-label">{l.currentPlan}</p>
@@ -126,7 +126,7 @@ export default function SubscriptionPage() {
 
         {organization.subscriptionExpiry && (
           <div className="flex items-center gap-2 mt-4 text-xs text-theme-fg/50">
-            <Clock size={13} />
+            <Clock size={13} className="shrink-0" />
             <span>
               {l.expiresOn} {new Date(organization.subscriptionExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
               {!isExpired && daysLeft !== null && daysLeft >= 0 && ` — ${daysLeft} ${l.daysLeft}`}
@@ -138,7 +138,7 @@ export default function SubscriptionPage() {
           <button
             onClick={() => handlePay()}
             disabled={payingPlan !== null}
-            className={`btn-primary text-sm mt-4 ${isExpired ? '!bg-red-600 hover:!bg-red-500' : ''}`}
+            className={`btn-primary text-sm min-h-[42px] mt-4 w-full sm:w-auto ${isExpired ? '!bg-red-600 hover:!bg-red-500' : ''}`}
           >
             {payingPlan === organization.subscriptionPlan ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
             {payingPlan === organization.subscriptionPlan ? l.processing : (isExpired ? l.renewNow : l.payNow)}
@@ -148,7 +148,7 @@ export default function SubscriptionPage() {
 
       {/* Change plan */}
       {isAdmin && (
-        <div className="glass-card p-6">
+        <div className="glass-card p-5 sm:p-6">
           <h3 className="text-sm font-semibold text-theme-fg flex items-center gap-2 mb-4">
             <ArrowUpCircle size={16} className="text-saffron-500" /> {l.changePlan}
           </h3>
@@ -166,7 +166,7 @@ export default function SubscriptionPage() {
                   <button
                     onClick={() => handlePay(p.id)}
                     disabled={isCurrent || payingPlan !== null}
-                    className={`mt-auto text-xs font-semibold py-2 rounded-lg transition-colors ${
+                    className={`mt-auto text-xs font-semibold py-2.5 min-h-[40px] rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
                       isCurrent
                         ? 'bg-saffron-500/15 text-saffron-600 cursor-default'
                         : 'bg-theme-fg/5 hover:bg-theme-fg/10 text-theme-fg disabled:opacity-50'
@@ -183,7 +183,7 @@ export default function SubscriptionPage() {
 
       {/* Payment history */}
       {isAdmin && (
-        <div className="glass-card p-6">
+        <div className="glass-card p-5 sm:p-6">
           <h3 className="text-sm font-semibold text-theme-fg flex items-center gap-2 mb-4">
             <History size={16} className="text-saffron-500" /> {l.history}
           </h3>
@@ -192,8 +192,8 @@ export default function SubscriptionPage() {
           ) : !history || history.length === 0 ? (
             <p className="text-xs text-theme-fg/40 text-center py-4">{l.noHistory}</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+            <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-xs min-w-[340px]">
                 <tbody>
                   {history.map((h) => {
                     const st = PAYMENT_STATUS_STYLE[h.status] || PAYMENT_STATUS_STYLE.ORDER_CREATED;

@@ -38,7 +38,7 @@ import {
  */
 function WallpaperGallery({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 scroll-smooth">
+    <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 scroll-smooth touch-pan-x">
       {children}
     </div>
   );
@@ -49,7 +49,7 @@ function ReceiptThemeCard({ theme, selected, locked, onSelect, onLockedClick }: 
     <button
       type="button"
       onClick={locked ? onLockedClick : onSelect}
-      className={`snap-center shrink-0 w-[172px] sm:w-[196px] rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left ${
+      className={`snap-start shrink-0 w-[74vw] max-w-[200px] sm:w-[196px] rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left ${
         selected
           ? 'border-saffron-400 ring-2 ring-saffron-400/30 shadow-lg shadow-saffron-500/10'
           : locked
@@ -105,7 +105,7 @@ function InteractiveTemplateCard({ template, selected, onSelect, onPreview }: { 
     <button
       type="button"
       onClick={onSelect}
-      className={`snap-center shrink-0 w-[188px] sm:w-[212px] rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left relative ${
+      className={`snap-start shrink-0 w-[78vw] max-w-[216px] sm:w-[212px] rounded-2xl overflow-hidden border-2 transition-all duration-200 text-left relative ${
         selected
           ? 'border-amber-400 ring-2 ring-amber-400/30 shadow-lg shadow-amber-500/10'
           : 'border-theme-fg/10 hover:border-theme-fg/25 bg-theme-fg/[0.02]'
@@ -162,70 +162,70 @@ function CustomDesignNote() {
 // no way to act on "WHATSAPP_ACCESS_TOKEN"; that's operator-facing info.
 const settingsLabels = {
   en: {
-    integrationsTitle: 'Integrations', integrationsDesc: 'Status of delivery & storage services connected to your account.',
-    whatsappDelivery: 'WhatsApp Delivery', whatsappManualNote: 'Manual — click "Share via WhatsApp" on any receipt to open a prefilled chat with the donor. Nothing to configure.',
+    integrationsTitle: 'Integrations', integrationsDesc: 'Delivery and storage services status.',
+    whatsappDelivery: 'WhatsApp Delivery', whatsappManualNote: 'Manual — click "Share via WhatsApp" on any receipt to open a prefilled donor chat.',
     fileStorage: 'File Storage', storageOk: 'Logos and receipt PDFs are stored permanently.',
-    storageMissing: "File uploads (logo, receipt PDFs) aren't saved permanently yet — contact support to fix this.",
-    orgInfoTitle: 'Organization Information', orgInfoDesc: 'Details displayed on receipt headers, WhatsApp messages, and official reports.',
-    logoTitle: 'Organization Logo / Emblem', logoDesc: 'Upload a PNG or JPG logo. Ideal size is square (e.g. 512x512px).',
+    storageMissing: "File uploads aren't saved permanently yet — contact support.",
+    orgInfoTitle: 'Organization Information', orgInfoDesc: 'Details displayed on receipts and official reports.',
+    logoTitle: 'Organization Logo', logoDesc: 'PNG or JPG logo (square 512x512px).',
     chooseFile: 'Choose File', uploading: 'Uploading...',
-    brandTitle: 'Brand & Appearance', brandDesc: 'This color drives buttons, the active nav highlight and focus rings across the whole portal — pick once, it updates everywhere.',
-    resetColor: 'Reset to default color',
-    bankTitle: 'Bank Details', bankDesc: 'Bank account and UPI details for organization collections.',
-    saveSettings: 'Save Settings', saving: 'Saving Settings...',
+    brandTitle: 'Brand & Appearance', brandDesc: 'Theme color for buttons and Portal highlights.',
+    resetColor: 'Reset color',
+    bankTitle: 'Bank Details', bankDesc: 'Bank account and UPI details for collections.',
+    saveSettings: 'Save Settings', saving: 'Saving...',
     areasTitle: 'Collection Areas', areasPlaceholder: 'Ward A, Market Area, etc.', addArea: 'Add Area', noAreas: 'No collection areas defined',
     areaCount: (c: number, r: number) => `${c} collectors · ${r} receipts`,
-    portalLangTitle: 'Portal Language', portalLangDesc: "The language you see the app's menus, buttons, and pages in — this device only. (Separate from the printed receipt's language, set below under Receipt Design.)",
-    categoriesTitle: 'Categories', categoriesDesc: 'Custom categories your team added from the Expense/Receipt forms. The built-in preset categories always stay available and aren’t listed here.',
+    portalLangTitle: 'Portal Language', portalLangDesc: "Language for app menus and buttons on this device.",
+    categoriesTitle: 'Categories', categoriesDesc: 'Custom categories added by your team.',
     expenseCategoriesLabel: 'Expense Categories', donationCategoriesLabel: 'Donation Categories', addCategory: 'Add', noCategories: 'No custom categories yet',
-    socialTitle: 'Social Media Links', socialDesc: 'Shown on the printed pavti and available as a tag in the WhatsApp message below.',
+    socialTitle: 'Social Media Links', socialDesc: 'Shown on printed receipts and WhatsApp messages.',
     instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', website: 'Website',
     tabGeneral: 'General', tabBank: 'Bank & Integrations', tabDesign: 'Receipt Design', tabInteractive: 'Interactive View', tabAreas: 'Areas & Categories',
-    interactiveNote: 'Optional and separate from your actual receipt. This only appears if someone opens the receipt link in a browser — it never changes the printed pavti, the downloaded PDF, or the WhatsApp message.',
+    interactiveNote: 'Web-only experience when donors open receipt links online.',
   },
   hi: {
-    integrationsTitle: 'एकीकरण', integrationsDesc: 'आपके खाते से जुड़ी डिलीवरी व स्टोरेज सेवाओं की स्थिति।',
-    whatsappDelivery: 'व्हाट्सएप डिलीवरी', whatsappManualNote: 'मैन्युअल — दानकर्ता के साथ पहले से भरी चैट खोलने के लिए किसी भी रसीद पर "व्हाट्सएप से शेयर करें" पर क्लिक करें। कुछ भी सेट करने की आवश्यकता नहीं।',
-    fileStorage: 'फ़ाइल संग्रहण', storageOk: 'लोगो और रसीद PDF स्थायी रूप से सहेजे जाते हैं।',
-    storageMissing: 'फ़ाइल अपलोड (लोगो, रसीद PDF) अभी स्थायी रूप से सहेजे नहीं जाते — ठीक करने के लिए सहायता से संपर्क करें।',
-    orgInfoTitle: 'संस्था की जानकारी', orgInfoDesc: 'रसीद हेडर, व्हाट्सएप संदेश और आधिकारिक रिपोर्ट पर दिखाई जाने वाली जानकारी।',
-    logoTitle: 'संस्था लोगो / प्रतीक', logoDesc: 'PNG या JPG लोगो अपलोड करें। आदर्श आकार वर्गाकार है (जैसे 512x512px)।',
+    integrationsTitle: 'एकीकरण', integrationsDesc: 'डिलीवरी व स्टोरेज सेवाओं की स्थिति।',
+    whatsappDelivery: 'व्हाट्सएप डिलीवरी', whatsappManualNote: 'मैन्युअल — दानकर्ता के साथ चैट खोलने के लिए रसीद पर "व्हाट्सएप शेयर" पर क्लिक करें।',
+    fileStorage: 'फ़ाइल संग्रहण', storageOk: 'लोगो व रसीद PDF स्थायी रूप से सहेजे जाते हैं।',
+    storageMissing: 'फ़ाइल अपलोड अभी स्थायी नहीं हैं — सहायता से संपर्क करें।',
+    orgInfoTitle: 'संस्था की जानकारी', orgInfoDesc: 'रसीद हेडर व रिपोर्ट पर दिखने वाली जानकारी।',
+    logoTitle: 'संस्था लोगो', logoDesc: 'PNG या JPG लोगो (वर्गाकार 512x512px)।',
     chooseFile: 'फ़ाइल चुनें', uploading: 'अपलोड हो रहा है...',
-    brandTitle: 'ब्रांड व स्वरूप', brandDesc: 'यह रंग पूरे पोर्टल में बटन, सक्रिय नेव हाइलाइट और फोकस रिंग तय करता है — एक बार चुनें, हर जगह लागू होगा।',
-    resetColor: 'डिफ़ॉल्ट रंग पर वापस जाएं',
-    bankTitle: 'बैंक विवरण', bankDesc: 'संस्था के संग्रह हेतु बैंक खाता व UPI विवरण।',
+    brandTitle: 'ब्रांड व स्वरूप', brandDesc: 'पूरे पोर्टल में बटन व हाइलाइट का रंग।',
+    resetColor: 'डिफ़ॉल्ट रंग पर जाएं',
+    bankTitle: 'बैंक विवरण', bankDesc: 'संग्रह हेतु बैंक खाता व UPI विवरण।',
     saveSettings: 'सेटिंग्स सहेजें', saving: 'सहेजा जा रहा है...',
-    areasTitle: 'संग्रह क्षेत्र', areasPlaceholder: 'वार्ड A, बाजार क्षेत्र, आदि।', addArea: 'क्षेत्र जोड़ें', noAreas: 'कोई संग्रह क्षेत्र परिभाषित नहीं',
+    areasTitle: 'संग्रह क्षेत्र', areasPlaceholder: 'वार्ड A, बाजार क्षेत्र, आदि।', addArea: 'क्षेत्र जोड़ें', noAreas: 'कोई संग्रह क्षेत्र नहीं',
     areaCount: (c: number, r: number) => `${c} संग्रहकर्ता · ${r} रसीदें`,
-    portalLangTitle: 'पोर्टल भाषा', portalLangDesc: 'ऐप के मेनू, बटन और पेज जिस भाषा में दिखेंगे — केवल इस डिवाइस पर। (नीचे रसीद डिज़ाइन में सेट होने वाली रसीद की भाषा से अलग।)',
-    categoriesTitle: 'श्रेणियां', categoriesDesc: 'आपकी टीम ने खर्च/रसीद फॉर्म से जोड़ी गई कस्टम श्रेणियां। बिल्ट-इन श्रेणियां हमेशा उपलब्ध रहती हैं, यहां सूचीबद्ध नहीं हैं।',
-    expenseCategoriesLabel: 'व्यय श्रेणियां', donationCategoriesLabel: 'दान श्रेणियां', addCategory: 'जोड़ें', noCategories: 'अभी तक कोई कस्टम श्रेणी नहीं',
-    socialTitle: 'सोशल मीडिया लिंक', socialDesc: 'प्रिंटेड पावती पर दिखेंगे और नीचे व्हाट्सएप संदेश में टैग के रूप में उपलब्ध हैं।',
+    portalLangTitle: 'पोर्टल भाषा', portalLangDesc: 'इस डिवाइस पर ऐप मेनू और बटन की भाषा।',
+    categoriesTitle: 'श्रेणियां', categoriesDesc: 'आपकी टीम द्वारा जोड़ी गई कस्टम श्रेणियां।',
+    expenseCategoriesLabel: 'व्यय श्रेणियां', donationCategoriesLabel: 'दान श्रेणियां', addCategory: 'जोड़ें', noCategories: 'कोई कस्टम श्रेणी नहीं',
+    socialTitle: 'सोशल मीडिया लिंक', socialDesc: 'रसीद व व्हाट्सएप संदेशों पर दिखेंगे।',
     instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
     tabGeneral: 'सामान्य', tabBank: 'बैंक व एकीकरण', tabDesign: 'रसीद डिज़ाइन', tabInteractive: 'इंटरैक्टिव दृश्य', tabAreas: 'क्षेत्र व श्रेणियां',
-    interactiveNote: 'वैकल्पिक और आपकी वास्तविक रसीद से अलग। यह केवल तब दिखता है जब कोई ब्राउज़र में रसीद लिंक खोलता है — यह छपी हुई पावती, डाउनलोड की गई PDF, या व्हाट्सएप संदेश को कभी नहीं बदलता।',
+    interactiveNote: 'ब्राउज़र में रसीद लिंक खोलने पर दिखने वाला वेब दृश्य।',
   },
   mr: {
-    integrationsTitle: 'इंटिग्रेशन्स', integrationsDesc: 'आपल्या खात्याशी जोडलेल्या डिलिव्हरी व स्टोरेज सेवांची स्थिती.',
-    whatsappDelivery: 'व्हॉट्सअॅप डिलिव्हरी', whatsappManualNote: 'मॅन्युअल — देणगीदाराशी आधीच भरलेली चॅट उघडण्यासाठी कोणत्याही पावतीवर "व्हॉट्सअॅपने शेअर करा" वर क्लिक करा. काहीही सेट करण्याची गरज नाही.',
-    fileStorage: 'फाइल स्टोरेज', storageOk: 'लोगो व पावती PDF कायमस्वरूपी साठवले जातात.',
-    storageMissing: 'फाइल अपलोड (लोगो, पावती PDF) अद्याप कायमस्वरूपी साठवले जात नाहीत — दुरुस्तीसाठी सपोर्टशी संपर्क साधा.',
-    orgInfoTitle: 'संस्थेची माहिती', orgInfoDesc: 'पावती हेडर, व्हॉट्सअॅप मेसेज व अधिकृत अहवालांवर दिसणारी माहिती.',
-    logoTitle: 'संस्थेचा लोगो / चिन्ह', logoDesc: 'PNG किंवा JPG लोगो अपलोड करा. योग्य आकार चौकोनी आहे (उदा. 512x512px).',
+    integrationsTitle: 'इंटिग्रेशन्स', integrationsDesc: 'डिलिव्हरी व स्टोरेज सेवांची स्थिती.',
+    whatsappDelivery: 'व्हॉट्सअॅप डिलिव्हरी', whatsappManualNote: 'मॅन्युअल — देणगीदाराशी चॅट उघडण्यासाठी पावतीवर "व्हॉट्सअॅपने शेअर करा" वर क्लिक करा.',
+    fileStorage: 'फाइल स्टोरेज', storageOk: 'लोगो व पावती PDF साठवले जातात.',
+    storageMissing: 'फाइल अपलोड कायमस्वरूपी साठवले जात नाहीत — सपोर्टशी संपर्क साधा.',
+    orgInfoTitle: 'संस्थेची माहिती', orgInfoDesc: 'पावती हेडर व अहवालांवर दिसणारी माहिती.',
+    logoTitle: 'संस्थेचा लोगो', logoDesc: 'PNG किंवा JPG लोगो (चौकोनी 512x512px).',
     chooseFile: 'फाइल निवडा', uploading: 'अपलोड होत आहे...',
-    brandTitle: 'ब्रँड व स्वरूप', brandDesc: 'हा रंग संपूर्ण पोर्टलमधील बटणे, सक्रिय नेव्ह हायलाइट व फोकस रिंग ठरवतो — एकदा निवडा, सर्वत्र लागू होईल.',
-    resetColor: 'मूळ रंगावर परत जा',
-    bankTitle: 'बँक तपशील', bankDesc: 'संस्थेच्या संकलनासाठी बँक खाते व UPI तपशील.',
+    brandTitle: 'ब्रँड व स्वरूप', brandDesc: 'संपूर्ण पोर्टलमधील बटणे व हायलाइटचा रंग.',
+    resetColor: 'मूळ रंगावर जा',
+    bankTitle: 'बँक तपशील', bankDesc: 'संकलनासाठी बँक खाते व UPI तपशील.',
     saveSettings: 'सेटिंग्स जतन करा', saving: 'जतन होत आहे...',
-    areasTitle: 'संकलन क्षेत्रे', areasPlaceholder: 'वॉर्ड A, मार्केट परिसर, इ.', addArea: 'क्षेत्र जोडा', noAreas: 'कोणतेही संकलन क्षेत्र नाही',
+    areasTitle: 'संकलन क्षेत्रे', areasPlaceholder: 'वार्ड A, मार्केट परिसर, इ.', addArea: 'क्षेत्र जोडा', noAreas: 'कोणतेही संकलन क्षेत्र नाही',
     areaCount: (c: number, r: number) => `${c} संग्राहक · ${r} पावत्या`,
-    portalLangTitle: 'पोर्टल भाषा', portalLangDesc: 'अ‍ॅपचे मेनू, बटणे व पाने कोणत्या भाषेत दिसतील — फक्त या डिव्हाइसवर. (खाली पावती डिझाइनमध्ये सेट होणाऱ्या पावतीच्या भाषेपेक्षा वेगळी.)',
-    categoriesTitle: 'श्रेणी', categoriesDesc: 'तुमच्या टीमने खर्च/पावती फॉर्ममधून जोडलेल्या कस्टम श्रेणी. मूळ (प्रीसेट) श्रेणी नेहमी उपलब्ध असतात, त्या इथे दाखवलेल्या नाहीत.',
-    expenseCategoriesLabel: 'खर्च श्रेणी', donationCategoriesLabel: 'देणगी श्रेणी', addCategory: 'जोडा', noCategories: 'अद्याप कोणतीही कस्टम श्रेणी नाही',
-    socialTitle: 'सोशल मीडिया लिंक्स', socialDesc: 'छापील पावतीवर दिसतील आणि खालील व्हॉट्सअॅप मेसेजमध्ये टॅग म्हणून उपलब्ध असतील.',
+    portalLangTitle: 'पोर्टल भाषा', portalLangDesc: 'या डिव्हाइसवरील अ‍ॅप मेनू व बटणांची भाषा.',
+    categoriesTitle: 'श्रेणी', categoriesDesc: 'तुमच्या टीमने जोडलेल्या कस्टम श्रेणी.',
+    expenseCategoriesLabel: 'खर्च श्रेणी', donationCategoriesLabel: 'देणगी श्रेणी', addCategory: 'जोडा', noCategories: 'कोणतीही कस्टम श्रेणी नाही',
+    socialTitle: 'सोशल मीडिया लिंक्स', socialDesc: 'छापील पावतीवर व व्हॉट्सअॅप मेसेजमध्ये दिसतील.',
     instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
     tabGeneral: 'सामान्य', tabBank: 'बँक व इंटिग्रेशन्स', tabDesign: 'पावती डिझाइन', tabInteractive: 'इंटरॅक्टिव्ह दृश्य', tabAreas: 'क्षेत्रे व श्रेणी',
-    interactiveNote: 'ऐच्छिक आणि तुमच्या प्रत्यक्ष पावतीपेक्षा वेगळे. कोणी ब्राउझरमध्ये पावतीची लिंक उघडली तरच हे दिसते — छापील पावती, डाउनलोड केलेली PDF किंवा व्हॉट्सअॅप मेसेज यावर याचा काहीही परिणाम होत नाही.',
+    interactiveNote: 'ब्राउझरमध्ये पावती लिंक उघडल्यावर दिसणारा वेब अनुभव.',
   },
 };
 
@@ -292,6 +292,7 @@ export default function SettingsPage() {
     setTimeout(() => setCodeCopied(false), 2000);
   };
   const [previewMode, setPreviewMode] = useState<'PAVTI' | 'WHATSAPP'>('PAVTI');
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
   // Which template id (if any) is showing full-screen — not a plain boolean,
   // since the play button on any gallery card previews *that* template,
   // independent of which one is currently selected/saved.
@@ -452,29 +453,28 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-theme-fg">
+      {/* Header with single sticky action button */}
+      <div className="sticky top-0 z-30 bg-theme-bg/90 backdrop-blur-md py-3 -mt-3 flex items-center justify-between gap-3 border-b border-theme-fg/10">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-theme-fg truncate">
             {language === 'mr' ? 'सेटिंग्स' : language === 'hi' ? 'सेटिंग्स' : 'Settings'}
           </h1>
-          <p className="text-xs sm:text-sm text-theme-fg/50 mt-1">
-            {language === 'mr' ? 'संस्थेची माहिती, ब्रँड रंग, बँक तपशील व पावती डिझाइन व्यवस्थापित करा.' : 'Manage your organization profile, brand color, bank details, and receipt design.'}
+          <p className="text-xs text-theme-fg/50 truncate hidden xs:block">
+            {language === 'mr' ? 'संस्थेची माहिती, बँक तपशील व पावती डिझाइन.' : 'Manage profile, bank details, and receipt design.'}
           </p>
         </div>
         <button
           onClick={() => updateMutation.mutate()}
           disabled={updateMutation.isPending}
-          className="btn-primary self-start sm:self-auto px-5 py-2.5 shadow-glow-saffron"
+          className="btn-primary px-4 sm:px-6 py-2.5 text-xs sm:text-sm font-bold shadow-glow-saffron shrink-0"
         >
           <Save size={16} />
-          {updateMutation.isPending ? sl.saving : sl.saveSettings}
+          <span>{updateMutation.isPending ? sl.saving : sl.saveSettings}</span>
         </button>
       </div>
 
-      {/* Tab bar — horizontally scrollable on narrow screens so it never
-          wraps into a second row or forces the page wider than the viewport. */}
-      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+      {/* Tab bar — horizontally scrollable touch-friendly tabs */}
+      <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none touch-pan-x">
         <div className="flex items-center gap-1.5 bg-theme-fg/5 p-1.5 rounded-xl border border-theme-fg/10 w-max min-w-full sm:w-fit">
           {([
             { id: 'general', label: sl.tabGeneral, icon: Building2 },
@@ -490,7 +490,7 @@ export default function SettingsPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`shrink-0 min-h-[42px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   active ? 'bg-saffron-600 text-white shadow-sm' : 'text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/5'
                 }`}
               >
@@ -516,7 +516,7 @@ export default function SettingsPage() {
             <p className="text-xs text-theme-fg/50 mt-0.5 max-w-lg">{sl.portalLangDesc}</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2.5 max-w-md">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-md">
           {PORTAL_LANGUAGES.map((l) => (
             <button
               key={l.code}
@@ -807,9 +807,9 @@ export default function SettingsPage() {
             <Building2 size={18} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-theme-fg">Receipt Design & Customization (पावती डिझाइन व मजकूर)</h3>
+            <h3 className="text-base font-semibold text-theme-fg">Receipt Design (पावती डिझाइन)</h3>
             <p className="text-xs text-theme-fg/50">
-              Customize language, theme, header tagline, titles, salutation, and footer message for printed & WhatsApp receipts.
+              Customize themes, mantras, titles &amp; WhatsApp messages.
             </p>
           </div>
         </div>
@@ -822,7 +822,7 @@ export default function SettingsPage() {
               <label className="form-label text-xs uppercase tracking-wider font-semibold text-theme-fg/70">
                 1. Pavti Language (पावतीची भाषा)
               </label>
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {[
                   { id: 'mr', label: 'मराठी', sub: 'Marathi', flag: '🚩' },
                   { id: 'hi', label: 'हिंदी', sub: 'Hindi', flag: '🇮🇳' },
@@ -956,10 +956,10 @@ export default function SettingsPage() {
                     </button>
                   </div>
 
-                  {/* Area A: Header Mantra / Shloka */}
+                  {/* Area A: Header Mantra */}
                   <div className="space-y-1.5">
                     <label className="form-label text-xs">
-                      Header Mantra / Tagline (मंत्र / ब्रीदवाक्य)
+                      Header Mantra (मंत्र / ब्रीदवाक्य)
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {(PAVTI_HEADER_TAGLINE_PRESETS[currentPavtiLang] || PAVTI_HEADER_TAGLINE_PRESETS.mr).map((preset) => {
@@ -969,7 +969,7 @@ export default function SettingsPage() {
                             key={preset.id}
                             type="button"
                             onClick={() => updateLine('headerTagline', preset.value)}
-                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
+                            className={`text-xs px-3 py-2 rounded-xl border transition-all min-h-[40px] flex items-center justify-center font-medium ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -991,7 +991,7 @@ export default function SettingsPage() {
                   {/* Area B: Receipt Title Line */}
                   <div className="space-y-1.5">
                     <label className="form-label text-xs">
-                      Receipt Title (पावतीचे नाव / शीर्षक)
+                      Receipt Title (पावतीचे नाव)
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {(PAVTI_TITLE_PRESETS[currentPavtiLang] || PAVTI_TITLE_PRESETS.mr).map((preset) => {
@@ -1001,7 +1001,7 @@ export default function SettingsPage() {
                             key={preset.value}
                             type="button"
                             onClick={() => updateLine('receiptTitle', preset.value)}
-                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
+                            className={`text-xs px-3 py-2 rounded-xl border transition-all min-h-[40px] flex items-center justify-center font-medium ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -1020,10 +1020,10 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  {/* Area C: Donor Salutation Prefix */}
+                  {/* Area C: Donor Salutation */}
                   <div className="space-y-1.5">
                     <label className="form-label text-xs">
-                      Donor Salutation Prefix (देणगीदार आदरातिथ्य)
+                      Donor Salutation (देणगीदार आदरातिथ्य)
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {(PAVTI_DONOR_PREFIX_PRESETS[currentPavtiLang] || PAVTI_DONOR_PREFIX_PRESETS.mr).map((preset) => {
@@ -1033,7 +1033,7 @@ export default function SettingsPage() {
                             key={preset.label}
                             type="button"
                             onClick={() => updateLine('donorPrefix', preset.value)}
-                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
+                            className={`text-xs px-3 py-2 rounded-xl border transition-all min-h-[40px] flex items-center justify-center font-medium ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -1052,10 +1052,10 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  {/* Area D: Footer Note / Thank You Blessing */}
+                  {/* Area D: Footer Note */}
                   <div className="space-y-1.5">
                     <label className="form-label text-xs">
-                      Footer Note / Message (तळटीप / आभार संदेश)
+                      Footer Note (तळटीप / आभार संदेश)
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {(PAVTI_FOOTER_NOTE_PRESETS[currentPavtiLang] || PAVTI_FOOTER_NOTE_PRESETS.mr).map((preset) => {
@@ -1065,7 +1065,7 @@ export default function SettingsPage() {
                             key={preset.label}
                             type="button"
                             onClick={() => updateLine('footerNote', preset.value)}
-                            className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
+                            className={`text-xs px-3 py-2 rounded-xl border transition-all min-h-[40px] flex items-center justify-center font-medium ${
                               active
                                 ? 'bg-saffron-500 text-white border-saffron-500 font-semibold shadow-sm'
                                 : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -1084,16 +1084,16 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  {/* 4. WhatsApp & Sharing Caption Message */}
+                  {/* 4. WhatsApp Caption Message */}
                   <div className="space-y-3 pt-4 border-t border-theme">
                     <div className="flex items-center justify-between">
                       <div>
                         <label className="form-label text-xs font-bold text-theme-fg flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                          4. WhatsApp & Sharing Caption Message (व्हॉट्सअॅप मेसेज व शेअर मजकूर)
+                          4. WhatsApp Caption Message
                         </label>
                         <p className="text-[11px] text-theme-fg/50">
-                          The caption text sent along with digital receipt links on WhatsApp & SMS.
+                          Message sent with digital receipts on WhatsApp &amp; SMS.
                         </p>
                       </div>
                       <button
@@ -1116,7 +1116,7 @@ export default function SettingsPage() {
                               key={preset.label}
                               type="button"
                               onClick={() => updateLine('shareMessage', preset.template)}
-                              className={`text-[11px] px-2.5 py-2.5 rounded-lg border transition-all ${
+                              className={`text-xs px-3 py-2 rounded-xl border transition-all min-h-[40px] flex items-center justify-center font-medium ${
                                 active
                                   ? 'bg-emerald-600 text-white border-emerald-600 font-semibold shadow-sm'
                                   : 'bg-theme-fg/5 hover:bg-theme-fg/10 border-theme-fg/10 text-theme-fg/70'
@@ -1130,11 +1130,11 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Placeholder badges */}
-                    <div className="p-2.5 rounded-xl bg-theme-fg/[0.02] border border-theme-fg/5 space-y-1.5">
+                    <div className="p-3 rounded-xl bg-theme-fg/[0.02] border border-theme-fg/5 space-y-2">
                       <span className="text-[10px] font-semibold text-theme-fg/50 uppercase tracking-wider block">
-                        Insert Dynamic Tags (क्लिक करून जोडा):
+                        Insert Dynamic Tags:
                       </span>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1.5">
                         {[
                           { tag: '{donorName}', label: 'देणगीदार नाव' },
                           { tag: '{amount}', label: 'रक्कम' },
@@ -1151,7 +1151,7 @@ export default function SettingsPage() {
                               const cur = currentLines.shareMessage ?? currentDefaults.shareMessage;
                               updateLine('shareMessage', cur + ' ' + item.tag);
                             }}
-                            className="text-[10px] px-2 py-0.5 rounded-md bg-theme-fg/5 hover:bg-theme-fg/10 border border-theme-fg/10 text-theme-fg font-mono transition-colors"
+                            className="text-xs px-2.5 py-1.5 rounded-lg bg-theme-fg/5 hover:bg-theme-fg/10 border border-theme-fg/10 text-theme-fg font-mono transition-colors min-h-[34px]"
                             title={`Click to insert ${item.tag}`}
                           >
                             <span className="text-saffron-400 font-bold">{item.tag}</span> <span className="text-theme-fg/40">({item.label})</span>
@@ -1292,16 +1292,16 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-xs uppercase tracking-wider font-semibold text-theme-fg/70">
-              4-Slide cinematic devotional experience (3D Wax Seal Envelope ➔ Darshan with Diya ➔ Digital Pavti ➔ Ashirwad)
+              4-Slide Devotional Experience (3D Wax Seal ➔ Darshan ➔ Pavti ➔ Ashirwad)
             </span>
             <button
               type="button"
               onClick={() => setPreviewTemplateId(form.receiptTemplateSettings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON')}
-              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-900/20 transition-all hover:scale-[1.02] shrink-0"
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-amber-900/20 transition-all shrink-0 min-h-[38px] w-full sm:w-auto"
             >
-              <Eye size={13} />
+              <Eye size={14} />
               <span>सध्याची निवड पहा (Preview Current)</span>
             </button>
           </div>
@@ -1419,18 +1419,6 @@ export default function SettingsPage() {
       </div>
       )}
 
-      {/* 5. Save Button */}
-      <div className="pt-2">
-        <button
-          onClick={() => updateMutation.mutate()}
-          disabled={updateMutation.isPending}
-          className="btn-primary px-8 py-3 text-sm font-bold shadow-glow-saffron"
-        >
-          <Save size={18} />
-          {updateMutation.isPending ? sl.saving : sl.saveSettings}
-        </button>
-      </div>
-
       {/* 6. Collection Areas */}
       {activeTab === 'areas' && (
       <div className="glass-card p-6 sm:p-8">
@@ -1531,6 +1519,82 @@ export default function SettingsPage() {
           ))}
         </div>
       </div>
+      )}
+
+      {/* Floating Mobile Live Preview Button (for Design tab on mobile screens) */}
+      {activeTab === 'design' && (
+        <div className="fixed bottom-20 right-4 z-40 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobilePreviewOpen(true)}
+            className="btn-primary px-4 py-2.5 text-xs font-bold shadow-2xl rounded-full flex items-center gap-2 border border-saffron-300"
+          >
+            <Eye size={15} />
+            <span>Show Live Preview</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Live Preview Drawer Modal */}
+      {mobilePreviewOpen && (
+        <div className="fixed inset-0 z-[90] bg-black/80 backdrop-blur-sm flex flex-col justify-end lg:hidden animate-fade-in">
+          <div className="bg-[var(--bg-color)] border-t border-theme rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-theme">
+              <h3 className="text-sm font-bold text-theme-fg flex items-center gap-2">
+                <Eye size={16} className="text-saffron-500" /> Live Receipt Preview
+              </h3>
+              <button
+                type="button"
+                onClick={() => setMobilePreviewOpen(false)}
+                className="p-1.5 rounded-full hover:bg-theme-fg/10 text-theme-fg/60"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-full flex items-center justify-center gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode('PAVTI')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${previewMode === 'PAVTI' ? 'bg-saffron-500 text-white' : 'bg-theme-fg/10 text-theme-fg/60'}`}
+                >
+                  📄 Pavti Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode('WHATSAPP')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${previewMode === 'WHATSAPP' ? 'bg-emerald-600 text-white' : 'bg-theme-fg/10 text-theme-fg/60'}`}
+                >
+                  💬 WhatsApp Msg
+                </button>
+              </div>
+              {previewMode === 'PAVTI' ? (
+                <div className="w-full max-w-[340px]">
+                  <ReceiptPreview receipt={previewReceipt} />
+                </div>
+              ) : (
+                <div className="w-full max-w-[340px] bg-[#0b141a] p-3 rounded-2xl border border-emerald-900/30 text-[#e9edef] text-xs font-devanagari">
+                  <div className="bg-[#005c4b] p-3 rounded-2xl whitespace-pre-wrap leading-relaxed">
+                    {formatShareMessage(
+                      (form.receiptTemplateSettings?.languages?.[form.receiptTemplateSettings?.language || 'mr'] || form.receiptTemplateSettings || {}).shareMessage || LANGUAGE_DEFAULT_LINES.mr.shareMessage,
+                      {
+                        donorName: 'Saurabh Deshpande',
+                        amount: 501,
+                        receiptNumber: 'SGM-2026-0001',
+                        organizationName: form.name || org?.name || 'श्री गणेश मंडळ',
+                        receiptUrl: 'https://pavtibook.com/receipt/sample-id',
+                        date: new Date().toLocaleDateString('en-IN'),
+                        category: 'GENERAL',
+                        socialLinksText: formatSocialLinksText(form.socialLinks),
+                      },
+                      form.receiptTemplateSettings?.language || 'mr',
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Full-screen Interactive Pavti Live Preview Modal — previews whichever

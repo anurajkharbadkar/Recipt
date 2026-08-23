@@ -6,7 +6,7 @@
 // there's no committed .env.example for this app to document them in, and a
 // deploy that forgot to set the env var should still reach a real number.
 export const PLATFORM_UPI_ID = process.env.NEXT_PUBLIC_PLATFORM_UPI_ID || 'your-upi-id@bank';
-export const PLATFORM_WHATSAPP = process.env.NEXT_PUBLIC_PLATFORM_WHATSAPP || '918999842228';
+export const PLATFORM_WHATSAPP = process.env.NEXT_PUBLIC_PLATFORM_WHATSAPP || '919225398060';
 export const PLATFORM_EMAIL = process.env.NEXT_PUBLIC_PLATFORM_EMAIL || 'payments@example.com';
 
 export function platformWhatsappLink(message: string): string {

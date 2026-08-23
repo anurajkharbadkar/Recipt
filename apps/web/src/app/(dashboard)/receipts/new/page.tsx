@@ -347,7 +347,7 @@ export default function NewReceiptPage() {
                     // stayed empty, so validation still failed with "Enter a
                     // valid amount" even though a number was visibly there.
                     onClick={() => setValue('amount', amt, { shouldValidate: true, shouldDirty: true })}
-                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-saffron-600/10 text-saffron-400 border border-saffron-600/20 hover:bg-saffron-600/20 transition-colors"
+                    className="px-3.5 py-2 min-h-[38px] rounded-xl text-xs font-bold bg-saffron-600/10 text-saffron-400 border border-saffron-600/20 hover:bg-saffron-600/20 active:scale-95 transition-all flex items-center justify-center"
                   >
                     ₹{amt.toLocaleString('en-IN')}
                   </button>
