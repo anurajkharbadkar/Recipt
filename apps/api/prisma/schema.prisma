@@ -277,7 +277,7 @@ model Campaign {
   targetAmount  Float?
   receiptPrefix String
   receiptSeq    Int            @default(0)
-  status        CampaignStatus @default(DRAFT)
+  status        CampaignStatus @default(ACTIVE)
   description   String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt

@@ -29,7 +29,9 @@ async function main() {
   // Create Demo Organization
   const org = await prisma.organization.upsert({
     where: { phone: '9876543210' },
-    update: {},
+    update: {
+      subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
     create: {
       name: 'Shree Ganesh Mandal, Pune',
       nameMarathi: 'श्री गणेश मंडळ, पुणे',
@@ -43,7 +45,7 @@ async function main() {
       phone: '9876543210',
       email: 'ganesh.mandal@example.com',
       subscriptionPlan: 'STANDARD',
-      subscriptionExpiry: new Date('2027-12-31'),
+      subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
 

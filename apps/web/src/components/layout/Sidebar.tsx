@@ -176,7 +176,7 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs"
+          className="fixed inset-0 bg-black/75 z-40 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}

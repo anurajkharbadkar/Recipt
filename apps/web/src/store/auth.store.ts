@@ -43,6 +43,9 @@ interface AuthState {
   // before treating `false` as "actually logged out", or every refresh/direct
   // URL visit bounces a logged-in user to /login (see (dashboard)/layout.tsx).
   hasHydrated: boolean;
+  completedTours: Record<string, boolean>;
+  markTourCompleted: (pageKey: string) => void;
+  resetTours: () => void;
   setHasHydrated: (v: boolean) => void;
 
   setAuth: (data: {
@@ -69,6 +72,12 @@ export const useAuthStore = create<AuthState>()(
       language: 'mr',
       isAuthenticated: false,
       hasHydrated: false,
+      completedTours: {},
+      markTourCompleted: (pageKey) =>
+        set((state) => ({
+          completedTours: { ...state.completedTours, [pageKey]: true },
+        })),
+      resetTours: () => set({ completedTours: {} }),
       setHasHydrated: (v) => set({ hasHydrated: v }),
 
       setAuth: ({ user, organization, accessToken, refreshToken }) =>
@@ -100,6 +109,7 @@ export const useAuthStore = create<AuthState>()(
         activeCampaignId: state.activeCampaignId,
         language: state.language,
         isAuthenticated: state.isAuthenticated,
+        completedTours: state.completedTours,
       }),
       onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
     },

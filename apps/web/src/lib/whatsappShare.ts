@@ -58,8 +58,11 @@ function buildCaption(params: WhatsAppShareParams): { message: string; waUrl: st
     message += payLine;
   }
 
-  const cleanPhone = params.donorPhone.replace(/\D/g, '');
-  const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+  const cleanPhone = params.donorPhone ? params.donorPhone.replace(/\D/g, '') : '';
+  const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+  const waUrl = formattedPhone
+    ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+    : `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
   return { message, waUrl };
 }
 
@@ -107,24 +110,23 @@ async function getReceiptImageBlob(receiptId: string): Promise<Blob> {
 }
 
 /**
- * The real "Share via WhatsApp" action: attaches a PNG of the pavti with the
- * caption message (which already includes the digital pavti link, if the org
- * has kept {receiptUrl} in their message template) — an image + caption, not
- * just a bare link, because that's what an actual pavti handover looks like.
- *
- * wa.me links can only pre-fill text, never a file — WhatsApp doesn't expose
- * that. So the real mechanism is the OS-level Web Share API: on a phone this
- * opens the native share sheet with the image already attached and the
- * caption filled in; the collector picks WhatsApp and the chat opens ready
- * to send. Desktop browsers largely don't support sharing files this way, so
- * there the image downloads and the WhatsApp chat opens with the caption —
- * a two-step manual attach, same "click share, nothing automated" spirit as
- * the rest of this integration.
- *
- * Call {@link prefetchReceiptImage} as early as possible (page load, not
- * click time) — see that function's comment for why it matters here.
+ * Direct WhatsApp opening: Launches WhatsApp directly targeting the donor's
+ * phone number with the pre-filled receipt message.
+ * Does NOT open the OS-level multi-app share menu.
  */
 export async function shareReceiptViaWhatsApp(params: WhatsAppShareParams): Promise<void> {
+  const { waUrl } = buildCaption(params);
+  if (typeof window !== 'undefined') {
+    window.open(waUrl, '_blank');
+  }
+}
+
+/**
+ * Generic OS Sharing (Web Share API): Opens the native system share sheet
+ * with all installed apps (Telegram, Mail, Messages, Bluetooth, etc.) and
+ * attaches the pavti image when available.
+ */
+export async function shareReceiptGeneric(params: WhatsAppShareParams): Promise<void> {
   const { message, waUrl } = buildCaption(params);
 
   let imageFile: File | null = null;
@@ -141,17 +143,20 @@ export async function shareReceiptViaWhatsApp(params: WhatsAppShareParams): Prom
 
   if (canShareFile && imageFile) {
     try {
-      await nav!.share({ files: [imageFile], text: message });
+      await nav!.share({ files: [imageFile], text: message, title: `Pavti #${params.receiptNumber}` });
       return;
     } catch (err) {
       const name = (err as { name?: string })?.name;
-      // AbortError = the user closed the share sheet themselves — respect that,
-      // don't force wa.me open on top of a deliberate cancel.
       if (name === 'AbortError') return;
-      // NotAllowedError here almost always means the click's user-activation
-      // window expired before share() fired (see prefetchReceiptImage above)
-      // — logged so this is diagnosable instead of silently "just not working".
       console.error('navigator.share() failed, falling back to manual attach:', err);
+    }
+  } else if (nav?.share) {
+    try {
+      await nav.share({ text: message, title: `Pavti #${params.receiptNumber}` });
+      return;
+    } catch (err) {
+      const name = (err as { name?: string })?.name;
+      if (name === 'AbortError') return;
     }
   }
 
@@ -162,9 +167,9 @@ export async function shareReceiptViaWhatsApp(params: WhatsAppShareParams): Prom
     a.download = imageFile.name;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('Pavti image downloaded — attach it in the WhatsApp chat that just opened.', { duration: 6000 });
+    toast.success('Pavti image downloaded — choose an app to share.', { duration: 5000 });
   } else {
-    toast.error('Could not generate the pavti image — sending text + link only.', { duration: 5000 });
+    toast.error('Could not generate the pavti image — opening web share.', { duration: 5000 });
   }
   window.open(waUrl, '_blank');
 }

@@ -12,7 +12,9 @@ import {
 } from '@pavti/shared';
 import { playSealCrackSound, playTempleBell, playAshirwadChimes } from '@/lib/templeAudio';
 import { buildUpiPaymentLink } from '@/lib/upi';
+import { donationPaymentApi } from '@/lib/api';
 import { QRCodeSVG } from 'qrcode.react';
+import { shareReceiptViaWhatsApp, shareReceiptGeneric } from '@/lib/whatsappShare';
 import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-react';
 // Real static files under public/, not base64 embedded in JS — these were
 // briefly wired up as ~140KB + ~34KB base64 string constants imported from
@@ -356,6 +358,31 @@ export default function InteractivePavtiView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSlide, isSoundMuted]);
 
+  // Cashfree Production Online Payment Order State
+  const [cashfreeOrder, setCashfreeOrder] = useState<{
+    qr: string | null;
+    intent: { default?: string; gpay?: string; phonepe?: string; paytm?: string; bhim?: string; web?: string } | null;
+  } | null>(null);
+  const [cashfreeLoading, setCashfreeLoading] = useState(false);
+  const [showDirectUpi, setShowDirectUpi] = useState(false);
+
+  useEffect(() => {
+    if (isUnpaid && org.paymentEnabled && receipt.donorPhone) {
+      setCashfreeLoading(true);
+      donationPaymentApi
+        .createOrder(receipt.id)
+        .then((res) => {
+          setCashfreeOrder(res);
+        })
+        .catch((err) => {
+          console.warn('Cashfree online donation order creation skipped/unavailable:', err);
+        })
+        .finally(() => {
+          setCashfreeLoading(false);
+        });
+    }
+  }, [isUnpaid, org.paymentEnabled, receipt.donorPhone, receipt.id]);
+
   // Kill any in-flight timelines on unmount (e.g. navigating away from the
   // receipt page mid-animation) rather than letting them tick against
   // detached refs.
@@ -365,21 +392,36 @@ export default function InteractivePavtiView({
     };
   }, []);
 
-  // WhatsApp Share Handler
+  // WhatsApp Share Handler (Direct to Donor's WhatsApp Number)
   const handleShareWhatsApp = () => {
-    const receiptUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const shareText = formatShareMessage(settings.shareMessage, {
+    shareReceiptViaWhatsApp({
+      donorPhone: receipt.donorPhone || '',
       donorName: receipt.donorName,
       amount: receipt.amount,
       receiptNumber: receipt.receiptNumber,
-      date: formattedDate,
-      organizationName: org.nameMarathi || org.name,
-      campaignName: campaign.nameMarathi || campaign.name,
-      receiptUrl,
+      receiptId: receipt.id,
+      category: receipt.category,
+      createdAt: receipt.createdAt,
+      status: receipt.status,
+      organization: org as any,
+      language,
     });
+  };
 
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-    window.open(whatsappUrl, '_blank');
+  // Generic OS Share Handler (Triggers Native Share Picker for other apps)
+  const handleShareGeneric = () => {
+    shareReceiptGeneric({
+      donorPhone: receipt.donorPhone || '',
+      donorName: receipt.donorName,
+      amount: receipt.amount,
+      receiptNumber: receipt.receiptNumber,
+      receiptId: receipt.id,
+      category: receipt.category,
+      createdAt: receipt.createdAt,
+      status: receipt.status,
+      organization: org as any,
+      language,
+    });
   };
 
   // Print Handler
@@ -1509,32 +1551,116 @@ export default function InteractivePavtiView({
                 </p>
               </div>
 
-              {/* UPI Payment QR — unpaid receipts only, and only once the
-                  Mandal has a UPI ID configured (Settings). QR only,
-                  deliberately no raw VPA text alongside it — the QR itself
-                  is what a donor's phone actually needs; printing the
-                  mandal's UPI ID as plain text on every pavti has no real
-                  upside and is one more thing to accidentally mistype
-                  copying by hand. Direct UPI deep link, not Cashfree — see
-                  lib/upi.ts for why (no payment-aggregator approval on this
-                  account, so this never touches the app's own account at
-                  all). */}
-              {isUnpaid && org.upiId && (
-                <div className="my-2.5 p-3 bg-white/60 border border-amber-700/30 rounded-lg flex flex-col items-center gap-1.5">
-                  <span className="text-[0.62rem] text-amber-900 font-bold uppercase tracking-wider">
-                    यूपीआय स्कॅन करा / Scan to Pay via UPI
-                  </span>
-                  <div className="p-2 bg-white rounded-md">
-                    <QRCodeSVG
-                      value={buildUpiPaymentLink({
-                        upiId: org.upiId,
-                        payeeName: org.name || 'Mandal',
-                        amount: receipt.amount,
-                        note: receipt.receiptNumber,
-                      })}
-                      size={104}
-                    />
-                  </div>
+              {/* Online Payment Section for Unpaid Receipts */}
+              {isUnpaid && (
+                <div className="my-2.5 p-3 bg-white/75 border border-amber-700/30 rounded-xl flex flex-col items-center gap-2 shadow-sm">
+                  {/* Cashfree Verified Online Payment Gateway (Primary Flow) */}
+                  {org.paymentEnabled && cashfreeOrder ? (
+                    <div className="w-full text-center space-y-2">
+                      <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-[0.68rem]">
+                        <Sparkles size={12} className="text-amber-500 animate-pulse" />
+                        <span>ऑनलाइन वर्गणी द्या (Cashfree Auto-Verified)</span>
+                      </div>
+
+                      {/* Cashfree Official Dynamic QR Code */}
+                      {cashfreeOrder.qr ? (
+                        <div className="p-2 bg-white rounded-lg inline-block border border-amber-900/10 shadow-sm mx-auto">
+                          <img
+                            src={cashfreeOrder.qr.startsWith('data:') ? cashfreeOrder.qr : `data:image/png;base64,${cashfreeOrder.qr}`}
+                            alt="Cashfree Dynamic UPI QR"
+                            className="w-24 h-24 object-contain mx-auto"
+                          />
+                          <p className="text-[0.58rem] text-emerald-800 font-medium mt-1">स्कॅन करून ऑनलाईन भरणा करा</p>
+                        </div>
+                      ) : null}
+
+                      {/* Cashfree Official UPI Intent App Buttons */}
+                      {cashfreeOrder.intent && (
+                        <div className="flex flex-wrap gap-1.5 justify-center pt-1">
+                          {cashfreeOrder.intent.gpay && (
+                            <button
+                              type="button"
+                              onClick={() => { window.location.href = cashfreeOrder.intent!.gpay || cashfreeOrder.intent!.default!; }}
+                              className="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white text-[0.62rem] font-bold shadow-sm"
+                            >
+                              GPay
+                            </button>
+                          )}
+                          {cashfreeOrder.intent.phonepe && (
+                            <button
+                              type="button"
+                              onClick={() => { window.location.href = cashfreeOrder.intent!.phonepe || cashfreeOrder.intent!.default!; }}
+                              className="px-2.5 py-1 rounded bg-purple-800 hover:bg-purple-700 text-white text-[0.62rem] font-bold shadow-sm"
+                            >
+                              PhonePe
+                            </button>
+                          )}
+                          {cashfreeOrder.intent.paytm && (
+                            <button
+                              type="button"
+                              onClick={() => { window.location.href = cashfreeOrder.intent!.paytm || cashfreeOrder.intent!.default!; }}
+                              className="px-2.5 py-1 rounded bg-sky-800 hover:bg-sky-700 text-white text-[0.62rem] font-bold shadow-sm"
+                            >
+                              Paytm
+                            </button>
+                          )}
+                          {(cashfreeOrder.intent.web || cashfreeOrder.intent.default) && (
+                            <button
+                              type="button"
+                              onClick={() => { window.location.href = cashfreeOrder.intent!.web || cashfreeOrder.intent!.default!; }}
+                              className="px-2.5 py-1 rounded bg-amber-900 hover:bg-amber-800 text-amber-100 text-[0.62rem] font-bold shadow-sm"
+                            >
+                              Pay Online
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : cashfreeLoading ? (
+                    <div className="py-2 text-center text-[0.65rem] text-amber-900/60 flex items-center justify-center gap-2">
+                      <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                      <span>कॅशफ्री पेमेंट लोड होत आहे...</span>
+                    </div>
+                  ) : null}
+
+                  {/* Optional Direct Mandal VPA UPI Link (Manual Verification Mode) */}
+                  {org.upiId && (
+                    <div className="w-full pt-1 border-t border-amber-700/15 text-center">
+                      {!showDirectUpi ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowDirectUpi(true)}
+                          className="text-[0.6rem] text-amber-900/70 hover:text-amber-900 underline font-medium"
+                        >
+                          थेट मॅन्युअल UPI QR (Direct VPA - Manual Verification)
+                        </button>
+                      ) : (
+                        <div className="space-y-1 pt-1">
+                          <span className="text-[0.58rem] text-amber-900 font-bold block">
+                            Direct Mandal VPA (Requires Manual Verification by Treasurer)
+                          </span>
+                          <div className="p-1.5 bg-white rounded-md inline-block">
+                            <QRCodeSVG
+                              value={buildUpiPaymentLink({
+                                upiId: org.upiId,
+                                payeeName: org.name || 'Mandal',
+                                amount: receipt.amount,
+                                note: receipt.receiptNumber,
+                              })}
+                              size={88}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowDirectUpi(false)}
+                            className="text-[0.55rem] text-amber-900/50 hover:underline block mx-auto"
+                          >
+                            Hide Direct QR
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1567,7 +1693,7 @@ export default function InteractivePavtiView({
                 <button
                   type="button"
                   onClick={handlePrint}
-                  className="flex-1 py-1.5 px-3 bg-[#5c1220] text-amber-100 rounded text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#7c1a2c] transition-colors"
+                  className="flex-1 py-1.5 px-2.5 bg-[#5c1220] text-amber-100 rounded text-xs font-semibold flex items-center justify-center gap-1 hover:bg-[#7c1a2c] transition-colors"
                 >
                   <Download size={13} />
                   <span>प्रिंट / सेव्ह</span>
@@ -1575,10 +1701,18 @@ export default function InteractivePavtiView({
                 <button
                   type="button"
                   onClick={handleShareWhatsApp}
-                  className="flex-1 py-1.5 px-3 bg-emerald-700 text-white rounded text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-emerald-600 transition-colors"
+                  className="flex-1 py-1.5 px-2.5 bg-emerald-700 text-white rounded text-xs font-semibold flex items-center justify-center gap-1 hover:bg-emerald-600 transition-colors"
                 >
                   <Share2 size={13} />
                   <span>व्हॉट्सअॅप</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShareGeneric}
+                  className="py-1.5 px-2.5 bg-amber-900/60 text-amber-200 border border-amber-600/30 rounded text-xs font-semibold flex items-center justify-center gap-1 hover:bg-amber-800/80 transition-colors"
+                >
+                  <Share2 size={13} />
+                  <span>इतर</span>
                 </button>
               </div>
             </div>
@@ -1642,22 +1776,31 @@ export default function InteractivePavtiView({
               - {org.nameMarathi || org.name}
             </p>
 
-            {/* Big WhatsApp Share CTA Button */}
-            <div className="mt-6 w-full space-y-3">
+            {/* Action Buttons */}
+            <div className="mt-5 w-full space-y-2.5">
               <button
                 ref={blessBtnRef}
                 type="button"
                 onClick={handleShareWhatsApp}
-                className="royal-share-btn w-full justify-center"
+                className="royal-share-btn w-full justify-center bg-emerald-700 hover:bg-emerald-600 text-white"
               >
                 <Share2 size={16} />
-                <span>ही पावती व्हॉट्सअॅपवर शेअर करा</span>
+                <span>ही पावती व्हॉट्सअॅपवर पाठवा</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShareGeneric}
+                className="w-full py-2.5 px-4 rounded-full bg-amber-900/60 hover:bg-amber-800/80 border border-amber-500/40 text-amber-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow"
+              >
+                <Share2 size={14} />
+                <span>इतर अॅप्सवर शेअर करा (Other Apps)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => goToSlide(2)}
-                className="text-xs text-amber-300/80 hover:text-amber-200 underline pt-2 block mx-auto"
+                className="text-xs text-amber-300/80 hover:text-amber-200 underline pt-1 block mx-auto"
               >
                 पुन्हा पावती पहा (View Receipt Again)
               </button>

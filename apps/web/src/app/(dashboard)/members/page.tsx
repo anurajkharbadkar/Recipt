@@ -285,7 +285,7 @@ function EditCollectorModal({ collector, areas, language, sl, common, isSaving, 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-black/75 flex items-center justify-center p-4" onClick={onClose}>
       <div className="glass-card p-6 w-full max-w-md animate-slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-theme-fg">{sl.editTitle}</h3>

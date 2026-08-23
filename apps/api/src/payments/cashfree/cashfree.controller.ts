@@ -1,7 +1,7 @@
-import { BadRequestException, Body, Controller, Get, Logger, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Logger, Param, Post, UseGuards, Headers } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
-import { CashfreeService } from './cashfree.service';
+import { CashfreeService, parseDeviceHeaders } from './cashfree.service';
 import { CreateCashfreeOrderDto } from './dto/create-order.dto';
 import { CreateCashfreeSplitDto, SplitEntryDto } from './dto/create-split.dto';
 import { UpiSessionDto } from './dto/upi-session.dto';
@@ -126,8 +126,8 @@ export class CashfreeController {
    */
   @Post('upi/qr')
   @ApiOperation({ summary: '[Sandbox test only] Generate a dynamic UPI QR for an order session' })
-  async generateUpiQr(@Body() body: UpiSessionDto) {
-    return this.cashfreeService.generateUpiQr(body.paymentSessionId);
+  async generateUpiQr(@Body() body: UpiSessionDto, @Headers('user-agent') userAgent?: string) {
+    return this.cashfreeService.generateUpiQr(body.paymentSessionId, parseDeviceHeaders(userAgent));
   }
 
   /**
@@ -136,8 +136,8 @@ export class CashfreeController {
    */
   @Post('upi/intent')
   @ApiOperation({ summary: '[Sandbox test only] Generate UPI intent links for an order session' })
-  async generateUpiIntent(@Body() body: UpiSessionDto) {
-    return this.cashfreeService.generateUpiIntent(body.paymentSessionId);
+  async generateUpiIntent(@Body() body: UpiSessionDto, @Headers('user-agent') userAgent?: string) {
+    return this.cashfreeService.generateUpiIntent(body.paymentSessionId, parseDeviceHeaders(userAgent));
   }
 
   /**

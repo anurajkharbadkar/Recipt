@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { receiptsApi } from '@/lib/api';
-import { shareReceiptViaWhatsApp, prefetchReceiptImage } from '@/lib/whatsappShare';
+import { shareReceiptViaWhatsApp, shareReceiptGeneric, prefetchReceiptImage } from '@/lib/whatsappShare';
 import { useAuthStore } from '@/store/auth.store';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import { ArrowLeft, Share2, Printer, XCircle, Loader2 } from 'lucide-react';
@@ -63,12 +63,28 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
     onError: () => toast.error('Failed to update status'),
   });
 
-  const handleShare = async () => {
+  const handleShareWhatsApp = async () => {
     if (!receipt?.donorPhone) { toast.error('No phone number on this receipt'); return; }
+    await shareReceiptViaWhatsApp({
+      donorPhone: receipt.donorPhone,
+      donorName: receipt.donorName,
+      amount: receipt.amount,
+      receiptNumber: receipt.receiptNumber,
+      receiptId: params.id,
+      category: receipt.category,
+      createdAt: receipt.createdAt,
+      status: receipt.status,
+      organization: (receipt.campaign?.organization || organization) as any,
+      language: receiptLanguage,
+    });
+  };
+
+  const handleShareGeneric = async () => {
+    if (!receipt) return;
     setSharing(true);
     try {
-      await shareReceiptViaWhatsApp({
-        donorPhone: receipt.donorPhone,
+      await shareReceiptGeneric({
+        donorPhone: receipt.donorPhone || '',
         donorName: receipt.donorName,
         amount: receipt.amount,
         receiptNumber: receipt.receiptNumber,
@@ -116,10 +132,13 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
         </div>
         <div className="flex gap-2">
           {receipt.donorPhone && (
-            <button onClick={handleShare} disabled={sharing} className="btn-secondary text-sm gap-1.5 px-3 py-2">
-              {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} WhatsApp
+            <button onClick={handleShareWhatsApp} className="btn-primary text-xs font-semibold gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white">
+              <Share2 size={14} /> WhatsApp
             </button>
           )}
+          <button onClick={handleShareGeneric} disabled={sharing} className="btn-secondary text-xs gap-1.5 px-3 py-2">
+            {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} {receiptLanguage === 'mr' ? 'इतर शेअर' : 'Other Apps'}
+          </button>
           <button onClick={handlePrint} className="btn-ghost p-2">
             <Printer size={18} />
           </button>

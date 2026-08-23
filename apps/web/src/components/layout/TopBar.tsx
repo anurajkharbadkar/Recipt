@@ -1,11 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { campaignsApi } from '@/lib/api';
 import LogoMark from '@/components/brand/LogoMark';
 import { BRAND_NAME } from '@pavti/shared';
+import { Sparkles } from 'lucide-react';
 
 const campaignLabel = { en: 'Event:', hi: 'इवेंट / उत्सव:', mr: 'इवेंट / उत्सव:' };
 const noCampaignLabel = { en: 'No active event', hi: 'कोई सक्रिय इवेंट नहीं', mr: 'सक्रिय इवेंट / उपक्रम नाही' };
@@ -20,6 +22,15 @@ export default function TopBar() {
   });
 
   const activeCampaigns = campaigns?.filter((c: any) => c.status === 'ACTIVE') || [];
+
+  useEffect(() => {
+    if (activeCampaigns.length > 0) {
+      const exists = activeCampaigns.some((c: any) => c.id === activeCampaignId);
+      if (!exists) {
+        setActiveCampaign(activeCampaigns[0].id);
+      }
+    }
+  }, [activeCampaigns, activeCampaignId, setActiveCampaign]);
 
   return (
     <header className="h-16 border-b border-theme/40 px-3.5 sm:px-6 flex items-center justify-between bg-white dark:bg-[#1A120B] sticky top-0 z-30 transition-all shadow-xs">
@@ -56,7 +67,15 @@ export default function TopBar() {
             </select>
           </div>
         ) : (
-          <span className="text-xs text-theme-fg/40">{l.noCampaign}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{l.noCampaign}</span>
+            <Link
+              href="/campaigns"
+              className="text-xs font-semibold px-2.5 py-1 rounded-md bg-saffron-500/10 text-saffron-700 dark:text-saffron-300 hover:bg-saffron-500/20 transition-all flex items-center gap-1"
+            >
+              + {language === 'mr' ? 'नवीन उत्सव तयार करा' : language === 'hi' ? 'इवेंट बनाएं' : 'Create Event'}
+            </Link>
+          </div>
         )}
       </div>
 
@@ -76,6 +95,16 @@ export default function TopBar() {
             </select>
           </div>
         )}
+
+        {/* Tour Guidance Trigger */}
+        <button
+          onClick={() => useAuthStore.setState({ completedTours: {} })}
+          className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg bg-saffron-500/10 text-saffron-700 dark:text-saffron-300 hover:bg-saffron-500/20 transition-all border border-saffron-500/20 shrink-0"
+          title="Re-open guided tour"
+        >
+          <Sparkles size={12} />
+          <span>{language === 'mr' ? 'मार्गदर्शन' : language === 'hi' ? 'गाइड' : 'Tour'}</span>
+        </button>
 
         {/* User Pill (Tablet/Desktop) */}
         {user && (

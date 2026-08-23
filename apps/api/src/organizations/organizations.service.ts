@@ -89,13 +89,23 @@ export class OrganizationsService {
       }
     }
 
+    const dataToUpdate: Record<string, any> = {
+      ...dto,
+      upiId: dto.upiId === '' ? null : dto.upiId,
+      email: dto.email === '' ? null : dto.email,
+      regNumber: dto.regNumber === '' ? null : dto.regNumber,
+      bankName: dto.bankName === '' ? null : dto.bankName,
+      bankAccountNumber: dto.bankAccountNumber === '' ? null : dto.bankAccountNumber,
+      bankIfsc: dto.bankIfsc === '' ? null : dto.bankIfsc,
+      bankBranch: dto.bankBranch === '' ? null : dto.bankBranch,
+      nameMarathi: dto.nameMarathi === '' ? null : dto.nameMarathi,
+      nameHindi: dto.nameHindi === '' ? null : dto.nameHindi,
+      pincode: dto.pincode === '' ? null : dto.pincode,
+    };
+
     return this.prisma.organization.update({
       where: { id: orgId },
-      // receiptTemplateSettings is a validated-as-object-but-otherwise-freeform
-      // JSON column; Prisma's generated input type wants its own JsonValue
-      // union rather than Record<string, unknown>, so it's cast at this single
-      // boundary instead of loosening the DTO's own (accurate) type.
-      data: dto as Prisma.OrganizationUpdateInput,
+      data: dataToUpdate as Prisma.OrganizationUpdateInput,
     });
   }
 

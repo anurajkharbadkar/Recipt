@@ -16,6 +16,29 @@ import {
 } from './cashfree.types';
 
 /**
+ * Parses incoming User-Agent string to dynamically set Cashfree's required
+ * Order Pay headers (x-client-device / x-client-os / x-client-browser) rather
+ * than hardcoding desktop/macOS (handover doc section 14 & consultant review).
+ */
+export function parseDeviceHeaders(userAgent?: string): Record<string, string> {
+  const ua = userAgent?.toLowerCase() || '';
+  if (ua.includes('android')) {
+    return { 'x-client-device': 'mobile', 'x-client-os': 'android', 'x-client-browser': 'chrome' };
+  }
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+    return { 'x-client-device': 'mobile', 'x-client-os': 'ios', 'x-client-browser': 'safari' };
+  }
+  if (ua.includes('windows')) {
+    return { 'x-client-device': 'desktop', 'x-client-os': 'windows', 'x-client-browser': 'chrome' };
+  }
+  if (ua.includes('macintosh') || ua.includes('mac os')) {
+    return { 'x-client-device': 'desktop', 'x-client-os': 'macos', 'x-client-browser': 'chrome' };
+  }
+  // Default fallback for mobile-first donation/checkout flows
+  return { 'x-client-device': 'mobile', 'x-client-os': 'android', 'x-client-browser': 'chrome' };
+}
+
+/**
  * Talks to the Cashfree Payment Gateway API only. No business rules live
  * here — which Mandal can accept payments, what the platform fee is,
  * whether/when a receipt gets generated, all belong in PaymentsService
@@ -192,33 +215,21 @@ export class CashfreeService {
     }
   }
 
-  /**
-   * POST /orders/sessions requires x-client-device/x-client-os/
-   * x-client-browser (confirmed live — Cashfree rejects the call without
-   * them). getClient()'s default headers don't include these because
-   * every other method here is a server-to-server order-management call;
-   * this one is the Order Pay API, meant to describe the actual device
-   * completing checkout. We don't know the donor's real device from a
-   * backend call — 'desktop'/generic values are honest placeholders, not a
-   * spoofed real device, and don't affect whether the QR/intent works.
-   */
-  private orderPaySessionHeaders() {
-    return { 'x-client-device': 'desktop', 'x-client-os': 'macos', 'x-client-browser': 'chrome' };
-  }
+
 
   /**
    * POST /orders/sessions, channel "qrcode" — a dynamic UPI QR tied to this
-   * specific order/amount, for embedding directly in our own UI (no
-   * redirect to Cashfree's hosted checkout). `paymentSessionId` comes from
-   * createOrder()'s response — this is a second, separate call against the
-   * same session, not part of order creation itself.
+   * specific order/amount, for embedding directly in our own UI. Accepts
+   * dynamic device headers so Cashfree knows whether the checkout is happening
+   * on mobile vs desktop.
    */
-  async generateUpiQr(paymentSessionId: string): Promise<CashfreeUpiQrResponse> {
+  async generateUpiQr(paymentSessionId: string, customHeaders?: Record<string, string>): Promise<CashfreeUpiQrResponse> {
     try {
+      const headers = customHeaders || parseDeviceHeaders();
       const { data } = await this.getClient().post<CashfreeUpiQrResponse>(
         '/orders/sessions',
         { payment_session_id: paymentSessionId, payment_method: { upi: { channel: 'qrcode' } } },
-        { headers: this.orderPaySessionHeaders() },
+        { headers },
       );
       return data;
     } catch (error: unknown) {
@@ -231,17 +242,17 @@ export class CashfreeService {
 
   /**
    * POST /orders/sessions, channel "link" — per-UPI-app deep links (GPay/
-   * PhonePe/Paytm/BHIM/web) for this order, for a native "pay with your
-   * app" button instead of a QR or Cashfree's hosted checkout. In Sandbox
-   * these resolve to Cashfree's own payment simulator, not real upi://
-   * URIs — verified live, not assumed (see handover doc).
+   * PhonePe/Paytm/BHIM/web) for this order. Takes dynamic device headers so
+   * Cashfree returns proper mobile app intents (gpay://, phonepe://) on mobile
+   * or web simulator links on desktop.
    */
-  async generateUpiIntent(paymentSessionId: string): Promise<CashfreeUpiIntentResponse> {
+  async generateUpiIntent(paymentSessionId: string, customHeaders?: Record<string, string>): Promise<CashfreeUpiIntentResponse> {
     try {
+      const headers = customHeaders || parseDeviceHeaders();
       const { data } = await this.getClient().post<CashfreeUpiIntentResponse>(
         '/orders/sessions',
         { payment_session_id: paymentSessionId, payment_method: { upi: { channel: 'link' } } },
-        { headers: this.orderPaySessionHeaders() },
+        { headers },
       );
       return data;
     } catch (error: unknown) {

@@ -45,7 +45,7 @@ export class CampaignsService {
         endDate: data.endDate ? new Date(data.endDate) : null,
         targetAmount: data.targetAmount,
         receiptPrefix: prefix,
-        status: data.status || 'DRAFT',
+        status: data.status || 'ACTIVE',
         description: data.description,
       },
     });

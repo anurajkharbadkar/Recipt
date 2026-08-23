@@ -1,8 +1,8 @@
-import { Controller, Logger, Param, Post, ServiceUnavailableException, UseGuards } from '@nestjs/common';
+import { Controller, Logger, Param, Post, ServiceUnavailableException, UseGuards, Headers } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
 import { UserRole, DEFAULT_DONATION_SPLIT_POLICY } from '@pavti/shared';
-import { CashfreeService } from './cashfree/cashfree.service';
+import { CashfreeService, parseDeviceHeaders } from './cashfree/cashfree.service';
 import { CASHFREE_DONATION_ORDER_ID_PREFIX } from './cashfree/cashfree.constants';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards/auth.guard';
@@ -39,7 +39,11 @@ export class DonationsController {
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create (or reuse) a Cashfree order for a PENDING/ONLINE receipt and return its QR + UPI intent' })
-  async createDonationPayment(@Param('receiptId') receiptId: string, @CurrentUser('orgId') orgId: string) {
+  async createDonationPayment(
+    @Param('receiptId') receiptId: string,
+    @CurrentUser('orgId') orgId: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
     const { receipt, organization, existingPayment } = await this.paymentsService.resolveDonationPaymentContext(receiptId, orgId);
 
     let orderId: string | undefined;
@@ -104,9 +108,10 @@ export class DonationsController {
       throw new ServiceUnavailableException('Cashfree did not return an active payment session for this order');
     }
 
+    const deviceHeaders = parseDeviceHeaders(userAgent);
     const [qr, intent] = await Promise.all([
-      this.cashfreeService.generateUpiQr(paymentSessionId),
-      this.cashfreeService.generateUpiIntent(paymentSessionId),
+      this.cashfreeService.generateUpiQr(paymentSessionId, deviceHeaders),
+      this.cashfreeService.generateUpiIntent(paymentSessionId, deviceHeaders),
     ]);
 
     return {

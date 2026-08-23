@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { receiptsApi, campaignsApi, orgsApi } from '@/lib/api';
-import { shareReceiptViaWhatsApp, prefetchReceiptImage } from '@/lib/whatsappShare';
+import { shareReceiptViaWhatsApp, shareReceiptGeneric, prefetchReceiptImage } from '@/lib/whatsappShare';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -16,7 +16,7 @@ import {
 } from '@pavti/shared';
 import {
   User, Phone, MapPin, IndianRupee, Tag, CreditCard, FileText,
-  MapPinned, ArrowLeft, CheckCircle, Printer, Share2, Loader2
+  MapPinned, ArrowLeft, CheckCircle, Printer, Share2, Loader2, Sparkles
 } from 'lucide-react';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import PickerWithAdd from '@/components/form/PickerWithAdd';
@@ -129,12 +129,26 @@ export default function NewReceiptPage() {
     createMutation.mutate(data);
   };
 
-  const handleShare = async () => {
+  const handleShareWhatsApp = async () => {
     if (!createdReceipt?.donorPhone) return;
+    await shareReceiptViaWhatsApp({
+      donorPhone: createdReceipt.donorPhone,
+      donorName: createdReceipt.donorName,
+      amount: createdReceipt.amount,
+      receiptNumber: createdReceipt.receiptNumber,
+      receiptId: createdReceipt.id,
+      category: createdReceipt.category,
+      status: createdReceipt.status,
+      organization: organization as any,
+    });
+  };
+
+  const handleShareGeneric = async () => {
+    if (!createdReceipt) return;
     setSharing(true);
     try {
-      await shareReceiptViaWhatsApp({
-        donorPhone: createdReceipt.donorPhone,
+      await shareReceiptGeneric({
+        donorPhone: createdReceipt.donorPhone || '',
         donorName: createdReceipt.donorName,
         amount: createdReceipt.amount,
         receiptNumber: createdReceipt.receiptNumber,
@@ -161,8 +175,22 @@ export default function NewReceiptPage() {
           <p className="text-theme-fg/50 text-sm mb-6">{createdReceipt.receiptNumber}</p>
 
           <div className="flex flex-wrap gap-3 justify-center mb-6">
-            <button onClick={handleShare} className="btn-primary gap-2" disabled={!createdReceipt.donorPhone || sharing}>
-              {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />} WhatsApp
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="btn-primary gap-2 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
+              disabled={!createdReceipt.donorPhone}
+            >
+              <Share2 size={16} /> WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={handleShareGeneric}
+              className="btn-secondary gap-2"
+              disabled={sharing}
+            >
+              {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+              {language === 'mr' ? 'इतर शेअर' : 'Other Apps'}
             </button>
             <button onClick={() => window.open(`/receipt/${createdReceipt.id}`, '_blank')} className="btn-secondary gap-2">
               <Printer size={16} /> View & Print
@@ -407,15 +435,21 @@ export default function NewReceiptPage() {
                 note field uses the donor's name/campaign rather than a
                 receipt number). See lib/upi.ts for why this bypasses any
                 payment gateway entirely (2026-08-21 architecture decision). */}
+            {/* Collector-facing, in-person Direct Mandal UPI QR — shown live when UPI is selected */}
             {paymentMode === 'UPI' && (
-              <div className="animate-slide-up glass-card p-4 text-center space-y-2 bg-theme-fg/[0.02]">
+              <div className="animate-slide-up glass-card p-4 text-center space-y-3 bg-theme-fg/[0.02]">
                 {organization?.upiId ? (
                   <>
-                    <p className="text-xs text-theme-fg/50">
-                      {language === 'mr' ? 'देणगीदाराला स्कॅन करण्यासाठी दाखवा' : 'Show this to the donor to scan & pay'}
-                    </p>
-                    <div className="flex justify-center py-2">
-                      <div className="p-3 bg-white rounded-xl">
+                    <div className="text-center">
+                      <p className="text-xs font-semibold text-theme-fg">
+                        {language === 'mr' ? 'मंडळाचा थेट UPI QR कोड' : 'Direct Mandal UPI QR Code'}
+                      </p>
+                      <p className="text-[11px] text-theme-fg/50 mt-0.5">
+                        {language === 'mr' ? 'देणगीदाराला स्कॅन करून पेमेंट करण्यासाठी हा QR दाखवा' : 'Show this to the donor to scan & pay directly via any UPI app'}
+                      </p>
+                    </div>
+                    <div className="flex justify-center py-1">
+                      <div className="p-3 bg-white rounded-xl shadow-sm border border-theme-fg/10">
                         <QRCodeSVG
                           value={buildUpiPaymentLink({
                             upiId: organization.upiId,
@@ -423,14 +457,14 @@ export default function NewReceiptPage() {
                             amount: watchedAmount || 0,
                             note: watchedDonorName || undefined,
                           })}
-                          size={160}
+                          size={150}
                         />
                       </div>
                     </div>
-                    <p className="text-xs text-theme-fg/40">{organization.upiId}</p>
+                    <p className="text-xs font-mono font-medium text-saffron-500">{organization.upiId}</p>
                   </>
                 ) : (
-                  <p className="text-xs text-theme-fg/40">
+                  <p className="text-xs text-theme-fg/40 py-2">
                     {language === 'mr' ? 'पेमेंट QR दाखवण्यासाठी ' : 'Add your UPI ID in '}
                     <Link href="/settings" className="text-saffron-400 underline underline-offset-2">
                       {language === 'mr' ? 'सेटिंग्जमध्ये UPI ID जोडा' : 'Settings'}
@@ -438,6 +472,21 @@ export default function NewReceiptPage() {
                     {language === 'mr' ? '.' : ' to show a payment QR here.'}
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Cashfree Online Payment Explanation */}
+            {paymentMode === 'ONLINE' && (
+              <div className="animate-slide-up glass-card p-4 text-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 space-y-1">
+                <div className="flex items-center justify-center gap-1.5 font-bold text-xs">
+                  <Sparkles size={16} className="text-amber-400 animate-pulse" />
+                  <span>{language === 'mr' ? 'कॅशफ्री ऑनलाइन पेमेंट मोड' : 'Cashfree Verified Online Payment'}</span>
+                </div>
+                <p className="text-[11px] text-theme-fg/70">
+                  {language === 'mr'
+                    ? 'पावती तयार केल्यावर कॅशफ्री डायनामिक QR आणि ऑटो-वेरिफाइड ऑनलाइन पेमेंट लिंक तयार होईल.'
+                    : 'Creating this receipt will generate a Cashfree Dynamic QR & Instant Webhook Verification.'}
+                </p>
               </div>
             )}
 

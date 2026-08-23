@@ -898,7 +898,7 @@ export default function HomePage() {
 
         {/* Floating Mobile Language Switcher (mobile only) */}
         <div className="md:hidden fixed bottom-4 right-4 z-40">
-          <div className="flex items-center gap-1 bg-white/95 dark:bg-[#18110b]/95 border border-saffron-600/30 shadow-xl shadow-saffron-900/20 backdrop-blur-md rounded-full p-1">
+          <div className="flex items-center gap-1 bg-white dark:bg-[#18110b] border border-saffron-600/30 shadow-xl shadow-saffron-900/20 rounded-full p-1">
             {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
               <button
                 key={l}

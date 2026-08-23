@@ -68,7 +68,7 @@ export default function PendingPaymentBanner() {
                 <XCircle size={14} className="shrink-0 text-red-500" />
                 <span>
                   Your <strong className="text-theme-fg">{plan.name}</strong> plan expired on{' '}
-                  <strong className="text-theme-fg">{new Date(organization.subscriptionExpiry!).toLocaleDateString('en-IN')}</strong>.
+                  <strong className="text-theme-fg">{new Date(organization.subscriptionExpiry!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>.
                   You can still view past receipts and reports, but can't create new ones until you renew.
                 </span>
               </>
@@ -107,7 +107,7 @@ export default function PendingPaymentBanner() {
             <strong className="text-theme-fg">Free Trial</strong> — {used} of {limit} pavtis used
             {remaining <= 3 && remaining > 0 && <span className="text-saffron-500"> ({remaining} left)</span>}
             {remaining === 0 && <span className="text-red-500"> — limit reached, upgrade to create more</span>}.
-            Valid until {organization.subscriptionExpiry ? new Date(organization.subscriptionExpiry).toLocaleDateString('en-IN') : '—'}.
+            Valid until {organization.subscriptionExpiry ? new Date(organization.subscriptionExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}.
           </span>
         </div>
         <a

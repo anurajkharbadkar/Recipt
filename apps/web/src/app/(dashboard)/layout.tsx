@@ -2,20 +2,37 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
+import { orgsApi } from '@/lib/api';
 import { inferRouteModule } from '@pavti/shared';
 import { useModuleAccessResolver } from '@/hooks/useModuleAccess';
 import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import PendingPaymentBanner from '@/components/layout/PendingPaymentBanner';
+import NoActiveCampaignBanner from '@/components/campaign/NoActiveCampaignBanner';
+import OnboardingWelcomeModal from '@/components/onboarding/OnboardingWelcomeModal';
+import PageGuideSpotlight from '@/components/onboarding/PageGuideSpotlight';
 import NewReceiptFab from '@/components/layout/NewReceiptFab';
 import toast from 'react-hot-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user, hasHydrated } = useAuthStore();
+  const { isAuthenticated, user, hasHydrated, setOrganization } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const canView = useModuleAccessResolver();
+
+  const { data: freshOrg } = useQuery({
+    queryKey: ['org'],
+    queryFn: orgsApi.getMe,
+    enabled: hasHydrated && isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (freshOrg) {
+      setOrganization(freshOrg);
+    }
+  }, [freshOrg, setOrganization]);
 
   useEffect(() => {
     // Wait for the persisted session to finish loading from localStorage
@@ -51,13 +68,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
         <PendingPaymentBanner />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <NoActiveCampaignBanner />
+        <main className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8 pt-0">
           <div className="max-w-7xl mx-auto animate-fade-in">
             {children}
           </div>
         </main>
       </div>
       <NewReceiptFab />
+      <OnboardingWelcomeModal />
+      <PageGuideSpotlight />
     </div>
   );
 }

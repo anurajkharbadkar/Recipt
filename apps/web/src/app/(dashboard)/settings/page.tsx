@@ -60,7 +60,7 @@ function ReceiptThemeCard({ theme, selected, locked, onSelect, onLockedClick }: 
       {/* Mini pavti mockup — an actual miniature of the real card: one consistent paper tone, no separate header color, matching the real design exactly. */}
       <div className="p-2.5 relative" style={{ background: theme.paperBg }}>
         {locked && (
-          <span className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center shadow-sm">
+          <span className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-black/75 text-white flex items-center justify-center shadow-sm">
             <Lock size={11} />
           </span>
         )}
@@ -131,7 +131,7 @@ function InteractiveTemplateCard({ template, selected, onSelect, onPreview }: { 
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onPreview(); }}
-          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110"
+          className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/80 hover:bg-black border border-white/25 flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110"
           title="Play full-screen preview"
         >
           <Play size={13} fill="currentColor" className="ml-0.5" />
@@ -265,7 +265,7 @@ export default function SettingsPage() {
   // trial window — RolesGuard blocks every write once that expires
   // regardless of this flag, same as the server-side check
   // (2026-08-22 free-trial rework).
-  const hasPremiumFeatures = org?.subscriptionPlan === 'FREE' || org?.subscriptionPlan === 'STANDARD' || org?.subscriptionPlan === 'PREMIUM';
+  const hasPremiumFeatures = !org || org?.subscriptionPlan === 'FREE' || org?.subscriptionPlan === 'STANDARD' || org?.subscriptionPlan === 'PREMIUM';
   const upgradeWhatsappLink = platformWhatsappLink(
     `Hi, I'd like to upgrade "${org?.name || 'my organization'}" to the Standard plan.`,
   );
@@ -307,8 +307,10 @@ export default function SettingsPage() {
   // PDF/WhatsApp receipt at all, and vice versa).
   const [activeTab, setActiveTab] = useState<'general' | 'bank' | 'design' | 'interactive' | 'areas'>('general');
 
+  const [formInitialized, setFormInitialized] = useState(false);
+
   useEffect(() => {
-    if (org) {
+    if (org && !formInitialized) {
       setForm({
         name: org.name || '',
         nameMarathi: org.nameMarathi || '',
@@ -329,8 +331,9 @@ export default function SettingsPage() {
         receiptTemplateSettings: resolveReceiptSettings(org.receiptTemplateSettings),
         socialLinks: org.socialLinks || {},
       });
+      setFormInitialized(true);
     }
-  }, [org]);
+  }, [org, formInitialized]);
 
   const previewReceipt = {
     receiptNumber: 'SGM-2026-0001',
@@ -366,7 +369,28 @@ export default function SettingsPage() {
     mutationFn: () => orgsApi.update({ ...form, phone: undefined }),
     onSuccess: (updated) => {
       setOrganization(updated);
+      queryClient.setQueryData(['org'], updated);
       queryClient.invalidateQueries({ queryKey: ['org'] });
+      setForm({
+        name: updated.name || '',
+        nameMarathi: updated.nameMarathi || '',
+        nameHindi: updated.nameHindi || '',
+        address: updated.address || '',
+        city: updated.city || '',
+        state: updated.state || '',
+        pincode: updated.pincode || '',
+        phone: updated.phone || '',
+        email: updated.email || '',
+        regNumber: updated.regNumber || '',
+        bankName: updated.bankName || '',
+        bankAccountNumber: updated.bankAccountNumber || '',
+        bankIfsc: updated.bankIfsc || '',
+        bankBranch: updated.bankBranch || '',
+        upiId: updated.upiId || '',
+        brandColor: updated.brandColor || '#592E09',
+        receiptTemplateSettings: resolveReceiptSettings(updated.receiptTemplateSettings),
+        socialLinks: updated.socialLinks || {},
+      });
       toast.success('Settings saved!');
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to save settings'),
@@ -453,52 +477,57 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
-      {/* Header with single sticky action button */}
-      <div className="sticky top-0 z-30 bg-theme-bg/90 backdrop-blur-md py-3 -mt-3 flex items-center justify-between gap-3 border-b border-theme-fg/10">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-3xl font-bold text-theme-fg truncate">
-            {language === 'mr' ? 'सेटिंग्स' : language === 'hi' ? 'सेटिंग्स' : 'Settings'}
-          </h1>
-          <p className="text-xs text-theme-fg/50 truncate hidden xs:block">
-            {language === 'mr' ? 'संस्थेची माहिती, बँक तपशील व पावती डिझाइन.' : 'Manage profile, bank details, and receipt design.'}
-          </p>
+      {/* Unified Sticky Header Bar with Title, Save Button, and Tab Navigation — 100% Solid Opaque, 0 gap below TopBar */}
+      <div className="sticky top-0 z-30 bg-[#FAF7F0] dark:bg-[#120D08] pt-3 pb-3 border-b border-[#EFE6DC] dark:border-[#29190B] shadow-sm space-y-3 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-theme-fg truncate">
+              {language === 'mr' ? 'सेटिंग्स' : language === 'hi' ? 'सेटिंग्स' : 'Settings'}
+            </h1>
+            <p className="text-xs text-theme-fg/50 truncate hidden xs:block">
+              {language === 'mr' ? 'संस्थेची माहिती, बँक तपशील व पावती डिझाइन.' : 'Manage profile, bank details, and receipt design.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateMutation.mutate()}
+            disabled={updateMutation.isPending}
+            className="btn-primary px-4 sm:px-5 py-2 text-xs sm:text-sm font-bold shadow-glow-saffron shrink-0"
+          >
+            <Save size={16} />
+            <span>{updateMutation.isPending ? sl.saving : sl.saveSettings}</span>
+          </button>
         </div>
-        <button
-          onClick={() => updateMutation.mutate()}
-          disabled={updateMutation.isPending}
-          className="btn-primary px-4 sm:px-6 py-2.5 text-xs sm:text-sm font-bold shadow-glow-saffron shrink-0"
-        >
-          <Save size={16} />
-          <span>{updateMutation.isPending ? sl.saving : sl.saveSettings}</span>
-        </button>
-      </div>
 
-      {/* Tab bar — horizontally scrollable touch-friendly tabs */}
-      <div className="overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none touch-pan-x">
-        <div className="flex items-center gap-1.5 bg-theme-fg/5 p-1.5 rounded-xl border border-theme-fg/10 w-max min-w-full sm:w-fit">
-          {([
-            { id: 'general', label: sl.tabGeneral, icon: Building2 },
-            { id: 'bank', label: sl.tabBank, icon: Landmark },
-            { id: 'design', label: sl.tabDesign, icon: Palette },
-            { id: 'interactive', label: sl.tabInteractive, icon: Sparkles },
-            { id: 'areas', label: sl.tabAreas, icon: Tag },
-          ] as const).map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 min-h-[42px] px-3.5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                  active ? 'bg-saffron-600 text-white shadow-sm' : 'text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/5'
-                }`}
-              >
-                <Icon size={14} />
-                {tab.label}
-              </button>
-            );
-          })}
+        {/* Tab bar — horizontally scrollable touch-friendly tabs (100% Solid Opaque Background) */}
+        <div className="overflow-x-auto scrollbar-none touch-pan-x -mx-1 px-1">
+          <div className="flex items-center gap-1.5 bg-white dark:bg-[#1A120B] p-1.5 rounded-xl border border-[#EFE6DC] dark:border-[#29190B] shadow-xs w-max min-w-full sm:w-fit">
+            {([
+              { id: 'general', label: sl.tabGeneral, icon: Building2 },
+              { id: 'bank', label: sl.tabBank, icon: Landmark },
+              { id: 'design', label: sl.tabDesign, icon: Palette },
+              { id: 'interactive', label: sl.tabInteractive, icon: Sparkles },
+              { id: 'areas', label: sl.tabAreas, icon: Tag },
+            ] as const).map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`shrink-0 min-h-[38px] px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                    active
+                      ? 'bg-saffron-600 text-white shadow-sm font-bold'
+                      : 'bg-[#FAF7F0] dark:bg-[#120D08] text-theme-fg/70 hover:text-theme-fg border border-[#EFE6DC] dark:border-[#29190B]'
+                  }`}
+                >
+                  <Icon size={14} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -784,7 +813,7 @@ export default function SettingsPage() {
               onChange={e => setForm((p: any) => ({ ...p, upiId: e.target.value }))}
               className="form-input font-mono disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder="mandal@upi"
-              disabled={!hasPremiumFeatures && !form.upiId}
+              disabled={!hasPremiumFeatures}
             />
             {!hasPremiumFeatures && (
               <p className="text-[11px] text-theme-fg/45 mt-1.5">
@@ -1537,7 +1566,7 @@ export default function SettingsPage() {
 
       {/* Mobile Live Preview Drawer Modal */}
       {mobilePreviewOpen && (
-        <div className="fixed inset-0 z-[90] bg-black/80 backdrop-blur-sm flex flex-col justify-end lg:hidden animate-fade-in">
+        <div className="fixed inset-0 z-[90] bg-black/85 flex flex-col justify-end lg:hidden animate-fade-in">
           <div className="bg-[var(--bg-color)] border-t border-theme rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-theme">
               <h3 className="text-sm font-bold text-theme-fg flex items-center gap-2">
@@ -1606,7 +1635,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setPreviewTemplateId(null)}
-              className="px-4 py-2 bg-black/70 hover:bg-black border border-amber-400 text-amber-200 text-xs font-bold rounded-full flex items-center gap-1.5 backdrop-blur-md shadow-xl transition-all"
+              className="px-4 py-2 bg-black/90 hover:bg-black border border-amber-400 text-amber-200 text-xs font-bold rounded-full flex items-center gap-1.5 shadow-xl transition-all"
             >
               <X size={14} />
               <span>प्रिव्ह्यू बंद करा (Close Preview)</span>

@@ -236,3 +236,22 @@ export const subscriptionPaymentApi = {
   getHistory: (): Promise<Array<{ orderId: string; targetPlan: string | null; amountPaise: number; status: string; createdAt: string; paidAt: string | null }>> =>
     apiClient.get('/payments/subscription/history').then(r => r.data),
 };
+
+// Authenticated collector/donor online donation payment via Cashfree — creates (or reuses)
+// a Cashfree production order and generates official Cashfree Dynamic QR & UPI Intent links.
+export const donationPaymentApi = {
+  createOrder: (receiptId: string): Promise<{
+    orderId: string;
+    receiptId: string;
+    amount: number;
+    qr: string | null;
+    intent: {
+      default?: string;
+      gpay?: string;
+      phonepe?: string;
+      paytm?: string;
+      bhim?: string;
+      web?: string;
+    } | null;
+  }> => apiClient.post(`/payments/receipts/${receiptId}/order`).then(r => r.data),
+};
