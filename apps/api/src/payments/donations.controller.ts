@@ -35,6 +35,16 @@ export class DonationsController {
     private readonly paymentsService: PaymentsService,
   ) {}
 
+  @Post('public/:receiptId')
+  @Throttle({ short: { limit: 5, ttl: 1000 }, long: { limit: 20, ttl: 60000 } })
+  @ApiOperation({ summary: 'Publicly create (or reuse) a Cashfree order for an unpaid PENDING/ONLINE receipt' })
+  async createPublicDonationPayment(
+    @Param('receiptId') receiptId: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.handleOrderCreation(receiptId, undefined, userAgent);
+  }
+
   @Post(':receiptId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
@@ -46,6 +56,10 @@ export class DonationsController {
     @CurrentUser('orgId') orgId: string,
     @Headers('user-agent') userAgent?: string,
   ) {
+    return this.handleOrderCreation(receiptId, orgId, userAgent);
+  }
+
+  private async handleOrderCreation(receiptId: string, orgId?: string, userAgent?: string) {
     const { receipt, organization, existingPayment } = await this.paymentsService.resolveDonationPaymentContext(receiptId, orgId);
 
     let orderId: string | undefined;

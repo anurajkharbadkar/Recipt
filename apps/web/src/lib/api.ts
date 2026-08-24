@@ -254,5 +254,5 @@ export const donationPaymentApi = {
       bhim?: string;
       web?: string;
     } | null;
-  }> => apiClient.post(`/payments/donations/${receiptId}`).then(r => r.data),
+  }> => apiClient.post(`/payments/donations/public/${receiptId}`).then(r => r.data),
 };

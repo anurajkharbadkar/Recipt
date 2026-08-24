@@ -33,7 +33,7 @@ export class PaymentsService {
    * be at most one — Payment.receiptId is @unique) so the caller can reuse
    * it instead of creating a duplicate Cashfree order on a repeat request.
    */
-  async resolveDonationPaymentContext(receiptId: string, requestingOrgId: string) {
+  async resolveDonationPaymentContext(receiptId: string, requestingOrgId?: string) {
     const receipt = await this.prisma.receipt.findUnique({
       where: { id: receiptId },
       include: { campaign: { include: { organization: true } }, payment: true },
@@ -41,7 +41,7 @@ export class PaymentsService {
     if (!receipt) throw new NotFoundException('Receipt not found');
 
     const organization = receipt.campaign.organization;
-    if (organization.id !== requestingOrgId) {
+    if (requestingOrgId && organization.id !== requestingOrgId) {
       // Same response as "not found" would leak less than a 403 (confirms
       // the id exists in someone else's org), but every other org-scoped
       // endpoint in this app (receipts.findOne, etc.) already uses
