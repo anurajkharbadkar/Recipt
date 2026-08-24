@@ -475,17 +475,17 @@ export default function NewReceiptPage() {
               </div>
             )}
 
-            {/* Cashfree Online Payment Explanation */}
+            {/* Online Payment Explanation */}
             {paymentMode === 'ONLINE' && (
               <div className="animate-slide-up glass-card p-4 text-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 space-y-1">
                 <div className="flex items-center justify-center gap-1.5 font-bold text-xs">
                   <Sparkles size={16} className="text-amber-400 animate-pulse" />
-                  <span>{language === 'mr' ? 'कॅशफ्री ऑनलाइन पेमेंट मोड' : 'Cashfree Verified Online Payment'}</span>
+                  <span>{language === 'mr' ? 'ऑनलाइन पेमेंट मोड (ऑटो-वेरिफाइड)' : 'Auto-Verified Online Payment'}</span>
                 </div>
                 <p className="text-[11px] text-theme-fg/70">
                   {language === 'mr'
-                    ? 'पावती तयार केल्यावर कॅशफ्री डायनामिक QR आणि ऑटो-वेरिफाइड ऑनलाइन पेमेंट लिंक तयार होईल.'
-                    : 'Creating this receipt will generate a Cashfree Dynamic QR & Instant Webhook Verification.'}
+                    ? 'पावती तयार केल्यावर डायनामिक QR आणि ऑटो-वेरिफाइड ऑनलाइन पेमेंट लिंक तयार होईल.'
+                    : 'Creating this receipt will generate a Dynamic QR & Instant Verification Link.'}
                 </p>
               </div>
             )}

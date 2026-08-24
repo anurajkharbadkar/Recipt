@@ -1255,10 +1255,10 @@ export default function InteractivePavtiView({
                     className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
                   >
                     <Sparkles size={18} className="text-amber-200 animate-pulse" />
-                    <span>कॅशफ्री ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
+                    <span>ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
                   </button>
 
-                  {/* Payment App Shortcuts — Launches Cashfree Gateway Checkout cleanly */}
+                  {/* Payment App Shortcuts — Launches Gateway Checkout cleanly */}
                   <div className="space-y-1.5 pt-1">
                     <p className="text-[0.65rem] text-amber-200/60 font-semibold">किंवा आपल्या आवडीच्या ॲप द्वारे भरणा करा:</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -1294,7 +1294,7 @@ export default function InteractivePavtiView({
               ) : cashfreeLoading ? (
                 <div className="py-3 text-amber-200/70 text-xs flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                  <span>कॅशफ्री पेमेंट पर्याय लोड होत आहेत...</span>
+                  <span>पेमेंट पर्याय लोड होत आहेत...</span>
                 </div>
               ) : (
                 <div className="py-2 text-center space-y-2">
@@ -1689,10 +1689,10 @@ export default function InteractivePavtiView({
                     <div className="w-full text-center space-y-2">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-[0.68rem]">
                         <Sparkles size={12} className="text-amber-500 animate-pulse" />
-                        <span>ऑनलाइन वर्गणी द्या (Cashfree Auto-Verified)</span>
+                        <span>ऑनलाइन वर्गणी द्या (ऑटो-वेरिफाइड)</span>
                       </div>
 
-                      {/* Primary Official Cashfree Web Checkout Button */}
+                      {/* Primary Official Web Checkout Button */}
                       {cashfreeOrder.paymentSessionId && (
                         <div className="pt-1">
                           <button
@@ -1701,7 +1701,7 @@ export default function InteractivePavtiView({
                             className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                           >
                             <Sparkles size={14} className="text-amber-300 animate-pulse" />
-                            <span>कॅशफ्री ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
+                            <span>ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
                           </button>
                         </div>
                       )}
