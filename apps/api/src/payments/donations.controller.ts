@@ -103,11 +103,11 @@ export class DonationsController {
       paymentSessionId = cfOrder.payment_session_id;
 
       const saved = await this.paymentsService.recordOrderCreated({
-        orgId,
+        orgId: organization.id,
         orderId,
         amountRupees: receipt.amount,
         donorName: receipt.donorName,
-        donorPhone: receipt.donorPhone!,
+        donorPhone: receipt.donorPhone || organization.phone || '9999999999',
         receiptId: receipt.id,
         paymentSessionId,
       });
