@@ -114,8 +114,19 @@ export class CashfreeService {
    * is meant to reach the browser.
    */
   async createOrder(params: CreateCashfreeOrderParams): Promise<CashfreeOrderResponse> {
-    const returnUrl = this.config.get<string>('CASHFREE_RETURN_URL');
+    let returnUrl = this.config.get<string>('CASHFREE_RETURN_URL') || 'https://recipt-web-wheat.vercel.app/payment/cashfree/return';
     const notifyUrl = this.config.get<string>('CASHFREE_NOTIFY_URL');
+
+    // Cashfree Production mode strictly mandates https:// in return_url.
+    // Upgrade http:// to https:// and replace localhost in production mode so Cashfree never rejects orders.
+    const isProduction = this.config.get('CASHFREE_ENV') === 'production' || process.env.NODE_ENV === 'production';
+    if (isProduction) {
+      if (returnUrl.includes('localhost')) {
+        returnUrl = 'https://recipt-web-wheat.vercel.app/payment/cashfree/return';
+      } else if (returnUrl.startsWith('http://')) {
+        returnUrl = returnUrl.replace(/^http:\/\//i, 'https://');
+      }
+    }
 
     try {
       const { data } = await this.getClient().post<CashfreeOrderResponse>(

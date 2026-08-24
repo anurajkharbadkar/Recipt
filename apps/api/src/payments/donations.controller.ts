@@ -88,17 +88,36 @@ export class DonationsController {
       const rawPhone = (receipt.donorPhone || organization.phone || '').replace(/\D/g, '');
       const customerPhone = rawPhone.length === 10 ? rawPhone : '9999999999';
 
-      const cfOrder = await this.cashfreeService.createOrder({
-        orderId: freshOrderId,
-        amount: receipt.amount,
-        customerId: receipt.id,
-        customerPhone,
-        orderSplits: [
-          policy.vendorShareType === 'PERCENTAGE'
-            ? { vendorId: organization.cashfreeVendorId!, percentage: policy.vendorShare } // non-null: validated above
-            : { vendorId: organization.cashfreeVendorId!, amount: policy.vendorShare },
-        ],
-      });
+      let cfOrder;
+      try {
+        cfOrder = await this.cashfreeService.createOrder({
+          orderId: freshOrderId,
+          amount: receipt.amount,
+          customerId: receipt.id,
+          customerPhone,
+          orderSplits: organization.cashfreeVendorId ? [
+            policy.vendorShareType === 'PERCENTAGE'
+              ? { vendorId: organization.cashfreeVendorId, percentage: policy.vendorShare }
+              : { vendorId: organization.cashfreeVendorId, amount: policy.vendorShare },
+          ] : undefined,
+        });
+      } catch (err: any) {
+        // If Cashfree account doesn't have EasySplit enabled by Cashfree support,
+        // gracefully fallback to standard direct payment order so payment succeeds cleanly!
+        const errMsg = err?.response?.data?.message || err?.message || '';
+        const errCode = err?.response?.data?.code;
+        if (errCode === 'order_splits_invalid' || errMsg.includes('easy split') || errMsg.includes('order_splits')) {
+          this.logger.warn(`EasySplit unavailable on Cashfree account (${errMsg}) — falling back to standard order for receiptId=${receiptId}`);
+          cfOrder = await this.cashfreeService.createOrder({
+            orderId: freshOrderId,
+            amount: receipt.amount,
+            customerId: receipt.id,
+            customerPhone,
+          });
+        } else {
+          throw err;
+        }
+      }
       orderId = freshOrderId;
       paymentSessionId = cfOrder.payment_session_id;
 
@@ -129,8 +148,14 @@ export class DonationsController {
 
     const deviceHeaders = parseDeviceHeaders(userAgent);
     const [qr, intent] = await Promise.all([
-      this.cashfreeService.generateUpiQr(paymentSessionId, deviceHeaders),
-      this.cashfreeService.generateUpiIntent(paymentSessionId, deviceHeaders),
+      this.cashfreeService.generateUpiQr(paymentSessionId, deviceHeaders).catch((err) => {
+        this.logger.warn(`Cashfree S2S generateUpiQr skipped: ${err?.response?.data?.message || err?.message}`);
+        return null;
+      }),
+      this.cashfreeService.generateUpiIntent(paymentSessionId, deviceHeaders).catch((err) => {
+        this.logger.warn(`Cashfree S2S generateUpiIntent skipped: ${err?.response?.data?.message || err?.message}`);
+        return null;
+      }),
     ]);
 
     return {
@@ -138,8 +163,8 @@ export class DonationsController {
       receiptId: receipt.id,
       amount: receipt.amount,
       paymentSessionId,
-      qr: qr.data?.payload?.qrcode ?? null,
-      intent: intent.data?.payload ?? null,
+      qr: qr?.data?.payload?.qrcode ?? null,
+      intent: intent?.data?.payload ?? null,
     };
   }
 }
