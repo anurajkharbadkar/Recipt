@@ -63,7 +63,7 @@ export class CashfreeWebhookService {
     // Core security rule (handover doc section 7/31): never trust an
     // unsigned/unverified request.
     if (!this.verifySignature(rawBody, signature, timestamp)) {
-      this.logger.warn('Rejected Cashfree webhook — signature verification failed');
+      this.logger.error('[SECURITY_ALERT] Rejected Cashfree webhook — signature verification failed');
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
@@ -75,7 +75,7 @@ export class CashfreeWebhookService {
     // anyway.
     const webhookTime = Number(timestamp);
     if (!Number.isFinite(webhookTime) || Math.abs(Date.now() - webhookTime) > REPLAY_WINDOW_MS) {
-      this.logger.warn(`Rejected Cashfree webhook — timestamp outside ${REPLAY_WINDOW_MS / 1000}s replay window`);
+      this.logger.error(`[SECURITY_ALERT] Rejected Cashfree webhook — timestamp outside ${REPLAY_WINDOW_MS / 1000}s replay window`);
       throw new UnauthorizedException('Webhook timestamp expired');
     }
 

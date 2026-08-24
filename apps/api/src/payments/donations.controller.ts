@@ -1,5 +1,6 @@
 import { Controller, Logger, Param, Post, ServiceUnavailableException, UseGuards, Headers } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { UserRole, DEFAULT_DONATION_SPLIT_POLICY } from '@pavti/shared';
 import { CashfreeService, parseDeviceHeaders } from './cashfree/cashfree.service';
@@ -37,6 +38,7 @@ export class DonationsController {
   @Post(':receiptId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR)
+  @Throttle({ short: { limit: 5, ttl: 1000 }, long: { limit: 20, ttl: 60000 } })
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create (or reuse) a Cashfree order for a PENDING/ONLINE receipt and return its QR + UPI intent' })
   async createDonationPayment(

@@ -3,6 +3,7 @@ import {
   UseGuards, Req, Res, HttpCode, HttpStatus, Patch, Headers
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { ReceiptsService } from './receipts.service';
 import { CreateReceiptDto, ReceiptQueryDto, VoidReceiptDto, UpdateReceiptDto } from './dto/receipt.dto';
@@ -55,6 +56,7 @@ export class ReceiptsController {
   }
 
   @Get('verify/:id')
+  @Throttle({ short: { limit: 5, ttl: 1000 }, long: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Publicly verify a receipt (no auth required)' })
   findPublic(@Param('id') id: string) {
     return this.receiptsService.findPublic(id);
