@@ -1291,10 +1291,23 @@ export default function InteractivePavtiView({
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : cashfreeLoading ? (
                 <div className="py-3 text-amber-200/70 text-xs flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
                   <span>कॅशफ्री पेमेंट पर्याय लोड होत आहेत...</span>
+                </div>
+              ) : (
+                <div className="py-2 text-center space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCashfreeLoading(true);
+                      donationPaymentApi.createOrder(receipt.id).then(setCashfreeOrder).catch(console.warn).finally(() => setCashfreeLoading(false));
+                    }}
+                    className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2"
+                  >
+                    <span>पेमेंट लिंक पुन्हा लोड करा (Retry Payment Session)</span>
+                  </button>
                 </div>
               )}
             </div>

@@ -52,9 +52,6 @@ export class PaymentsService {
     if (receipt.campaign.status !== 'ACTIVE') {
       throw new BadRequestException('Campaign is not active');
     }
-    if (receipt.paymentMode !== 'ONLINE') {
-      throw new BadRequestException('Receipt is not marked for online payment');
-    }
     if (receipt.status !== 'PENDING') {
       // Covers both "already PAID" (nothing to do) and CANCELLED/VOIDED —
       // callers should check receipt.status themselves for a friendlier
