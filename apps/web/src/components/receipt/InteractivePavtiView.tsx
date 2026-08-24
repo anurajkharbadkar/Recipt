@@ -1245,53 +1245,58 @@ export default function InteractivePavtiView({
               </p>
             </div>
 
-            {/* Payment App Deep Link Buttons & Cashfree Checkout */}
+            {/* Official Cashfree Gateway Checkout & App Options */}
             <div className="space-y-2.5">
               {cashfreeOrder?.paymentSessionId ? (
-                <button
-                  type="button"
-                  onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  <Sparkles size={18} className="text-amber-200 animate-pulse" />
-                  <span>कॅशफ्री द्वारे ऑनलाईन वर्गणी द्या (All Payment Modes)</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <Sparkles size={18} className="text-amber-200 animate-pulse" />
+                    <span>कॅशफ्री ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
+                  </button>
+
+                  {/* Payment App Shortcuts — Launches Cashfree Gateway Checkout cleanly */}
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[0.65rem] text-amber-200/60 font-semibold">किंवा आपल्या आवडीच्या ॲप द्वारे भरणा करा:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* PhonePe Shortcut */}
+                      <button
+                        type="button"
+                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                        className="py-2.5 px-2 bg-[#5f259f] hover:bg-[#4d1d82] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <span>PhonePe</span>
+                      </button>
+
+                      {/* GPay Shortcut */}
+                      <button
+                        type="button"
+                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                        className="py-2.5 px-2 bg-white hover:bg-gray-100 text-gray-900 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 border border-gray-200 cursor-pointer"
+                      >
+                        <span className="text-blue-600 font-bold">GPay</span>
+                      </button>
+
+                      {/* Paytm Shortcut */}
+                      <button
+                        type="button"
+                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                        className="py-2.5 px-2 bg-[#00baf2] hover:bg-[#009ecf] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <span>Paytm</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="py-3 text-amber-200/70 text-xs flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                  <span>पेमेंट पर्याय लोड होत आहेत...</span>
+                  <span>कॅशफ्री पेमेंट पर्याय लोड होत आहेत...</span>
                 </div>
               )}
-
-              {/* Direct UPI App Deep Link Quick Buttons */}
-              <div className="space-y-1.5 pt-1">
-                <p className="text-[0.65rem] text-amber-200/60 font-semibold">किंवा आपल्या आवडीच्या ॲप द्वारे थेट भरणा करा:</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {/* PhonePe */}
-                  <a
-                    href={cashfreeOrder?.intent?.phonepe || buildUpiPaymentLink({ upiId: org.upiId || '8999842228-2@ybl', payeeName: org.name || 'Mandal', amount: receipt.amount, note: receipt.receiptNumber })}
-                    className="py-2.5 px-2 bg-[#5f259f] hover:bg-[#4d1d82] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95"
-                  >
-                    <span>PhonePe</span>
-                  </a>
-
-                  {/* GPay */}
-                  <a
-                    href={cashfreeOrder?.intent?.gpay || buildUpiPaymentLink({ upiId: org.upiId || '8999842228-2@ybl', payeeName: org.name || 'Mandal', amount: receipt.amount, note: receipt.receiptNumber })}
-                    className="py-2.5 px-2 bg-white hover:bg-gray-100 text-gray-900 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 border border-gray-200"
-                  >
-                    <span className="text-blue-600 font-bold">GPay</span>
-                  </a>
-
-                  {/* Paytm */}
-                  <a
-                    href={cashfreeOrder?.intent?.paytm || buildUpiPaymentLink({ upiId: org.upiId || '8999842228-2@ybl', payeeName: org.name || 'Mandal', amount: receipt.amount, note: receipt.receiptNumber })}
-                    className="py-2.5 px-2 bg-[#00baf2] hover:bg-[#009ecf] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95"
-                  >
-                    <span>Paytm</span>
-                  </a>
-                </div>
-              </div>
             </div>
 
             {/* Direct Mandal VPA Fallback */}
