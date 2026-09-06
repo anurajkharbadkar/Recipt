@@ -337,10 +337,39 @@ export class ReceiptsService {
       status: receipt.status,
       createdAt: receipt.createdAt,
       isVoided: receipt.isVoided,
+      donorClaimedPaidAt: receipt.donorClaimedPaidAt,
       collector: receipt.collector,
       campaign: receipt.campaign,
       area: receipt.area,
     };
+  }
+
+  /**
+   * Donor self-report after paying via the direct UPI link/QR — there's no
+   * payment gateway in that flow (see lib/upi.ts's own reasoning: a plain
+   * UPI link never touches this app's account, so it sits outside the RBI
+   * PA/PG aggregator requirement Cashfree's EasySplit would trigger),
+   * which means no webhook exists to confirm it automatically either.
+   * Deliberately does NOT set status to PAID — that stays a staff action
+   * (PATCH /receipts/:id/status) after they've actually checked their own
+   * bank app. This only records *when* a donor claimed it, so staff have a
+   * clear "donor says paid Xm ago" signal instead of relying on the donor
+   * separately messaging them.
+   */
+  async claimPaid(id: string) {
+    const receipt = await this.prisma.receipt.findUnique({ where: { id } });
+    if (!receipt) throw new NotFoundException('Receipt not found');
+    if (receipt.status !== 'PENDING') {
+      // Already resolved one way or another — nothing for this to do,
+      // and no reason to bump the timestamp on a stale claim.
+      return { donorClaimedPaidAt: receipt.donorClaimedPaidAt };
+    }
+    const updated = await this.prisma.receipt.update({
+      where: { id },
+      data: { donorClaimedPaidAt: new Date() },
+      select: { donorClaimedPaidAt: true },
+    });
+    return updated;
   }
 
   /**

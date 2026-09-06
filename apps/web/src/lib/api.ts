@@ -162,6 +162,11 @@ export const receiptsApi = {
   exportCsv: (campaignId?: string) => apiClient.get('/receipts/export/csv', { params: { campaignId }, responseType: 'blob' }).then(r => r.data),
   donors: () => apiClient.get('/receipts/donors').then(r => r.data),
   updateStatus: (id: string, status: string) => apiClient.patch(`/receipts/${id}/status`, { status }).then(r => r.data),
+  /** Public, unauthenticated — a donor self-reporting they paid via the
+   *  direct UPI link. Never marks the receipt PAID itself; see
+   *  ReceiptsService.claimPaid for why staff confirmation stays required. */
+  claimPaid: (id: string): Promise<{ donorClaimedPaidAt: string | null }> =>
+    apiClient.post(`/receipts/public/${id}/claim-paid`).then(r => r.data),
   /** PNG snapshot of the pavti — what actually gets attached on a WhatsApp share (see lib/whatsappShare.ts). */
   getImage: (id: string) => apiClient.get(`/receipts/${id}/image`, { responseType: 'blob' }).then(r => r.data as Blob),
 };

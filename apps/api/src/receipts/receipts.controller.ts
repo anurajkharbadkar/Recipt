@@ -62,6 +62,17 @@ export class ReceiptsController {
     return this.receiptsService.findPublic(id);
   }
 
+  // Public — a donor who just paid via the direct UPI link (no payment
+  // gateway in that flow, so no webhook exists to confirm it automatically;
+  // see lib/upi.ts) taps this to self-report. Never flips receipt.status —
+  // see ReceiptsService.claimPaid for why staff confirmation stays required.
+  @Post('public/:id/claim-paid')
+  @Throttle({ short: { limit: 3, ttl: 1000 }, long: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: "Donor self-reports having paid via UPI — flags the receipt for staff to confirm, doesn't mark it PAID itself" })
+  claimPaid(@Param('id') id: string) {
+    return this.receiptsService.claimPaid(id);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)

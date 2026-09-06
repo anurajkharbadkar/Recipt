@@ -12,12 +12,13 @@ import {
 } from '@pavti/shared';
 import { playSealCrackSound, playTempleBell, playAshirwadChimes } from '@/lib/templeAudio';
 import { buildUpiPaymentLink } from '@/lib/upi';
-import { donationPaymentApi } from '@/lib/api';
+import { donationPaymentApi, receiptsApi } from '@/lib/api';
 import { launchCashfreeCheckout } from '@/lib/cashfreeCheckout';
 import { QRCodeSVG } from 'qrcode.react';
 import { shareReceiptViaWhatsApp, shareReceiptGeneric } from '@/lib/whatsappShare';
 import LogoMark from '@/components/brand/LogoMark';
-import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles, CheckCircle2, X, Loader2 } from 'lucide-react';
 // Real static files under public/, not base64 embedded in JS — these were
 // briefly wired up as ~140KB + ~34KB base64 string constants imported from
 // their own modules, which ships that whole weight in the JS bundle for
@@ -174,6 +175,39 @@ export default function InteractivePavtiView({
   const isInternal = (receipt as any).collectionType === 'INTERNAL';
   const isUnpaid = receipt.status === 'PENDING';
   const donorArea = (receipt as any).area;
+
+  // Donor self-report after paying via the direct UPI link — see
+  // ReceiptsService.claimPaid for why this never flips status itself
+  // (no payment gateway in this flow, so nothing actually confirms it).
+  // Seeded from the receipt's own field so reopening the page after
+  // already claiming shows "awaiting confirmation", not the pay prompt
+  // again.
+  const [donorClaimedAt, setDonorClaimedAt] = useState<string | null>(
+    (receipt as any).donorClaimedPaidAt ? String((receipt as any).donorClaimedPaidAt) : null,
+  );
+  const [claimingPaid, setClaimingPaid] = useState(false);
+  const [paymentPromptDismissed, setPaymentPromptDismissed] = useState(false);
+
+  const handleClaimPaid = async () => {
+    setClaimingPaid(true);
+    try {
+      const res = await receiptsApi.claimPaid(receipt.id);
+      setDonorClaimedAt(res.donorClaimedPaidAt || new Date().toISOString());
+      toast.success(
+        language === 'mr' ? 'कळवल्याबद्दल धन्यवाद! तुमचा संग्राहक लवकरच खात्री करेल.'
+          : language === 'hi' ? 'बताने के लिए धन्यवाद! आपका संग्राहक जल्द ही पुष्टि करेगा.'
+          : 'Thanks for letting us know! Your collector will confirm shortly.',
+      );
+    } catch {
+      toast.error(
+        language === 'mr' ? 'नोंद करता आली नाही — पुन्हा प्रयत्न करा.'
+          : language === 'hi' ? 'दर्ज नहीं हो सका — फिर से प्रयास करें.'
+          : 'Could not record this — please try again.',
+      );
+    } finally {
+      setClaimingPaid(false);
+    }
+  };
 
   // Format amount in Devanagari words
   const amountInWords = formatAmountInWords(receipt.amount, language);
@@ -366,12 +400,11 @@ export default function InteractivePavtiView({
     qr: string | null;
     intent: { default?: string; gpay?: string; phonepe?: string; paytm?: string; bhim?: string; web?: string } | null;
   } | null>(null);
-  const [cashfreeLoading, setCashfreeLoading] = useState(false);
-  const [showDirectUpi, setShowDirectUpi] = useState(false);
-
   useEffect(() => {
+    // Dormant today — org.paymentEnabled is false for every org until real
+    // Cashfree vendor onboarding exists (see the payment overlay's own
+    // comment on why); harmless to leave wired up for when that changes.
     if (isUnpaid && org.paymentEnabled) {
-      setCashfreeLoading(true);
       donationPaymentApi
         .createOrder(receipt.id)
         .then((res) => {
@@ -379,9 +412,6 @@ export default function InteractivePavtiView({
         })
         .catch((err) => {
           console.warn('Cashfree online donation order creation skipped/unavailable:', err);
-        })
-        .finally(() => {
-          setCashfreeLoading(false);
         });
     }
   }, [isUnpaid, org.paymentEnabled, receipt.id]);
@@ -1227,10 +1257,29 @@ export default function InteractivePavtiView({
         ))}
       </div>
 
-      {/* Instant Payment Screen Overlay for Unpaid Receipts */}
-      {isUnpaid && (
+      {/* Instant Payment Screen Overlay for Unpaid Receipts — dismissible
+          (a receipt link's basic job is to show the pavti; nothing about
+          being unpaid should trap a donor who just wants to see it). Direct
+          UPI (bank-to-bank, no gateway) is the primary path here, not a
+          hidden fallback — see lib/upi.ts's own reasoning: a plain UPI link
+          never touches this app's account, so it's the only donation-
+          payment method that doesn't require the RBI PA/PG aggregator
+          approval Cashfree's EasySplit needs (org.paymentEnabled is false
+          for every org today for exactly that reason). That flow's own
+          block below is left in place, dormant, for whenever proper vendor
+          onboarding lands. */}
+      {isUnpaid && !paymentPromptDismissed && (
         <div className="absolute inset-0 z-40 bg-[#160608]/95 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-sm p-6 bg-gradient-to-b from-[#2d120a] to-[#1a0805] border-2 border-amber-500/60 rounded-2xl shadow-2xl text-center space-y-4 animate-scale-in">
+          <div className="relative w-full max-w-sm p-6 bg-gradient-to-b from-[#2d120a] to-[#1a0805] border-2 border-amber-500/60 rounded-2xl shadow-2xl text-center space-y-4 animate-scale-in">
+            <button
+              type="button"
+              onClick={() => setPaymentPromptDismissed(true)}
+              aria-label="Close"
+              className="absolute top-3 right-3 text-amber-300/50 hover:text-amber-100 transition-colors"
+            >
+              <X size={18} />
+            </button>
+
             <div className="flex flex-col items-center gap-1.5 border-b border-amber-500/20 pb-3">
               <LogoMark size={44} className="shadow-lg rounded-xl" />
               <h2 className="text-sm font-bold text-amber-100">{org.name || 'Shree Ganesh Mandal'}</h2>
@@ -1245,110 +1294,81 @@ export default function InteractivePavtiView({
               </p>
             </div>
 
-            {/* Official Cashfree Gateway Checkout & App Options */}
-            <div className="space-y-2.5">
-              {cashfreeOrder?.paymentSessionId ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    <Sparkles size={18} className="text-amber-200 animate-pulse" />
-                    <span>ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
-                  </button>
-
-                  {/* Payment App Shortcuts — Launches Gateway Checkout cleanly */}
-                  <div className="space-y-1.5 pt-1">
-                    <p className="text-[0.65rem] text-amber-200/60 font-semibold">किंवा आपल्या आवडीच्या ॲप द्वारे भरणा करा:</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {/* PhonePe Shortcut */}
-                      <button
-                        type="button"
-                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                        className="py-2.5 px-2 bg-[#5f259f] hover:bg-[#4d1d82] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
-                      >
-                        <span>PhonePe</span>
-                      </button>
-
-                      {/* GPay Shortcut */}
-                      <button
-                        type="button"
-                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                        className="py-2.5 px-2 bg-white hover:bg-gray-100 text-gray-900 font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 border border-gray-200 cursor-pointer"
-                      >
-                        <span className="text-blue-600 font-bold">GPay</span>
-                      </button>
-
-                      {/* Paytm Shortcut */}
-                      <button
-                        type="button"
-                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                        className="py-2.5 px-2 bg-[#00baf2] hover:bg-[#009ecf] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
-                      >
-                        <span>Paytm</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : cashfreeLoading ? (
-                <div className="py-3 text-amber-200/70 text-xs flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                  <span>पेमेंट पर्याय लोड होत आहेत...</span>
+            {donorClaimedAt ? (
+              // Already tapped "I've paid" — show that back instead of the
+              // payment prompt again on a reload, but still let them re-pay
+              // if the collector hasn't confirmed and something went wrong.
+              <div className="py-3 px-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-semibold text-xs">
+                  <CheckCircle2 size={15} />
+                  <span>तुम्ही पेमेंट केल्याचे कळवले आहे</span>
                 </div>
-              ) : (
-                <div className="py-2 text-center space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCashfreeLoading(true);
-                      donationPaymentApi.createOrder(receipt.id).then(setCashfreeOrder).catch(console.warn).finally(() => setCashfreeLoading(false));
-                    }}
-                    className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2"
-                  >
-                    <span>पेमेंट लिंक पुन्हा लोड करा (Retry Payment Session)</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Direct Mandal VPA Fallback */}
-            {org.upiId && (
-              <div className="pt-2 border-t border-amber-500/20 text-center">
-                {!showDirectUpi ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowDirectUpi(true)}
-                    className="text-[0.65rem] text-amber-300/70 hover:text-amber-200 underline"
-                  >
-                    थेट मॅन्युअल UPI QR (Direct VPA)
-                  </button>
-                ) : (
-                  <div className="space-y-2 pt-1">
-                    <span className="text-[0.6rem] text-amber-200 font-bold block">
-                      Direct Mandal VPA (Manual Verification)
-                    </span>
-                    <div className="p-2 bg-white rounded-lg inline-block">
-                      <QRCodeSVG
-                        value={buildUpiPaymentLink({
-                          upiId: org.upiId,
-                          payeeName: org.name || 'Mandal',
-                          amount: receipt.amount,
-                          note: receipt.receiptNumber,
-                        })}
-                        size={110}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowDirectUpi(false)}
-                      className="text-[0.6rem] text-amber-200/50 hover:underline block mx-auto"
-                    >
-                      Hide Direct QR
-                    </button>
-                  </div>
-                )}
+                <p className="text-[0.65rem] text-amber-200/60">
+                  तुमचा संग्राहक लवकरच खात्री करून पावती अद्ययावत करेल. Your collector will confirm and update this shortly.
+                </p>
               </div>
+            ) : org.paymentEnabled && cashfreeOrder?.paymentSessionId ? (
+              // Cashfree Gateway Checkout — dormant today (paymentEnabled is
+              // false for every org until vendor onboarding exists), kept
+              // for when that changes.
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <Sparkles size={18} className="text-amber-200 animate-pulse" />
+                  <span>ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
+                </button>
+              </div>
+            ) : org.upiId ? (
+              // Direct UPI — the real, working path today. A plain upi://
+              // link (not app-specific) so tapping it on a phone opens
+              // whatever UPI apps are installed as a native chooser; the QR
+              // covers the "someone else's phone/desktop" case.
+              <div className="space-y-3">
+                <a
+                  href={buildUpiPaymentLink({
+                    upiId: org.upiId,
+                    payeeName: org.name || 'Mandal',
+                    amount: receipt.amount,
+                    note: receipt.receiptNumber,
+                  })}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <Sparkles size={18} className="text-amber-200 animate-pulse" />
+                  <span>UPI ॲपने भरणा करा (GPay, PhonePe, Paytm...)</span>
+                </a>
+
+                <div className="flex flex-col items-center gap-1.5 pt-1">
+                  <p className="text-[0.62rem] text-amber-200/60">दुसऱ्या डिव्हाइसवरून भरणा करण्यासाठी स्कॅन करा:</p>
+                  <div className="p-2 bg-white rounded-lg inline-block">
+                    <QRCodeSVG
+                      value={buildUpiPaymentLink({
+                        upiId: org.upiId,
+                        payeeName: org.name || 'Mandal',
+                        amount: receipt.amount,
+                        note: receipt.receiptNumber,
+                      })}
+                      size={110}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClaimPaid}
+                  disabled={claimingPaid}
+                  className="w-full py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                >
+                  {claimingPaid ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  <span>मी पेमेंट पूर्ण केले (I've Completed the Payment)</span>
+                </button>
+              </div>
+            ) : (
+              <p className="text-[0.7rem] text-amber-200/60 py-2">
+                या मंडळाने अद्याप ऑनलाईन भरणा सुरू केलेला नाही — कृपया थेट संपर्क साधा.
+              </p>
             )}
           </div>
         </div>
@@ -1681,130 +1701,70 @@ export default function InteractivePavtiView({
                 </p>
               </div>
 
-              {/* Online Payment Section for Unpaid Receipts */}
+              {/* Online Payment Section for Unpaid Receipts — same direct-UPI-
+                  primary logic as the instant-payment overlay above (see
+                  that block's comment for why); this is what a donor sees
+                  if they dismissed the overlay and scrolled down to the
+                  receipt card itself instead. */}
               {isUnpaid && (
                 <div className="my-2.5 p-3 bg-white/75 border border-amber-700/30 rounded-xl flex flex-col items-center gap-2 shadow-sm">
-                  {/* Cashfree Verified Online Payment Gateway (Primary Flow) */}
-                  {org.paymentEnabled && cashfreeOrder ? (
+                  {donorClaimedAt ? (
+                    <div className="w-full text-center py-1 flex items-center justify-center gap-1.5 text-emerald-700 font-semibold text-[0.65rem]">
+                      <CheckCircle2 size={13} />
+                      <span>पेमेंट कळवले — संग्राहकाकडून पडताळणी प्रलंबित</span>
+                    </div>
+                  ) : org.paymentEnabled && cashfreeOrder?.paymentSessionId ? (
+                    // Cashfree Gateway Checkout — dormant today, see overlay's comment.
                     <div className="w-full text-center space-y-2">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-[0.68rem]">
                         <Sparkles size={12} className="text-amber-500 animate-pulse" />
                         <span>ऑनलाइन वर्गणी द्या (ऑटो-वेरिफाइड)</span>
                       </div>
-
-                      {/* Primary Official Web Checkout Button */}
-                      {cashfreeOrder.paymentSessionId && (
-                        <div className="pt-1">
-                          <button
-                            type="button"
-                            onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                            className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                          >
-                            <Sparkles size={14} className="text-amber-300 animate-pulse" />
-                            <span>ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Cashfree S2S Embedded Dynamic QR Code (When S2S Active) */}
-                      {cashfreeOrder.qr ? (
-                        <div className="p-2 bg-white rounded-lg inline-block border border-amber-900/10 shadow-sm mx-auto">
-                          <img
-                            src={cashfreeOrder.qr.startsWith('data:') ? cashfreeOrder.qr : `data:image/png;base64,${cashfreeOrder.qr}`}
-                            alt="Cashfree Dynamic UPI QR"
-                            className="w-24 h-24 object-contain mx-auto"
-                          />
-                          <p className="text-[0.58rem] text-emerald-800 font-medium mt-1">स्कॅन करून ऑनलाईन भरणा करा</p>
-                        </div>
-                      ) : null}
-
-                      {/* Cashfree S2S Embedded Intent App Buttons (When S2S Active) */}
-                      {cashfreeOrder.intent && (
-                        <div className="flex flex-wrap gap-1.5 justify-center pt-1">
-                          {cashfreeOrder.intent.gpay && (
-                            <button
-                              type="button"
-                              onClick={() => { window.location.href = cashfreeOrder.intent!.gpay || cashfreeOrder.intent!.default!; }}
-                              className="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white text-[0.62rem] font-bold shadow-sm"
-                            >
-                              GPay
-                            </button>
-                          )}
-                          {cashfreeOrder.intent.phonepe && (
-                            <button
-                              type="button"
-                              onClick={() => { window.location.href = cashfreeOrder.intent!.phonepe || cashfreeOrder.intent!.default!; }}
-                              className="px-2.5 py-1 rounded bg-purple-800 hover:bg-purple-700 text-white text-[0.62rem] font-bold shadow-sm"
-                            >
-                              PhonePe
-                            </button>
-                          )}
-                          {cashfreeOrder.intent.paytm && (
-                            <button
-                              type="button"
-                              onClick={() => { window.location.href = cashfreeOrder.intent!.paytm || cashfreeOrder.intent!.default!; }}
-                              className="px-2.5 py-1 rounded bg-sky-800 hover:bg-sky-700 text-white text-[0.62rem] font-bold shadow-sm"
-                            >
-                              Paytm
-                            </button>
-                          )}
-                          {(cashfreeOrder.intent.web || cashfreeOrder.intent.default) && (
-                            <button
-                              type="button"
-                              onClick={() => { window.location.href = cashfreeOrder.intent!.web || cashfreeOrder.intent!.default!; }}
-                              className="px-2.5 py-1 rounded bg-amber-900 hover:bg-amber-800 text-amber-100 text-[0.62rem] font-bold shadow-sm"
-                            >
-                              Direct Pay
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                        className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sparkles size={14} className="text-amber-300 animate-pulse" />
+                        <span>ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
+                      </button>
                     </div>
-                  ) : cashfreeLoading ? (
-                    <div className="py-2 text-center text-[0.65rem] text-amber-900/60 flex items-center justify-center gap-2">
-                      <div className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                      <span>कॅशफ्री पेमेंट लोड होत आहे...</span>
+                  ) : org.upiId ? (
+                    <div className="w-full text-center space-y-2">
+                      <a
+                        href={buildUpiPaymentLink({
+                          upiId: org.upiId,
+                          payeeName: org.name || 'Mandal',
+                          amount: receipt.amount,
+                          note: receipt.receiptNumber,
+                        })}
+                        className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sparkles size={14} className="text-amber-300 animate-pulse" />
+                        <span>UPI ॲपने भरणा करा</span>
+                      </a>
+                      <div className="p-1.5 bg-white rounded-md inline-block border border-amber-900/10">
+                        <QRCodeSVG
+                          value={buildUpiPaymentLink({
+                            upiId: org.upiId,
+                            payeeName: org.name || 'Mandal',
+                            amount: receipt.amount,
+                            note: receipt.receiptNumber,
+                          })}
+                          size={88}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClaimPaid}
+                        disabled={claimingPaid}
+                        className="w-full py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-900 font-semibold text-[0.65rem] rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-60"
+                      >
+                        {claimingPaid ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                        <span>मी पेमेंट पूर्ण केले</span>
+                      </button>
                     </div>
                   ) : null}
-
-                  {/* Optional Direct Mandal VPA UPI Link (Manual Verification Mode) */}
-                  {org.upiId && (
-                    <div className="w-full pt-1 border-t border-amber-700/15 text-center">
-                      {!showDirectUpi ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowDirectUpi(true)}
-                          className="text-[0.6rem] text-amber-900/70 hover:text-amber-900 underline font-medium"
-                        >
-                          थेट मॅन्युअल UPI QR (Direct VPA - Manual Verification)
-                        </button>
-                      ) : (
-                        <div className="space-y-1 pt-1">
-                          <span className="text-[0.58rem] text-amber-900 font-bold block">
-                            Direct Mandal VPA (Requires Manual Verification by Treasurer)
-                          </span>
-                          <div className="p-1.5 bg-white rounded-md inline-block">
-                            <QRCodeSVG
-                              value={buildUpiPaymentLink({
-                                upiId: org.upiId,
-                                payeeName: org.name || 'Mandal',
-                                amount: receipt.amount,
-                                note: receipt.receiptNumber,
-                              })}
-                              size={88}
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setShowDirectUpi(false)}
-                            className="text-[0.55rem] text-amber-900/50 hover:underline block mx-auto"
-                          >
-                            Hide Direct QR
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 

@@ -1013,6 +1013,9 @@ export interface Receipt {
   contributorType?: string;
   supportingDocUrl?: string;
   createdAt: Date;
+  /** Set when a donor self-reports paying via the direct UPI link — see
+   *  ReceiptsService.claimPaid. Never implies status is actually PAID. */
+  donorClaimedPaidAt?: Date | string | null;
   collector?: User;
   campaign?: Campaign;
   organization?: Organization;

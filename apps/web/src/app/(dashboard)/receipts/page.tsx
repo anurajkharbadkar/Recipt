@@ -237,7 +237,12 @@ function ReceiptsPageInner() {
                       {r.isVoided ? (
                         <span className="badge badge-danger text-[10px] mt-1">Voided</span>
                       ) : r.status === 'PENDING' ? (
-                        <span className="badge badge-warning text-[10px] mt-1">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="badge badge-warning text-[10px]">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
+                          {r.donorClaimedPaidAt && (
+                            <span className="text-[9px] text-emerald-500 font-medium">✓ Donor says paid</span>
+                          )}
+                        </div>
                       ) : r.status === 'CANCELLED' ? (
                         <span className="badge badge-neutral text-[10px] mt-1">⚫ {RECEIPT_STATUS_LABELS[ReceiptStatus.CANCELLED][language]}</span>
                       ) : (
@@ -309,7 +314,12 @@ function ReceiptsPageInner() {
                         {r.isVoided ? (
                           <span className="badge badge-danger">Voided</span>
                         ) : r.status === 'PENDING' ? (
-                          <span className="badge badge-warning">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="badge badge-warning w-fit">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
+                            {r.donorClaimedPaidAt && (
+                              <span className="text-[10px] text-emerald-500 font-medium">✓ Donor says paid</span>
+                            )}
+                          </div>
                         ) : r.status === 'CANCELLED' ? (
                           <span className="badge badge-neutral">⚫ {RECEIPT_STATUS_LABELS[ReceiptStatus.CANCELLED][language]}</span>
                         ) : (

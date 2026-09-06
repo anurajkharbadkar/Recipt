@@ -318,6 +318,14 @@ model Receipt {
   voidReason       String?
   voidedAt         DateTime?
   voidedById       String?
+  // Set when a donor taps "I've completed the payment" on the public pavti
+  // page after paying via the direct UPI link/QR (no payment gateway in
+  // that flow — see lib/upi.ts — so there's no webhook to confirm it
+  // automatically). This is a self-reported signal, not proof of payment:
+  // it surfaces to staff (receipts list/detail) as "donor says paid Xm
+  // ago" so they know to check their bank app and confirm via the existing
+  // PATCH /receipts/:id/status action — it never flips status on its own.
+  donorClaimedPaidAt DateTime?
   collectionType   CollectionType @default(DONATION)
   status           ReceiptStatus  @default(PAID)
   dueDate          DateTime?

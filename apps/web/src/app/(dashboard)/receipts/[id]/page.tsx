@@ -193,6 +193,17 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
         </div>
       </div>
 
+      {/* Donor self-reported paying via the direct UPI link — a signal to go
+          check the bank app, not proof; see ReceiptsService.claimPaid. */}
+      {receipt.status === 'PENDING' && (receipt as any).donorClaimedPaidAt && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-sm text-emerald-500">
+          <span>✓</span>
+          <span>
+            Donor reported paying {format(new Date((receipt as any).donorClaimedPaidAt), 'dd MMM, hh:mm a')} — confirm in your bank app before marking paid.
+          </span>
+        </div>
+      )}
+
       {/* Actions */}
       {!receipt.isVoided && (
         <div className="flex gap-3">

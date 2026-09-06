@@ -114,7 +114,17 @@ export class CashfreeService {
    * is meant to reach the browser.
    */
   async createOrder(params: CreateCashfreeOrderParams): Promise<CashfreeOrderResponse> {
-    let returnUrl = this.config.get<string>('CASHFREE_RETURN_URL') || 'https://recipt-web-wheat.vercel.app/payment/cashfree/return';
+    // FRONTEND_URL is the established fallback base everywhere else in this
+    // app builds a link back to the site (ReceiptsService.findPublic's own
+    // verifyUrl, InternalCollectionsService — same `process.env.FRONTEND_URL
+    // || 'http://localhost:3000'` pattern). This used to hardcode a stale
+    // Vercel preview URL (recipt-web-wheat.vercel.app) instead — harmless
+    // today only because CASHFREE_RETURN_URL happens to be set correctly in
+    // production, but a real donor mid-payment landing on a dead preview
+    // deployment is exactly the failure mode a payment-return fallback
+    // should never have (2026-08-24 review).
+    let returnUrl = this.config.get<string>('CASHFREE_RETURN_URL')
+      || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/cashfree/return`;
     const notifyUrl = this.config.get<string>('CASHFREE_NOTIFY_URL');
 
     // Cashfree Production mode strictly mandates https:// in return_url.
@@ -122,7 +132,7 @@ export class CashfreeService {
     const isProduction = this.config.get('CASHFREE_ENV') === 'production' || process.env.NODE_ENV === 'production';
     if (isProduction) {
       if (returnUrl.includes('localhost')) {
-        returnUrl = 'https://recipt-web-wheat.vercel.app/payment/cashfree/return';
+        returnUrl = `${process.env.FRONTEND_URL || 'https://our.epavtibook.com'}/payment/cashfree/return`;
       } else if (returnUrl.startsWith('http://')) {
         returnUrl = returnUrl.replace(/^http:\/\//i, 'https://');
       }
