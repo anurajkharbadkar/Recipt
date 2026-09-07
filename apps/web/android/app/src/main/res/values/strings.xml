@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">E-PavtiBook</string>
+    <string name="title_activity_main">E-PavtiBook</string>
+    <string name="package_name">com.epavtibook.app</string>
+    <string name="custom_url_scheme">com.epavtibook.app</string>
+</resources>
