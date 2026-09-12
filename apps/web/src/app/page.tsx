@@ -888,7 +888,12 @@ export default function HomePage() {
               className="mt-10 pt-5 flex flex-col sm:flex-row justify-between gap-2 text-[11px]"
               style={{ borderTop: '1px solid rgba(247,239,221,0.12)' }}
             >
-              <span>© {new Date().getFullYear()} {BRAND_NAME} · {BRAND_TAGLINE}</span>
+              <span className="flex items-center gap-3 flex-wrap">
+                <span>© {new Date().getFullYear()} {BRAND_NAME} · {BRAND_TAGLINE}</span>
+                <Link href="/privacy" className="transition-colors hover:text-[#F7EFDD]" style={{ color: 'rgba(247,239,221,0.5)' }}>
+                  {t('Privacy Policy', 'गोपनीयता धोरण', 'गोपनीयता नीति')}
+                </Link>
+              </span>
               <span style={{ color: 'rgba(247,239,221,0.35)' }}>
                 {t('Made with devotion in India 🇮🇳', 'भारतात श्रद्धेने बनवले 🇮🇳', 'भारत में श्रद्धा से बनाया 🇮🇳')}
               </span>

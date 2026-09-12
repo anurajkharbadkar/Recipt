@@ -51,7 +51,7 @@ toolchains that build/sign/publish them. You'll need, on a Mac:
 pnpm --filter @pavti/web build     # only matters if you ever switch off remote-URL mode
 pnpm --filter @pavti/web cap:sync  # copies capacitor.config.ts + plugin changes into both native projects
 pnpm --filter @pavti/web cap:android  # opens android/ in Android Studio
-pnpm --filter @pavti/web cap:ios      # opens ios/App/App.xcworkspace in Xcode
+pnpm --filter @pavti/web cap:ios      # opens ios/App/App.xcodeproj in Xcode
 ```
 
 Since the app loads the live site remotely, you don't need to rebuild/resync
@@ -70,8 +70,10 @@ adding a native plugin, or regenerating assets.
    description, privacy policy URL, content rating questionnaire).
 
 ### iOS
-1. Open `ios/App/App.xcworkspace` in Xcode (`pnpm cap:ios`) — **the
-   `.xcworkspace`, not the `.xcodeproj`**.
+1. Open `ios/App/App.xcodeproj` in Xcode (`pnpm cap:ios`) — this project
+   uses Swift Package Manager for Capacitor's dependencies (not CocoaPods),
+   so there's no `.xcworkspace` to look for; the `.xcodeproj` is the real
+   thing to open.
 2. Signing & Capabilities tab → sign in with your Apple Developer account →
    Xcode handles provisioning automatically.
 3. Product → Archive → Distribute App → App Store Connect.

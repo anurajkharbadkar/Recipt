@@ -13,7 +13,15 @@ const config: CapacitorConfig = {
   appName: 'E-PavtiBook',
   webDir: 'public', // unused in server.url mode, but required by the CLI
   server: {
-    url: 'https://our.epavtibook.com',
+    // TEMPORARY: our.epavtibook.com is currently returning Vercel's
+    // DEPLOYMENT_DISABLED (custom domain likely attached to the wrong/an
+    // old Vercel project — see the 2026-09-11 investigation). Pointed at
+    // the working project URL directly so app testing isn't blocked on
+    // that being sorted out. Switch this back to
+    // 'https://our.epavtibook.com' before any real store submission —
+    // shipping a live app pointed at a raw *.vercel.app URL is not
+    // something to publish; this is a testing-only stand-in.
+    url: 'https://recipt-web-wheat.vercel.app',
     cleartext: false,
   },
   android: {

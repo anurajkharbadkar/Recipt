@@ -19,7 +19,12 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // getDefaultProguardFile('proguard-android.txt') — Capacitor's
+            // own generated default — is no longer supported by the AGP
+            // version Android Studio auto-upgraded this project to.
+            // Dropped rather than chasing the new API for it: minifyEnabled
+            // is false, so no proguard file does anything here regardless.
+            proguardFiles 'proguard-rules.pro'
         }
     }
 }
