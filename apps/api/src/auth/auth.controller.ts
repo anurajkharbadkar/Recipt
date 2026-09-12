@@ -1,10 +1,10 @@
 import {
-  Controller, Post, Patch, Body, Get, UseGuards, HttpCode, HttpStatus
+  Controller, Post, Patch, Delete, Body, Get, UseGuards, HttpCode, HttpStatus
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
-  RegisterDto, LoginDto, RefreshTokenDto, UpdateProfileDto, ChangePasswordDto
+  RegisterDto, LoginDto, RefreshTokenDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -56,5 +56,13 @@ export class AuthController {
   @ApiOperation({ summary: "Change the current user's own password (requires the current one)" })
   changeMyPassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(userId, dto);
+  }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete the current user's own account (requires password; refused for ORG_ADMIN — see AuthService.deleteMyAccount)" })
+  deleteMe(@CurrentUser('id') userId: string, @Body() dto: DeleteAccountDto) {
+    return this.authService.deleteMyAccount(userId, dto);
   }
 }

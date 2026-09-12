@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi, getErrorMessage } from '@/lib/api';
 import { USER_ROLE_LABELS, UserRole } from '@pavti/shared';
-import { User, Phone, Mail, ShieldCheck, KeyRound, Save, Eye, EyeOff, Building2 } from 'lucide-react';
+import { User, Phone, Mail, ShieldCheck, KeyRound, Save, Eye, EyeOff, Building2, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const labels = {
@@ -17,6 +18,11 @@ const labels = {
     changePassword: 'Change Password', changing: 'Changing...', passwordChanged: 'Password changed',
     mismatch: 'Passwords do not match', tooShort: 'Password must be at least 8 characters',
     organization: 'Organization', role: 'Role',
+    dangerZone: 'Danger Zone', deleteAccount: 'Delete My Account', deleting: 'Deleting...',
+    deleteWarning: 'This permanently removes your personal login details. It cannot be undone.',
+    deleteConfirmPrompt: 'Enter your password to confirm.',
+    deleteAdminBlocked: "You're the Mandal Admin — deleting this account would lock your organization out of its admin login entirely. Contact support@epavtibook.com to close your organization's account instead.",
+    accountDeleted: 'Account deleted', cancel: 'Cancel', confirmDelete: 'Yes, Delete My Account',
   },
   hi: {
     title: 'मेरा खाता', subtitle: 'आपकी व्यक्तिगत लॉगिन जानकारी।',
@@ -27,6 +33,11 @@ const labels = {
     changePassword: 'पासवर्ड बदलें', changing: 'बदला जा रहा है...', passwordChanged: 'पासवर्ड बदल गया',
     mismatch: 'पासवर्ड मेल नहीं खाते', tooShort: 'पासवर्ड कम से कम 8 अक्षर का होना चाहिए',
     organization: 'संस्था', role: 'भूमिका',
+    dangerZone: 'खतरे का क्षेत्र', deleteAccount: 'मेरा खाता हटाएं', deleting: 'हटाया जा रहा है...',
+    deleteWarning: 'यह आपकी व्यक्तिगत लॉगिन जानकारी स्थायी रूप से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।',
+    deleteConfirmPrompt: 'पुष्टि के लिए अपना पासवर्ड दर्ज करें।',
+    deleteAdminBlocked: 'आप मंडल एडमिन हैं — यह खाता हटाने से आपका संगठन अपने एडमिन लॉगिन से पूरी तरह लॉक हो जाएगा। अपने संगठन का खाता बंद करने के लिए support@epavtibook.com से संपर्क करें।',
+    accountDeleted: 'खाता हटा दिया गया', cancel: 'रद्द करें', confirmDelete: 'हां, मेरा खाता हटाएं',
   },
   mr: {
     title: 'माझे खाते', subtitle: 'तुमची वैयक्तिक लॉगिन माहिती.',
@@ -37,11 +48,17 @@ const labels = {
     changePassword: 'पासवर्ड बदला', changing: 'बदलत आहे...', passwordChanged: 'पासवर्ड बदलला',
     mismatch: 'पासवर्ड जुळत नाहीत', tooShort: 'पासवर्ड किमान 8 अक्षरांचा असावा',
     organization: 'संस्था', role: 'भूमिका',
+    dangerZone: 'धोक्याचे क्षेत्र', deleteAccount: 'माझे खाते हटवा', deleting: 'हटवत आहे...',
+    deleteWarning: 'यामुळे तुमची वैयक्तिक लॉगिन माहिती कायमची हटवली जाते. हे पूर्ववत करता येत नाही.',
+    deleteConfirmPrompt: 'पुष्टीसाठी तुमचा पासवर्ड टाका.',
+    deleteAdminBlocked: 'तुम्ही मंडळ अ‍ॅडमिन आहात — हे खाते हटवल्याने तुमचे मंडळ त्याच्या अ‍ॅडमिन लॉगिनपासून पूर्णपणे लॉक होईल. तुमच्या मंडळाचे खाते बंद करण्यासाठी support@epavtibook.com शी संपर्क साधा.',
+    accountDeleted: 'खाते हटवले', cancel: 'रद्द करा', confirmDelete: 'होय, माझे खाते हटवा',
   },
 };
 
 export default function ProfilePage() {
-  const { user, organization, language, setUser } = useAuthStore();
+  const router = useRouter();
+  const { user, organization, language, setUser, logout } = useAuthStore();
   const l = labels[language] || labels.en;
 
   const [name, setName] = useState(user?.name || '');
@@ -53,6 +70,10 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   if (!user) return null;
 
@@ -86,6 +107,21 @@ export default function ProfilePage() {
       toast.error(getErrorMessage(err, 'Could not change password — please try again.'));
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const isOrgAdmin = user.role === 'ORG_ADMIN';
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await authApi.deleteAccount(deletePassword);
+      toast.success(l.accountDeleted);
+      logout();
+      router.push('/login');
+    } catch (err: any) {
+      toast.error(getErrorMessage(err, 'Could not delete your account — please try again.'));
+      setDeletingAccount(false);
     }
   };
 
@@ -202,6 +238,61 @@ export default function ProfilePage() {
           </button>
         </div>
       </form>
+
+      {/* Danger Zone — self-service account deletion (Google Play requires
+          a way to delete your account/data; refused server-side for
+          ORG_ADMIN since it would lock the whole organization out of its
+          own admin login — see AuthService.deleteMyAccount). */}
+      <div className="glass-card p-5 sm:p-6 border border-red-500/20 space-y-4">
+        <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2">
+          <AlertTriangle size={16} /> {l.dangerZone}
+        </h3>
+
+        {isOrgAdmin ? (
+          <p className="text-xs text-theme-fg/60 leading-relaxed">{l.deleteAdminBlocked}</p>
+        ) : !showDeleteConfirm ? (
+          <div className="space-y-2">
+            <p className="text-xs text-theme-fg/50">{l.deleteWarning}</p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center justify-center gap-1.5 text-xs font-semibold text-red-400 border border-red-500/30 hover:bg-red-500/10 rounded-lg px-4 py-2.5 min-h-[42px] transition-colors"
+            >
+              <Trash2 size={13} /> {l.deleteAccount}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-theme-fg/50">{l.deleteConfirmPrompt}</p>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="form-input"
+              autoComplete="current-password"
+              placeholder={l.currentPassword}
+            />
+            <div className="flex flex-col-reverse sm:flex-row gap-2.5">
+              <button
+                type="button"
+                onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}
+                className="btn-ghost text-sm min-h-[42px] flex-1"
+              >
+                {l.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={!deletePassword || deletingAccount}
+                className="flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 rounded-lg px-4 min-h-[42px] flex-1 disabled:opacity-60 transition-colors"
+              >
+                {deletingAccount ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {deletingAccount ? l.deleting : l.confirmDelete}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -184,5 +184,76 @@ describe('AuthService.changePassword', () => {
     // as-is either — it must actually go through bcrypt.
     expect(call.data.passwordHash).not.toBe('new-password-1');
     await expect(bcrypt.compare('new-password-1', call.data.passwordHash)).resolves.toBe(true);
+  });
+});
+
+// Regression coverage for the 2026-09-12 in-app account deletion (Google
+// Play requires a self-service way to delete an account/its data).
+describe('AuthService.deleteMyAccount', () => {
+  let service: AuthService;
+  let prisma: {
+    user: { findUnique: jest.Mock; update: jest.Mock };
+  };
+
+  const PASSWORD = 'correct-horse-battery-staple';
+  let passwordHash: string;
+
+  beforeAll(async () => {
+    passwordHash = await bcrypt.hash(PASSWORD, 12);
+  });
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findUnique: jest.fn(), update: jest.fn().mockResolvedValue({}) },
+    };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
+    }).compile();
+    service = moduleRef.get(AuthService);
+  });
+
+  // The actual reason this guard exists: an ORG_ADMIN's phone must stay
+  // equal to Organization.phone (see findOrgAdminByPhone) and they're the
+  // only login that can manage staff or pay the subscription — deleting
+  // it would permanently lock the organization out of its own admin login.
+  it('refuses to delete an ORG_ADMIN account, without touching the row', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1', role: UserRole.ORG_ADMIN, passwordHash });
+
+    await expect(service.deleteMyAccount('u1', { password: PASSWORD } as any)).rejects.toThrow(BadRequestException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects the wrong password, without touching the row', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1', role: UserRole.COLLECTOR, passwordHash });
+
+    await expect(service.deleteMyAccount('u1', { password: 'wrong' } as any)).rejects.toThrow(UnauthorizedException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  // Anonymizes rather than hard-deletes — a collector's past receipts
+  // reference this row and are real financial records; hard-deleting would
+  // violate that foreign key the moment any receipt exists.
+  it('anonymizes the row for a non-admin once the password checks out', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1', role: UserRole.COLLECTOR, passwordHash });
+
+    await service.deleteMyAccount('u1', { password: PASSWORD } as any);
+
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    const call = prisma.user.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 'u1' });
+    expect(call.data).toMatchObject({
+      name: 'Deleted User',
+      email: null,
+      passwordHash: null,
+      refreshToken: null,
+      isActive: false,
+    });
+    // Unique-per-org placeholder, not left as their real number.
+    expect(call.data.phone).toMatch(/^deleted-/);
   });
 });

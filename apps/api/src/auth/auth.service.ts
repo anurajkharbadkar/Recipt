@@ -16,6 +16,7 @@ import {
   RefreshTokenDto,
   UpdateProfileDto,
   ChangePasswordDto,
+  DeleteAccountDto,
 } from './dto/auth.dto';
 import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS, FREE_TRIAL_PERIOD_DAYS } from '@pavti/shared';
 
@@ -232,6 +233,66 @@ export class AuthService {
 
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: newPasswordHash } });
+    return { success: true };
+  }
+
+  /**
+   * Self-service account deletion (the account page's "Delete My Account")
+   * — same "prove you know the password" bar as changePassword, since this
+   * is irreversible.
+   *
+   * ORG_ADMIN is refused outright: their phone has to stay equal to
+   * Organization.phone (see findOrgAdminByPhone's whole reason for
+   * existing) and they're the only login that can manage staff or pay the
+   * subscription — deleting that account would lock the organization out
+   * of its own admin login permanently, with no self-service way back in.
+   * Closing an entire organization (donor/financial records with their own
+   * retention considerations, not just one person's login) is a bigger,
+   * different action than "delete my personal account" — routed to
+   * support instead of a one-click delete here.
+   *
+   * Anonymizes rather than hard-deletes for everyone else: a collector's
+   * past receipts (Receipt.collectorId) reference this row and are real
+   * financial records an organization may need to keep — hard-deleting
+   * would either violate that foreign key the moment any receipt exists
+   * (Postgres refuses it outright — confirmed live this session cleaning
+   * up test data) or silently erase who actually collected real money.
+   * This clears every piece of the person's own identifying info while
+   * leaving the receipt trail intact, attributed to an anonymous stub.
+   */
+  async deleteMyAccount(userId: string, dto: DeleteAccountDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.role === UserRole.ORG_ADMIN) {
+      throw new BadRequestException(
+        "You're the Mandal Admin — deleting this account would lock your organization out of its admin login entirely. Contact support@epavtibook.com to close your organization's account instead.",
+      );
+    }
+    if (!user.passwordHash) {
+      throw new BadRequestException('This account has no password set — contact your admin.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Password is incorrect');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: 'Deleted User',
+        email: null,
+        // Unique placeholder — User.phone carries @@unique([orgId, phone]),
+        // so it can't just be cleared to '' for more than one deleted user
+        // per org.
+        phone: `deleted-${uuidv4()}`,
+        passwordHash: null,
+        refreshToken: null,
+        isActive: false,
+      },
+    });
+
     return { success: true };
   }
 

@@ -119,3 +119,11 @@ export class ChangePasswordDto {
   @MinLength(8)
   newPassword: string;
 }
+
+export class DeleteAccountDto {
+  // Same "prove you know it" bar as ChangePasswordDto — this is
+  // irreversible, so it gets the same confirmation, not a lighter one.
+  @ApiProperty({ example: 'CurrentPassword@123' })
+  @IsString()
+  password: string;
+}

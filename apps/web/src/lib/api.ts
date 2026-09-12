@@ -114,6 +114,10 @@ export const authApi = {
     apiClient.patch('/auth/me', data).then(r => r.data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     apiClient.patch('/auth/me/password', data).then(r => r.data),
+  /** Irreversible — refused server-side for ORG_ADMIN, see the backend's
+   *  AuthService.deleteMyAccount for why. */
+  deleteAccount: (password: string) =>
+    apiClient.delete('/auth/me', { data: { password } }).then(r => r.data),
 };
 
 // Organizations
