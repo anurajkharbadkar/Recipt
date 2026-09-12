@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
+import { WhatsAppOtpService } from './whatsapp-otp.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@pavti/shared';
 
@@ -38,6 +39,7 @@ describe('AuthService.login', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: WhatsAppOtpService, useValue: { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) } },
       ],
     }).compile();
 
@@ -158,6 +160,7 @@ describe('AuthService.changePassword', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: WhatsAppOtpService, useValue: { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) } },
       ],
     }).compile();
 
@@ -212,6 +215,7 @@ describe('AuthService.deleteMyAccount', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: WhatsAppOtpService, useValue: { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) } },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
@@ -255,5 +259,100 @@ describe('AuthService.deleteMyAccount', () => {
     });
     // Unique-per-org placeholder, not left as their real number.
     expect(call.data.phone).toMatch(/^deleted-/);
+  });
+});
+
+// Regression coverage for the 2026-09-13 WhatsApp OTP "forgot password"
+// flow — the only self-service recovery path an ORG_ADMIN has, since
+// there's no one above them to reset it manually the way staff can.
+describe('AuthService.requestPasswordReset / resetPassword', () => {
+  let service: AuthService;
+  let prisma: {
+    user: { findFirst: jest.Mock; update: jest.Mock };
+  };
+  let whatsAppOtpService: { sendOtp: jest.Mock; isConfigured: jest.Mock };
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findFirst: jest.fn(), update: jest.fn().mockResolvedValue({}) },
+    };
+    whatsAppOtpService = { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) };
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: WhatsAppOtpService, useValue: whatsAppOtpService },
+      ],
+    }).compile();
+    service = moduleRef.get(AuthService);
+  });
+
+  it('stores a hashed OTP and sends the raw code over WhatsApp when the user exists', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'u1', phone: '9000000001' });
+
+    await service.requestPasswordReset({ phone: '9000000001' } as any);
+
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    const call = prisma.user.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 'u1' });
+    expect(call.data.passwordResetOtpExpiresAt).toBeInstanceOf(Date);
+
+    expect(whatsAppOtpService.sendOtp).toHaveBeenCalledTimes(1);
+    const [sentPhone, sentOtp] = whatsAppOtpService.sendOtp.mock.calls[0];
+    expect(sentPhone).toBe('9000000001');
+    // The OTP handed to WhatsApp must be the same one whose hash got
+    // stored — not a different/regenerated value.
+    await expect(bcrypt.compare(sentOtp, call.data.passwordResetOtpHash)).resolves.toBe(true);
+  });
+
+  // Same response shape whether or not a match was found — a differing
+  // response would let an attacker enumerate valid phone/mandal-code
+  // combinations, the same concern login's own error messages account for.
+  it('returns the same {sent:true} shape and sends nothing when no user matches', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+
+    const result = await service.requestPasswordReset({ phone: '9999999999' } as any);
+
+    expect(result).toEqual({ sent: true });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(whatsAppOtpService.sendOtp).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reset with no matching pending OTP', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'u1', passwordResetOtpHash: null, passwordResetOtpExpiresAt: null });
+
+    await expect(
+      service.resetPassword({ phone: '9000000001', otp: '123456', newPassword: 'new-password-1' } as any),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects an expired OTP even if the code itself is correct', async () => {
+    const otpHash = await bcrypt.hash('482913', 10);
+    prisma.user.findFirst.mockResolvedValue({
+      id: 'u1', passwordResetOtpHash: otpHash, passwordResetOtpExpiresAt: new Date(Date.now() - 60 * 1000),
+    });
+
+    await expect(
+      service.resetPassword({ phone: '9000000001', otp: '482913', newPassword: 'new-password-1' } as any),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('sets the new password and clears the OTP + refreshToken once the code checks out', async () => {
+    const otpHash = await bcrypt.hash('482913', 10);
+    prisma.user.findFirst.mockResolvedValue({
+      id: 'u1', passwordResetOtpHash: otpHash, passwordResetOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    });
+
+    await service.resetPassword({ phone: '9000000001', otp: '482913', newPassword: 'new-password-1' } as any);
+
+    expect(prisma.user.update).toHaveBeenCalledTimes(1);
+    const call = prisma.user.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 'u1' });
+    expect(call.data).toMatchObject({ passwordResetOtpHash: null, passwordResetOtpExpiresAt: null, refreshToken: null });
+    await expect(bcrypt.compare('new-password-1', call.data.passwordHash)).resolves.toBe(true);
   });
 });

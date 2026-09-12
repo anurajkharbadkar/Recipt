@@ -17,8 +17,11 @@ import {
   UpdateProfileDto,
   ChangePasswordDto,
   DeleteAccountDto,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS, FREE_TRIAL_PERIOD_DAYS } from '@pavti/shared';
+import { WhatsAppOtpService } from './whatsapp-otp.service';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +29,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private whatsAppOtpService: WhatsAppOtpService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -290,6 +294,81 @@ export class AuthService {
         passwordHash: null,
         refreshToken: null,
         isActive: false,
+      },
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * "Forgot password" step 1 — same phone/mandalCode resolution as login
+   * (see findUserByMandalCode/findOrgAdminByPhone), then a 6-digit OTP
+   * over WhatsApp (see WhatsAppOtpService for what that actually requires
+   * to be configured).
+   *
+   * Always returns the same shape whether or not a matching user was
+   * found — a differing response (e.g. a 404) here would let an attacker
+   * enumerate which phone numbers/mandal codes have real accounts, the
+   * same information-leak concern login's own error messages already
+   * account for.
+   */
+  async requestPasswordReset(dto: RequestPasswordResetDto) {
+    const user = dto.mandalCode
+      ? await this.findUserByMandalCode(dto.mandalCode, dto.phone)
+      : await this.findOrgAdminByPhone(dto.phone);
+
+    if (user) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpHash = await bcrypt.hash(otp, 10);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetOtpHash: otpHash,
+          // 10 minutes — short enough that a leaked/intercepted code is
+          // useless quickly, long enough that a real WhatsApp message
+          // delivery delay doesn't routinely expire it.
+          passwordResetOtpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        },
+      });
+      await this.whatsAppOtpService.sendOtp(user.phone, otp);
+    }
+
+    return { sent: true };
+  }
+
+  /** "Forgot password" step 2 — verifies the OTP from requestPasswordReset
+   *  and sets the new password. Also clears refreshToken, matching
+   *  changePassword's own reasoning: any session issued before a password
+   *  reset (which, unlike a voluntary change, implies the old password may
+   *  have been compromised or simply forgotten by its owner) shouldn't
+   *  silently keep working. */
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = dto.mandalCode
+      ? await this.findUserByMandalCode(dto.mandalCode, dto.phone)
+      : await this.findOrgAdminByPhone(dto.phone);
+
+    if (
+      !user ||
+      !user.passwordResetOtpHash ||
+      !user.passwordResetOtpExpiresAt ||
+      user.passwordResetOtpExpiresAt.getTime() < Date.now()
+    ) {
+      throw new UnauthorizedException('Invalid or expired code — request a new one.');
+    }
+
+    const isOtpValid = await bcrypt.compare(dto.otp, user.passwordResetOtpHash);
+    if (!isOtpValid) {
+      throw new UnauthorizedException('Invalid or expired code — request a new one.');
+    }
+
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newPasswordHash,
+        passwordResetOtpHash: null,
+        passwordResetOtpExpiresAt: null,
+        refreshToken: null,
       },
     });
 

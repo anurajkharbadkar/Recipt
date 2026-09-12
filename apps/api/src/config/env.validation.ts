@@ -29,4 +29,12 @@ export const envValidationSchema = Joi.object({
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   PUPPETEER_EXECUTABLE_PATH: Joi.string().optional(),
+
+  // WhatsApp Cloud API — "forgot password" OTP delivery (see
+  // WhatsAppOtpService). All optional: without them, the OTP flow degrades
+  // to logging a warning and telling the user to contact support instead
+  // of failing outright — this app runs fine before these are ever set.
+  WHATSAPP_ACCESS_TOKEN: Joi.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: Joi.string().optional(),
+  WHATSAPP_OTP_TEMPLATE_NAME: Joi.string().optional(),
 }).unknown(true);

@@ -27,6 +27,10 @@ interface Organization {
   subscriptionExpiry?: string | Date;
   /** Total receipts ever created by the org — powers the free-trial "X of 10 used" banner. See OrganizationsService.getMe. */
   receiptCount?: number;
+  /** Set once "Request Organization Closure" has been used — see
+   *  OrganizationsService.requestClosure. Request-only: support reviews
+   *  and performs the actual deletion, this alone doesn't delete anything. */
+  closureRequestedAt?: string | Date | null;
 }
 
 interface AuthState {

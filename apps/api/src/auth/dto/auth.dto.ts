@@ -127,3 +127,41 @@ export class DeleteAccountDto {
   @IsString()
   password: string;
 }
+
+// Mirrors LoginDto's own phone/mandalCode disambiguation — see LoginDto's
+// comment for why: a phone alone only resolves the ORG_ADMIN uniquely
+// (Organization.phone is globally unique), while staff need the mandal
+// code too (their phone is only unique *within* an org).
+export class RequestPasswordResetDto {
+  @ApiPropertyOptional({ example: 'SGMP26' })
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  mandalCode?: string;
+
+  @ApiProperty({ example: '9876543210' })
+  @IsString()
+  phone: string;
+}
+
+export class ResetPasswordDto {
+  @ApiPropertyOptional({ example: 'SGMP26' })
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  mandalCode?: string;
+
+  @ApiProperty({ example: '9876543210' })
+  @IsString()
+  phone: string;
+
+  @ApiProperty({ example: '482913' })
+  @IsString()
+  @MinLength(6)
+  otp: string;
+
+  @ApiProperty({ example: 'NewSecurePassword@456' })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}

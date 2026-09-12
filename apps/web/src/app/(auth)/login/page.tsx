@@ -149,6 +149,11 @@ export default function LoginPage() {
                   {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
+              <div className="text-right mt-1.5">
+                <Link href="/forgot-password" className="text-[11px] text-saffron-700 hover:text-saffron-600 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
             <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
               {loading ? <span className="animate-pulse-soft">Signing in...</span> : <><ArrowRight size={16} /> Sign In</>}

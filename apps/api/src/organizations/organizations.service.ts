@@ -67,6 +67,16 @@ export class OrganizationsService {
     return { ...org, receiptCount };
   }
 
+  /** Idempotent — re-requesting just leaves the original timestamp, since
+   *  it only marks intent for a human (support) to act on. */
+  async requestClosure(orgId: string) {
+    const org = await this.prisma.organization.findUnique({ where: { id: orgId }, select: { closureRequestedAt: true } });
+    if (!org?.closureRequestedAt) {
+      await this.prisma.organization.update({ where: { id: orgId }, data: { closureRequestedAt: new Date() } });
+    }
+    return { requested: true };
+  }
+
   async update(orgId: string, dto: UpdateOrganizationDto) {
     const current = await this.prisma.organization.findUnique({
       where: { id: orgId },

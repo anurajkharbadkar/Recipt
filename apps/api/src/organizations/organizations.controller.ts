@@ -36,6 +36,20 @@ export class OrganizationsController {
     return this.service.update(orgId, dto);
   }
 
+  // Request-only, deliberately — see Organization.closureRequestedAt's
+  // schema comment for why an org admin can flag intent to close here,
+  // but the actual deletion is a human-reviewed action, not instant
+  // self-service (real donation records for donors who never consented
+  // to the deletion, plus Receipt/AuditLog aren't fully cascade-configured
+  // for a clean hard-delete anyway).
+  @Patch('me/request-closure')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN)
+  @ApiOperation({ summary: "Flag this organization for closure — reviewed by support, not an instant delete" })
+  requestClosure(@CurrentUser('orgId') orgId: string) {
+    return this.service.requestClosure(orgId);
+  }
+
   @Get('me/integrations-status')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)

@@ -173,6 +173,15 @@ model Organization {
   subscriptionStatus SubscriptionStatus @default(PENDING_PAYMENT)
   subscriptionExpiry DateTime?
   isActive           Boolean            @default(true)
+  // "Delete my organization" (2026-09-13) is request-only, deliberately —
+  // an org admin can flag intent to close here, but the actual deletion
+  // is a human-reviewed action (support), not instant self-service. This
+  // app's own Receipt/AuditLog relations aren't fully cascade-configured
+  // (found live: hard-deleting a User with existing receipts violates a
+  // foreign key), and more importantly a full wipe touches real donation
+  // records for donors who never consented to that deletion — not
+  // something worth risking on a single accidental click with no undo.
+  closureRequestedAt DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -238,6 +247,13 @@ model User {
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   refreshToken String?
+  // "Forgot password" via WhatsApp OTP (2026-09-13) — a 6-digit code,
+  // hashed the same way a password is, never stored/logged in plain text
+  // beyond the WhatsApp send call itself. Short-lived on purpose (see
+  // AuthService.requestPasswordReset); cleared once used or replaced by a
+  // fresh request.
+  passwordResetOtpHash      String?
+  passwordResetOtpExpiresAt DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

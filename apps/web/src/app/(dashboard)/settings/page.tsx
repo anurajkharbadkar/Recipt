@@ -398,6 +398,27 @@ export default function SettingsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to save settings'),
   });
 
+  // Request-only — see OrganizationsService.requestClosure for why this
+  // doesn't delete anything itself. Also opens WhatsApp to the platform's
+  // own support number so a human actually sees it promptly, same pattern
+  // as the "Upgrade Plan" WhatsApp link above — the DB flag alone has no
+  // notification path to a person without an email/SMS service wired up.
+  const [showClosureConfirm, setShowClosureConfirm] = useState(false);
+  const requestClosureMutation = useMutation({
+    mutationFn: orgsApi.requestClosure,
+    onSuccess: () => {
+      setOrganization({ ...(organization as any), closureRequestedAt: new Date().toISOString() });
+      queryClient.invalidateQueries({ queryKey: ['org'] });
+      setShowClosureConfirm(false);
+      toast.success('Closure request sent — our team will follow up.');
+      window.open(
+        platformWhatsappLink(`Hi, I'd like to close "${org?.name || 'my organization'}"'s account permanently.`),
+        '_blank',
+      );
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Could not send the request — please try again.'),
+  });
+
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -795,6 +816,74 @@ export default function SettingsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Danger Zone — request-only org closure (ORG_ADMIN only). Not an
+          instant self-service delete — see OrganizationsService.requestClosure
+          for why (real donation records for donors who never consented to
+          the deletion, plus Receipt/AuditLog aren't fully cascade-configured
+          for a clean hard-delete). */}
+      {user?.role === 'ORG_ADMIN' && (
+        <div className="glass-card p-6 sm:p-8 border border-red-500/20">
+          <div className="flex items-center gap-2.5 mb-4 pb-4 border-b border-theme">
+            <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400">
+              <AlertTriangle size={18} />
+            </div>
+            <h3 className="text-base font-semibold text-red-400">
+              {language === 'mr' ? 'धोक्याचे क्षेत्र' : language === 'hi' ? 'खतरे का क्षेत्र' : 'Danger Zone'}
+            </h3>
+          </div>
+
+          {org?.closureRequestedAt ? (
+            <p className="text-xs text-theme-fg/60 leading-relaxed">
+              {language === 'mr'
+                ? `तुम्ही ${new Date(org.closureRequestedAt).toLocaleDateString('en-IN')} रोजी खाते बंद करण्याची विनंती केली आहे — आमची टीम लवकरच संपर्क साधेल.`
+                : language === 'hi'
+                ? `आपने ${new Date(org.closureRequestedAt).toLocaleDateString('en-IN')} को खाता बंद करने का अनुरोध किया — हमारी टीम जल्द ही संपर्क करेगी.`
+                : `You requested closure on ${new Date(org.closureRequestedAt).toLocaleDateString('en-IN')} — our team will follow up before anything is deleted.`}
+            </p>
+          ) : !showClosureConfirm ? (
+            <div className="space-y-2">
+              <p className="text-xs text-theme-fg/50">
+                {language === 'mr'
+                  ? 'यामुळे तुमच्या मंडळाचे खाते व सर्व डेटा (पावत्या, देणगीदार, कर्मचारी) कायमचे बंद करण्याची विनंती केली जाते. आमची टीम पुढे जाण्यापूर्वी संपर्क साधेल.'
+                  : language === 'hi'
+                  ? 'यह आपके मंडल का खाता और सारा डेटा (पावतियां, दानदाता, स्टाफ) स्थायी रूप से बंद करने का अनुरोध करता है. आगे बढ़ने से पहले हमारी टीम संपर्क करेगी.'
+                  : "This requests permanent closure of your Mandal's account and all its data (receipts, donors, staff). Our team will contact you before anything is actually deleted."}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowClosureConfirm(true)}
+                className="flex items-center justify-center gap-1.5 text-xs font-semibold text-red-400 border border-red-500/30 hover:bg-red-500/10 rounded-lg px-4 py-2.5 min-h-[42px] transition-colors"
+              >
+                <Trash2 size={13} />
+                {language === 'mr' ? 'संस्था बंद करण्याची विनंती करा' : language === 'hi' ? 'संस्था बंद करने का अनुरोध करें' : 'Request Organization Closure'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-theme-fg/60">
+                {language === 'mr' ? 'तुम्हाला खात्रीने बंद करायचे आहे का?' : language === 'hi' ? 'क्या आप वाकई बंद करना चाहते हैं?' : 'Are you sure you want to request closure?'}
+              </p>
+              <div className="flex flex-col-reverse sm:flex-row gap-2.5">
+                <button type="button" onClick={() => setShowClosureConfirm(false)} className="btn-ghost text-sm min-h-[42px] flex-1">
+                  {language === 'mr' ? 'रद्द करा' : language === 'hi' ? 'रद्द करें' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => requestClosureMutation.mutate()}
+                  disabled={requestClosureMutation.isPending}
+                  className="flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-500 rounded-lg px-4 min-h-[42px] flex-1 disabled:opacity-60 transition-colors"
+                >
+                  <Trash2 size={14} />
+                  {requestClosureMutation.isPending
+                    ? (language === 'mr' ? 'पाठवत आहे...' : language === 'hi' ? 'भेजा जा रहा है...' : 'Sending...')
+                    : (language === 'mr' ? 'होय, विनंती पाठवा' : language === 'hi' ? 'हां, अनुरोध भेजें' : 'Yes, Send Request')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       </>
       )}
 

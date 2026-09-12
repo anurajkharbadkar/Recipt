@@ -118,6 +118,13 @@ export const authApi = {
    *  AuthService.deleteMyAccount for why. */
   deleteAccount: (password: string) =>
     apiClient.delete('/auth/me', { data: { password } }).then(r => r.data),
+  /** Sends a 6-digit OTP over WhatsApp — mandalCode mirrors login's own
+   *  admin/staff disambiguation. Same {sent:true} response whether or not
+   *  a matching account exists, by design (see the backend). */
+  requestPasswordReset: (phone: string, mandalCode?: string) =>
+    apiClient.post('/auth/forgot-password', mandalCode ? { mandalCode, phone } : { phone }).then(r => r.data),
+  resetPassword: (data: { phone: string; mandalCode?: string; otp: string; newPassword: string }) =>
+    apiClient.post('/auth/reset-password', data.mandalCode ? data : { ...data, mandalCode: undefined }).then(r => r.data),
 };
 
 // Organizations
@@ -125,6 +132,11 @@ export const orgsApi = {
   getMe: () => apiClient.get('/organizations/me').then(r => r.data),
   update: (data: any) => apiClient.patch('/organizations/me', data).then(r => r.data),
   getIntegrationsStatus: () => apiClient.get('/organizations/me/integrations-status').then(r => r.data),
+  /** Request-only — flags the org for closure, a human (support) reviews
+   *  and performs the actual deletion. See the backend's
+   *  OrganizationsService.requestClosure for why this isn't instant. */
+  requestClosure: (): Promise<{ requested: boolean }> =>
+    apiClient.patch('/organizations/me/request-closure').then(r => r.data),
   uploadLogo: (file: File) => {
     const form = new FormData();
     form.append('logo', file);
