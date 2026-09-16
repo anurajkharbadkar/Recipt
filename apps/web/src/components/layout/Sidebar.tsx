@@ -19,14 +19,14 @@ import LogoMark from '@/components/brand/LogoMark';
 // + Registered Members + Internal Collection screen, so it's visible to
 // anyone who can view either underlying module, not just 'Members'.
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड', module: 'Dashboard' },
-  { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', highlight: true, module: 'Receipts' },
-  { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या', module: 'Receipts' },
-  { href: '/campaigns', label: 'Events', icon: Megaphone, labelMr: 'इवेंट्स / उपक्रम', module: 'Campaigns' },
-  { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद', module: 'Members', altModule: 'Collectors' },
-  { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', module: 'Expenses' },
-  { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', module: 'Reports' },
-  { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स', module: 'Settings' },
+  { href: '/dashboard', label: 'Dashboard', icon: Home, labelMr: 'डॅशबोर्ड', labelHi: 'डैशबोर्ड', module: 'Dashboard' },
+  { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', labelHi: 'नई रसीद', highlight: true, module: 'Receipts' },
+  { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या', labelHi: 'रसीदें', module: 'Receipts' },
+  { href: '/campaigns', label: 'Events', icon: Megaphone, labelMr: 'इवेंट्स / उपक्रम', labelHi: 'इवेंट्स / कार्यक्रम', module: 'Campaigns' },
+  { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद', labelHi: 'सदस्य', module: 'Members', altModule: 'Collectors' },
+  { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', labelHi: 'व्यय', module: 'Expenses' },
+  { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', labelHi: 'रिपोर्ट', module: 'Reports' },
+  { href: '/settings', label: 'Settings', icon: Settings, labelMr: 'सेटिंग्स', labelHi: 'सेटिंग्स', module: 'Settings' },
 ];
 
 export default function Sidebar() {
@@ -122,7 +122,7 @@ export default function Sidebar() {
             >
               <item.icon size={18} />
               <div>
-                <div className="text-[13px]">{language === 'mr' ? item.labelMr : item.label}</div>
+                <div className="text-[13px]">{language === 'mr' ? item.labelMr : language === 'hi' ? item.labelHi : item.label}</div>
               </div>
             </Link>
           );
@@ -152,7 +152,7 @@ export default function Sidebar() {
           className="nav-link w-full mb-2 flex items-center gap-3 bg-saffron-500/10 text-saffron-700 dark:text-saffron-300 font-semibold border border-saffron-500/20 hover:bg-saffron-500/20 transition-all rounded-lg"
         >
           <Sparkles size={16} className="text-saffron-500" />
-          <span className="text-[13px]">{language === 'mr' ? '✨ मार्गदर्शन' : language === 'hi' ? '✨ मार्गदर्शन' : '✨ Page Guide'}</span>
+          <span className="text-[13px]">{language === 'mr' ? 'मार्गदर्शन' : language === 'hi' ? 'मार्गदर्शन' : 'Page Guide'}</span>
         </button>
 
         {/* Theme Toggle Button */}

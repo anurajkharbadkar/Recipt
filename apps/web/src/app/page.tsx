@@ -530,27 +530,11 @@ export default function HomePage() {
         {/* =========================================================== HERO */}
         <header className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center max-w-6xl mx-auto px-5 md:px-8 pt-20 sm:pt-24 lg:pt-28 pb-12 sm:pb-16">
           <Reveal dir="right" threshold={0.05}>
-            {/* Mobile Language Switcher (Prominent in Hero) */}
-            <div className="md:hidden flex items-center mb-5">
-              <div className="inline-flex items-center gap-1 bg-saffron-900/5 dark:bg-saffron-100/5 border border-saffron-800/15 dark:border-saffron-200/15 rounded-full p-1 shadow-sm" role="group" aria-label="Language Selector">
-                <span className="text-[11px] font-medium text-saffron-900/60 dark:text-saffron-100/60 pl-2.5 pr-1">🌐 भाषा:</span>
-                {(['en', 'mr', 'hi'] as Lang[]).map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLangState(l)}
-                    className={`text-xs font-semibold px-3 py-1 rounded-full transition-all duration-200 ${
-                      lang === l
-                        ? 'bg-saffron-700 text-white shadow-sm'
-                        : 'text-saffron-800/70 dark:text-saffron-200/70 hover:bg-saffron-100/60 dark:hover:bg-saffron-900/30'
-                    }`}
-                  >
-                    {l === 'en' ? 'English' : l === 'mr' ? 'मराठी' : 'हिंदी'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
+            {/* No mobile-header language switcher here — the floating sticky
+                one (bottom-right, mobile-only, further down this file) is
+                reachable from anywhere on the page, so a second copy up in
+                the hero was pure duplication eating vertical space above the
+                fold on small screens. */}
             <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-saffron-700 border border-saffron-500/50 rounded-full px-4 py-1.5 mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
               {t('Digital Pavtis · Honest Accounts', 'डिजिटल पावती · प्रामाणिक हिशोब', 'डिजिटल पावती · ईमानदार हिसाब')}
@@ -614,10 +598,18 @@ export default function HomePage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-white/80 animate-pulse" />
                 Live Demo — try it!
               </div>
-              {/* Phone frame */}
+              {/* Phone frame — fixed-height only for the cinematic Interactive
+                  view, which is designed to fill a phone screen exactly. The
+                  Standard view is a static ledger card, not a screen
+                  experience: forcing it into the same 580px box made visitors
+                  scroll inside a cramped frame to see the whole pavti (and
+                  the "View Interactive Darshan" button below it). Letting it
+                  size to its own content instead means everything — receipt
+                  and button — is visible at once, with the page scrolling
+                  normally if needed rather than a nested scroll area. */}
               <div
                 className="rounded-[2rem] overflow-hidden border-2 border-saffron-900/20 shadow-2xl shadow-saffron-900/20"
-                style={{ height: '580px', position: 'relative' }}
+                style={demoView === 'interactive' ? { height: '580px', position: 'relative' } : { position: 'relative' }}
               >
                 {demoView === 'interactive' ? (
                   <InteractivePavtiView
@@ -628,7 +620,7 @@ export default function HomePage() {
                     onSwitchToStandard={() => setDemoView('standard')}
                   />
                 ) : (
-                  <div className="h-full overflow-y-auto bg-[#1A120B] p-3">
+                  <div className="bg-[#1A120B] p-3">
                     <ReceiptPreview receipt={HERO_PREVIEW_RECEIPT} language="mr" qrPath="/receipt/preview" />
                     <button
                       type="button"

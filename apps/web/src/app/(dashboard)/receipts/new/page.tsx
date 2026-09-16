@@ -110,7 +110,7 @@ export default function NewReceiptPage() {
       if (receipt.donorPhone) prefetchReceiptImage(receipt.id);
       queryClient.invalidateQueries({ queryKey: ['receipts'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      toast.success(language === 'mr' ? 'पावती यशस्वीरित्या तयार झाली!' : 'Receipt created successfully!');
+      toast.success(language === 'mr' ? 'पावती यशस्वीरित्या तयार झाली!' : language === 'hi' ? 'रसीद सफलतापूर्वक बन गई!' : 'Receipt created successfully!');
     },
     onError: (e: any) => {
       toast.error(e?.response?.data?.message || 'Failed to create receipt');
@@ -170,7 +170,7 @@ export default function NewReceiptPage() {
             <CheckCircle size={32} className="text-emerald-400" />
           </div>
           <h2 className="text-xl font-bold text-theme-fg mb-1">
-            {language === 'mr' ? 'पावती तयार झाली!' : 'Receipt Created!'}
+            {language === 'mr' ? 'पावती तयार झाली!' : language === 'hi' ? 'रसीद बन गई!' : 'Receipt Created!'}
           </h2>
           <p className="text-theme-fg/50 text-sm mb-6">{createdReceipt.receiptNumber}</p>
 
@@ -190,7 +190,7 @@ export default function NewReceiptPage() {
               disabled={sharing}
             >
               {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-              {language === 'mr' ? 'इतर शेअर' : 'Other Apps'}
+              {language === 'mr' ? 'इतर शेअर' : language === 'hi' ? 'अन्य ऐप्स' : 'Other Apps'}
             </button>
             <button onClick={() => window.open(`/receipt/${createdReceipt.id}`, '_blank')} className="btn-secondary gap-2">
               <Printer size={16} /> View & Print
@@ -256,7 +256,7 @@ export default function NewReceiptPage() {
             <div className="relative">
               <label className="form-label">
                 <User size={12} className="inline mr-1" />
-                {language === 'mr' ? 'नाव' : 'Name'} *
+                {language === 'mr' ? 'नाव' : language === 'hi' ? 'नाम' : 'Name'} *
               </label>
               <input
                 {...register('donorName')}
@@ -310,7 +310,7 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <Phone size={12} className="inline mr-1" />
-                {language === 'mr' ? 'मोबाईल नंबर' : 'Mobile Number'} ({language === 'mr' ? 'पर्यायी' : 'Optional'})
+                {language === 'mr' ? 'मोबाईल नंबर' : language === 'hi' ? 'मोबाइल नंबर' : 'Mobile Number'} ({language === 'mr' ? 'पर्यायी' : language === 'hi' ? 'वैकल्पिक' : 'Optional'})
               </label>
               <input {...register('donorPhone')} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="numeric" />
             </div>
@@ -318,7 +318,7 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <MapPin size={12} className="inline mr-1" />
-                {language === 'mr' ? 'पत्ता' : 'Address'} ({language === 'mr' ? 'पर्यायी' : 'Optional'})
+                {language === 'mr' ? 'पत्ता' : language === 'hi' ? 'पता' : 'Address'} ({language === 'mr' ? 'पर्यायी' : language === 'hi' ? 'वैकल्पिक' : 'Optional'})
               </label>
               <textarea {...register('donorAddress')} className="form-input resize-none" rows={2} placeholder="Near Ganesh Temple, Ward A..." />
             </div>
@@ -326,15 +326,15 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <MapPinned size={12} className="inline mr-1" />
-                {language === 'mr' ? 'संग्रह क्षेत्र' : 'Collection Area'}
+                {language === 'mr' ? 'संग्रह क्षेत्र' : language === 'hi' ? 'संग्रह क्षेत्र' : 'Collection Area'}
               </label>
               <PickerWithAdd
                 value={watch('areaId') || ''}
                 onChange={(v) => setValue('areaId', v)}
                 options={(areas || []).map((a: any) => ({ value: a.id, label: a.name }))}
                 placeholder="No specific area"
-                addLabel={language === 'mr' ? '+ नवीन क्षेत्र जोडा…' : '+ Add new area…'}
-                addPlaceholder={language === 'mr' ? 'उदा. वॉर्ड C' : 'e.g. Ward C'}
+                addLabel={language === 'mr' ? '+ नवीन क्षेत्र जोडा…' : language === 'hi' ? '+ नया क्षेत्र जोड़ें…' : '+ Add new area…'}
+                addPlaceholder={language === 'mr' ? 'उदा. वॉर्ड C' : language === 'hi' ? 'उदा. वार्ड C' : 'e.g. Ward C'}
                 onAddNew={async (label) => {
                   const created = await orgsApi.createArea({ name: label });
                   queryClient.invalidateQueries({ queryKey: ['areas'] });
@@ -348,7 +348,7 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <IndianRupee size={12} className="inline mr-1" />
-                {language === 'mr' ? 'रक्कम' : 'Amount'} (₹) *
+                {language === 'mr' ? 'रक्कम' : language === 'hi' ? 'राशि' : 'Amount'} (₹) *
               </label>
               <input
                 {...register('amount', { valueAsNumber: true })}
@@ -386,7 +386,7 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <Tag size={12} className="inline mr-1" />
-                {language === 'mr' ? 'देणगी प्रकार' : 'Donation Category'}
+                {language === 'mr' ? 'देणगी प्रकार' : language === 'hi' ? 'दान श्रेणी' : 'Donation Category'}
               </label>
               <PickerWithAdd
                 value={watch('category') || DonationCategory.GENERAL}
@@ -395,8 +395,8 @@ export default function NewReceiptPage() {
                   ...Object.values(DonationCategory).map((cat) => ({ value: cat, label: RECEIPT_CATEGORIES_LABELS[cat][language] })),
                   ...(customDonationCategories || []).map((c: any) => ({ value: c.label, label: c.label })),
                 ]}
-                addLabel={language === 'mr' ? '+ नवीन प्रकार जोडा…' : '+ Add new category…'}
-                addPlaceholder={language === 'mr' ? 'उदा. मंडप सजावट' : 'e.g. Stage Decor'}
+                addLabel={language === 'mr' ? '+ नवीन प्रकार जोडा…' : language === 'hi' ? '+ नई श्रेणी जोड़ें…' : '+ Add new category…'}
+                addPlaceholder={language === 'mr' ? 'उदा. मंडप सजावट' : language === 'hi' ? 'उदा. मंच सजावट' : 'e.g. Stage Decor'}
                 onAddNew={async (label) => {
                   const created = await orgsApi.createCategory('DONATION', label);
                   queryClient.invalidateQueries({ queryKey: ['categories', 'DONATION'] });
@@ -408,7 +408,7 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <CreditCard size={12} className="inline mr-1" />
-                {language === 'mr' ? 'देय पद्धत' : 'Payment Mode'}
+                {language === 'mr' ? 'देय पद्धत' : language === 'hi' ? 'भुगतान माध्यम' : 'Payment Mode'}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.values(PaymentMode).map((mode) => (
@@ -442,10 +442,10 @@ export default function NewReceiptPage() {
                   <>
                     <div className="text-center">
                       <p className="text-xs font-semibold text-theme-fg">
-                        {language === 'mr' ? 'मंडळाचा थेट UPI QR कोड' : 'Direct Mandal UPI QR Code'}
+                        {language === 'mr' ? 'मंडळाचा थेट UPI QR कोड' : language === 'hi' ? 'मंडल का सीधा UPI QR कोड' : 'Direct Mandal UPI QR Code'}
                       </p>
                       <p className="text-[11px] text-theme-fg/50 mt-0.5">
-                        {language === 'mr' ? 'देणगीदाराला स्कॅन करून पेमेंट करण्यासाठी हा QR दाखवा' : 'Show this to the donor to scan & pay directly via any UPI app'}
+                        {language === 'mr' ? 'देणगीदाराला स्कॅन करून पेमेंट करण्यासाठी हा QR दाखवा' : language === 'hi' ? 'दानकर्ता को स्कैन करके सीधे भुगतान करने के लिए यह QR दिखाएं' : 'Show this to the donor to scan & pay directly via any UPI app'}
                       </p>
                     </div>
                     <div className="flex justify-center py-1">
@@ -465,11 +465,11 @@ export default function NewReceiptPage() {
                   </>
                 ) : (
                   <p className="text-xs text-theme-fg/40 py-2">
-                    {language === 'mr' ? 'पेमेंट QR दाखवण्यासाठी ' : 'Add your UPI ID in '}
+                    {language === 'mr' ? 'पेमेंट QR दाखवण्यासाठी ' : language === 'hi' ? 'भुगतान QR दिखाने के लिए ' : 'Add your UPI ID in '}
                     <Link href="/settings" className="text-saffron-400 underline underline-offset-2">
-                      {language === 'mr' ? 'सेटिंग्जमध्ये UPI ID जोडा' : 'Settings'}
+                      {language === 'mr' ? 'सेटिंग्जमध्ये UPI ID जोडा' : language === 'hi' ? 'सेटिंग्स में UPI ID जोड़ें' : 'Settings'}
                     </Link>
-                    {language === 'mr' ? '.' : ' to show a payment QR here.'}
+                    {language === 'mr' ? '.' : language === 'hi' ? '।' : ' to show a payment QR here.'}
                   </p>
                 )}
               </div>
@@ -480,11 +480,13 @@ export default function NewReceiptPage() {
               <div className="animate-slide-up glass-card p-4 text-center bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 space-y-1">
                 <div className="flex items-center justify-center gap-1.5 font-bold text-xs">
                   <Sparkles size={16} className="text-amber-400 animate-pulse" />
-                  <span>{language === 'mr' ? 'ऑनलाइन पेमेंट मोड (ऑटो-वेरिफाइड)' : 'Auto-Verified Online Payment'}</span>
+                  <span>{language === 'mr' ? 'ऑनलाइन पेमेंट मोड (ऑटो-वेरिफाइड)' : language === 'hi' ? 'ऑनलाइन भुगतान मोड (ऑटो-सत्यापित)' : 'Auto-Verified Online Payment'}</span>
                 </div>
                 <p className="text-[11px] text-theme-fg/70">
                   {language === 'mr'
                     ? 'पावती तयार केल्यावर डायनामिक QR आणि ऑटो-वेरिफाइड ऑनलाइन पेमेंट लिंक तयार होईल.'
+                    : language === 'hi'
+                    ? 'रसीद बनाने पर डायनामिक QR और ऑटो-सत्यापित ऑनलाइन भुगतान लिंक बन जाएगा.'
                     : 'Creating this receipt will generate a Dynamic QR & Instant Verification Link.'}
                 </p>
               </div>
@@ -493,7 +495,7 @@ export default function NewReceiptPage() {
             <div>
               <label className="form-label">
                 <FileText size={12} className="inline mr-1" />
-                {language === 'mr' ? 'टीप' : 'Notes'} ({language === 'mr' ? 'पर्यायी' : 'Optional'})
+                {language === 'mr' ? 'टीप' : language === 'hi' ? 'टिप्पणी' : 'Notes'} ({language === 'mr' ? 'पर्यायी' : language === 'hi' ? 'वैकल्पिक' : 'Optional'})
               </label>
               <textarea {...register('notes')} className="form-input resize-none" rows={2} placeholder="Any special notes..." />
             </div>
@@ -558,7 +560,7 @@ export default function NewReceiptPage() {
               {createMutation.isPending ? (
                 <span className="animate-pulse-soft">Creating...</span>
               ) : (
-                <>✨ {language === 'mr' ? 'पावती तयार करा' : 'Create Receipt'}</>
+                <>✨ {language === 'mr' ? 'पावती तयार करा' : language === 'hi' ? 'रसीद बनाएं' : 'Create Receipt'}</>
               )}
             </button>
           )}

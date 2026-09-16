@@ -79,16 +79,16 @@ export default function CampaignsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-theme-fg">{l.title}</h1>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-theme-fg">{l.title}</h1>
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm w-full sm:w-auto justify-center">
           <Plus size={15} />
           {l.newCampaign}
         </button>
       </div>
 
       {showForm && (
-        <div className="glass-card p-6 animate-slide-up">
+        <div className="glass-card p-4 sm:p-6 animate-slide-up">
           <h3 className="text-sm font-semibold text-theme-fg mb-4">{l.createTitle}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -145,7 +145,7 @@ export default function CampaignsPage() {
             <CampaignCard key={c.id} campaign={c} language={language} labels={l} onActivate={() => activateMutation.mutate(c.id)} onComplete={() => completeMutation.mutate(c.id)} />
           ))}
           {!campaigns?.length && (
-            <div className="glass-card p-12 text-center text-theme-fg/30">
+            <div className="glass-card p-8 sm:p-12 text-center text-theme-fg/30">
               {l.empty}
             </div>
           )}
@@ -166,28 +166,28 @@ function CampaignCard({ campaign: c, language, labels: l, onActivate, onComplete
     : 0;
 
   return (
-    <div className="glass-card p-5 animate-slide-up">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link href={`/campaigns/${c.id}`} className="font-bold text-theme-fg text-lg hover:text-saffron-400 transition-colors">{c.name}</Link>
+    <div className="glass-card p-4 sm:p-5 animate-slide-up">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <Link href={`/campaigns/${c.id}`} className="font-bold text-theme-fg text-base sm:text-lg hover:text-saffron-400 transition-colors truncate">{c.name}</Link>
             <span className={`badge text-xs ${STATUS_COLORS[c.status]}`}>{CAMPAIGN_STATUS_LABELS[c.status as CampaignStatus]?.[language] || c.status}</span>
           </div>
-          {c.nameMarathi && <p className="text-sm text-theme-fg/40 font-devanagari">{c.nameMarathi}</p>}
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-theme-fg/40">
+          {c.nameMarathi && <p className="text-xs sm:text-sm text-theme-fg/40 font-devanagari">{c.nameMarathi}</p>}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5 text-xs text-theme-fg/50">
             <span className="flex items-center gap-1"><Calendar size={11} /> {format(new Date(c.startDate), 'dd MMM yyyy')}</span>
             {c.endDate && <span>→ {format(new Date(c.endDate), 'dd MMM yyyy')}</span>}
             <span className="flex items-center gap-1"><Receipt size={11} /> {c._count?.receipts || 0} {l.receipts}</span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           {c.status === 'DRAFT' && (
-            <button onClick={onActivate} className="btn-primary text-xs px-3 py-1.5 gap-1">
+            <button onClick={onActivate} className="btn-primary text-xs px-3 py-1.5 gap-1 w-full sm:w-auto justify-center">
               <Play size={12} /> {l.activate}
             </button>
           )}
           {c.status === 'ACTIVE' && (
-            <button onClick={onComplete} className="btn-secondary text-xs px-3 py-1.5 gap-1">
+            <button onClick={onComplete} className="btn-secondary text-xs px-3 py-1.5 gap-1 w-full sm:w-auto justify-center">
               <CheckCircle size={12} /> {l.complete}
             </button>
           )}
@@ -195,18 +195,18 @@ function CampaignCard({ campaign: c, language, labels: l, onActivate, onComplete
       </div>
 
       {stats && (
-        <div className="grid grid-cols-3 gap-3 mb-3">
-          <div className="glass-card p-3 text-center">
-            <p className="text-xs text-theme-fg/40">{l.collected}</p>
-            <p className="font-bold text-emerald-400 text-sm">{formatCurrency(stats.totalCollected || 0)}</p>
+        <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 mb-3">
+          <div className="glass-card p-2.5 sm:p-3 text-center min-w-0">
+            <p className="text-[11px] sm:text-xs text-theme-fg/40">{l.collected}</p>
+            <p className="font-bold text-emerald-400 text-xs sm:text-sm truncate">{formatCurrency(stats.totalCollected || 0)}</p>
           </div>
-          <div className="glass-card p-3 text-center">
-            <p className="text-xs text-theme-fg/40">{l.expenses}</p>
-            <p className="font-bold text-red-400 text-sm">{formatCurrency(stats.totalExpenses || 0)}</p>
+          <div className="glass-card p-2.5 sm:p-3 text-center min-w-0">
+            <p className="text-[11px] sm:text-xs text-theme-fg/40">{l.expenses}</p>
+            <p className="font-bold text-red-400 text-xs sm:text-sm truncate">{formatCurrency(stats.totalExpenses || 0)}</p>
           </div>
-          <div className="glass-card p-3 text-center">
-            <p className="text-xs text-theme-fg/40">{l.balance}</p>
-            <p className={`font-bold text-sm ${(stats.netBalance || 0) >= 0 ? 'text-saffron-400' : 'text-red-400'}`}>{formatCurrency(stats.netBalance || 0)}</p>
+          <div className="glass-card p-2.5 sm:p-3 text-center min-w-0">
+            <p className="text-[11px] sm:text-xs text-theme-fg/40">{l.balance}</p>
+            <p className={`font-bold text-xs sm:text-sm truncate ${(stats.netBalance || 0) >= 0 ? 'text-saffron-400' : 'text-red-400'}`}>{formatCurrency(stats.netBalance || 0)}</p>
           </div>
         </div>
       )}

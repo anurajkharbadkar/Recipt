@@ -110,7 +110,7 @@ function ReceiptsPageInner() {
           {user?.role !== 'VIEWER' && (
             <Link href="/receipts/new" className="btn-primary text-sm">
               <Plus size={15} />
-              {language === 'mr' ? 'नवीन' : 'New'}
+              {language === 'mr' ? 'नवीन' : language === 'hi' ? 'नया' : 'New'}
             </Link>
           )}
         </div>
@@ -175,7 +175,7 @@ function ReceiptsPageInner() {
             value={search}
             onChange={(e) => setParams({ search: e.target.value })}
             className="form-input pl-9 py-2 text-sm"
-            placeholder={language === 'mr' ? 'नाव, फोन किंवा पावती क्र. शोधा...' : 'Search donor, phone, or receipt #...'}
+            placeholder={language === 'mr' ? 'नाव, फोन किंवा पावती क्र. शोधा...' : language === 'hi' ? 'नाम, फोन या रसीद नं. खोजें...' : 'Search donor, phone, or receipt #...'}
           />
         </div>
         <input
@@ -272,7 +272,7 @@ function ReceiptsPageInner() {
               ))}
               {!data?.data?.length && (
                 <p className="text-center text-theme-fg/30 py-12 text-sm">
-                  {language === 'mr' ? 'कोणत्याही पावत्या आढळल्या नाहीत' : 'No receipts found'}
+                  {language === 'mr' ? 'कोणत्याही पावत्या आढळल्या नाहीत' : language === 'hi' ? 'कोई रसीद नहीं मिली' : 'No receipts found'}
                 </p>
               )}
             </div>
@@ -343,7 +343,7 @@ function ReceiptsPageInner() {
                   {!data?.data?.length && (
                     <tr>
                       <td colSpan={10} className="text-center text-theme-fg/30 py-12">
-                        {language === 'mr' ? 'कोणत्याही पावत्या आढळल्या नाहीत' : 'No receipts found'}
+                        {language === 'mr' ? 'कोणत्याही पावत्या आढळल्या नाहीत' : language === 'hi' ? 'कोई रसीद नहीं मिली' : 'No receipts found'}
                       </td>
                     </tr>
                   )}

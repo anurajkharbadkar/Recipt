@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
-const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.epavtibook.com/api/v1';
 const API_URL = RAW_API_URL.endsWith('/api/v1')
   ? RAW_API_URL
   : `${RAW_API_URL.replace(/\/+$/, '')}/api/v1`;

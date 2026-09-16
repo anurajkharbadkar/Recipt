@@ -23,6 +23,13 @@ const config: CapacitorConfig = {
     // something to publish; this is a testing-only stand-in.
     url: 'https://recipt-web-wheat.vercel.app',
     cleartext: false,
+    allowNavigation: [
+      'recipt-web-wheat.vercel.app',
+      'our.epavtibook.com',
+      'api.epavtibook.com',
+      '*.cashfree.com',
+      '*.cashfreepayments.com'
+    ],
   },
   android: {
     // Matches manifest.json's theme_color — the native splash/status bar

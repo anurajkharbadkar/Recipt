@@ -281,10 +281,18 @@ export const PRICING_PLANS: PricingPlan[] = [
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC],
     includesFrom: 'Take your first step towards digital collections',
+    // The three limit bullets above the line are what actually differ from
+    // FREE. The three below are true of BASIC today but weren't listed
+    // anywhere on its own card — none of them are Standard+-gated (only
+    // UPI QR and custom branding are, see PREMIUM_FEATURE_PLANS in
+    // organizations.service.ts), so listing them here doesn't overpromise.
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC], 'Collectors'), category: 'team', key: 'collectors' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.BASIC]} Active Event at a Time`, category: 'collections', key: 'activeFestivals' },
+      { label: 'Interactive Digital Darshan Pavti', category: 'pavti', key: 'interactivePavti' },
+      { label: 'Instant WhatsApp Receipt Sharing', category: 'pavti', key: 'whatsappShare' },
+      { label: 'Receipts in English, Hindi & Marathi', category: 'pavti', key: 'multiLanguage' },
     ],
   },
   {

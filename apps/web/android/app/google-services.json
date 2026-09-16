@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "220163847185",
+    "project_id": "epavtibook-94106",
+    "storage_bucket": "epavtibook-94106.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:220163847185:android:e4a99333fec713e0fc6db0",
+        "android_client_info": {
+          "package_name": "com.epavtibook.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9oks_rhO5dqq_GXhaeh0D8-ux8NtJp2U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

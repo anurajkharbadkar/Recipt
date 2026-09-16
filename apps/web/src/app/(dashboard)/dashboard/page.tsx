@@ -127,7 +127,7 @@ export default function DashboardPage() {
           {language === 'mr' ? 'डॅशबोर्ड' : language === 'hi' ? 'डैशबोर्ड' : 'Dashboard'}
         </h1>
         <p className="text-sm text-theme-fg/40 mt-0.5">
-          {language === 'mr' ? `नमस्कार, ${user?.name}!` : `Welcome back, ${user?.name}!`}
+          {language === 'mr' ? `नमस्कार, ${user?.name}!` : language === 'hi' ? `नमस्ते, ${user?.name}!` : `Welcome back, ${user?.name}!`}
         </p>
       </div>
 
@@ -159,7 +159,7 @@ export default function DashboardPage() {
         {/* Daily Collection Chart */}
         <div className="lg:col-span-2 glass-card p-5">
           <h3 className="text-sm font-semibold text-theme-fg mb-4">
-            {language === 'mr' ? 'दैनिक संग्रह (14 दिवस)' : 'Daily Collection Trend (14 days)'}
+            {language === 'mr' ? 'दैनिक संग्रह (14 दिवस)' : language === 'hi' ? 'दैनिक संग्रह (14 दिन)' : 'Daily Collection Trend (14 days)'}
           </h3>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={chartData}>
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         {/* Top Collectors */}
         <div className="glass-card p-5">
           <h3 className="text-sm font-semibold text-theme-fg mb-4">
-            {language === 'mr' ? 'संग्राहक क्रमवारी' : 'Collector Rankings'}
+            {language === 'mr' ? 'संग्राहक क्रमवारी' : language === 'hi' ? 'संग्रहकर्ता रैंकिंग' : 'Collector Rankings'}
           </h3>
           <div className="space-y-3">
             {(collectorStats || []).slice(0, 5).map((c: any, i: number) => (
@@ -207,7 +207,7 @@ export default function DashboardPage() {
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-theme-fg">
-            {language === 'mr' ? 'अलीकडील पावत्या' : 'Recent Receipts'}
+            {language === 'mr' ? 'अलीकडील पावत्या' : language === 'hi' ? 'हाल की रसीदें' : 'Recent Receipts'}
           </h3>
           <Link href="/receipts" className="text-xs text-saffron-400 hover:text-saffron-300 flex items-center gap-1">
             View all <ArrowUpRight size={12} />

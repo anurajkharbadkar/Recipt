@@ -11,6 +11,7 @@ export default function PageGuideSpotlight() {
   const { language, completedTours, markTourCompleted } = useAuthStore();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [minimized, setMinimized] = useState(false);
+  const [localCompleted, setLocalCompleted] = useState(false);
 
   // Map route pathname to tour key
   const tourKeyMap: Record<string, string> = {
@@ -28,21 +29,33 @@ export default function PageGuideSpotlight() {
   useEffect(() => {
     setCurrentStepIndex(0);
     setMinimized(false);
-  }, [pathname]);
+    if (pageKey) {
+      const isPersistentDone = localStorage.getItem(`pavti_tour_completed_${pageKey}`) === 'true';
+      setLocalCompleted(isPersistentDone);
+    }
+  }, [pathname, pageKey]);
 
   if (!tour) return null;
 
-  const isCompleted = !!completedTours[tour.pageKey];
+  const isCompleted = localCompleted || !!completedTours[tour.pageKey];
   if (isCompleted && !minimized) return null;
 
   const steps = tour.steps;
   const currentStep: TourStep = steps[currentStepIndex];
 
+  const completeTour = () => {
+    markTourCompleted(tour.pageKey);
+    setLocalCompleted(true);
+    try {
+      localStorage.setItem(`pavti_tour_completed_${tour.pageKey}`, 'true');
+    } catch {}
+  };
+
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex((p) => p + 1);
     } else {
-      markTourCompleted(tour.pageKey);
+      completeTour();
     }
   };
 
@@ -53,7 +66,7 @@ export default function PageGuideSpotlight() {
   };
 
   const handleDismiss = () => {
-    markTourCompleted(tour.pageKey);
+    completeTour();
   };
 
   const pageTitle = tour.title[language] || tour.title.mr;
@@ -68,7 +81,7 @@ export default function PageGuideSpotlight() {
         className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-40 bg-saffron-500 text-white font-semibold text-xs px-3.5 py-2.5 rounded-full shadow-lg flex items-center gap-2 hover:bg-saffron-600 transition-all"
       >
         <HelpCircle size={15} />
-        <span>{language === 'mr' ? 'मार्गदर्शन पुन्हा पहा' : 'Page Guide'}</span>
+        <span>{language === 'mr' ? 'मार्गदर्शन पुन्हा पहा' : language === 'hi' ? 'मार्गदर्शन फिर देखें' : 'Page Guide'}</span>
       </button>
     );
   }
@@ -123,7 +136,7 @@ export default function PageGuideSpotlight() {
           onClick={handleDismiss}
           className="text-[11px] text-theme-fg/40 hover:text-theme-fg font-medium"
         >
-          {language === 'mr' ? 'रद्द करा (Skip)' : 'Skip Tour'}
+          {language === 'mr' ? 'रद्द करा (Skip)' : language === 'hi' ? 'छोड़ें' : 'Skip Tour'}
         </button>
 
         <div className="flex items-center gap-1.5">
@@ -142,11 +155,11 @@ export default function PageGuideSpotlight() {
           >
             {currentStepIndex < steps.length - 1 ? (
               <>
-                {language === 'mr' ? 'पुढील' : 'Next'} <ChevronRight size={13} />
+                {language === 'mr' ? 'पुढील' : language === 'hi' ? 'अगला' : 'Next'} <ChevronRight size={13} />
               </>
             ) : (
               <>
-                {language === 'mr' ? 'पूर्ण झाले' : 'Got it!'} <Check size={13} />
+                {language === 'mr' ? 'पूर्ण झाले' : language === 'hi' ? 'समझ गया!' : 'Got it!'} <Check size={13} />
               </>
             )}
           </button>

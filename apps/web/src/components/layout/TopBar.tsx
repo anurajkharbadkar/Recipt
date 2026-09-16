@@ -43,7 +43,11 @@ export default function TopBar() {
         )}
         <div className="min-w-0 max-w-[150px] xs:max-w-[210px]">
           <h1 className="font-bold text-xs sm:text-sm text-theme-fg truncate leading-tight">
-            {organization ? (language === 'mr' && organization.nameMarathi ? organization.nameMarathi : organization.name) : BRAND_NAME}
+            {organization
+              ? (language === 'mr' && organization.nameMarathi) ? organization.nameMarathi
+                : (language === 'hi' && organization.nameHindi) ? organization.nameHindi
+                : organization.name
+              : BRAND_NAME}
           </h1>
           <p className="text-[11px] sm:text-xs text-saffron-700 dark:text-saffron-300 font-devanagari leading-none mt-0.5 truncate font-semibold">
             {organization?.nameMarathi || 'ई पावती बुक'}

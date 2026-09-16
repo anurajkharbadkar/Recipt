@@ -26,7 +26,7 @@ const labels = {
     gst: 'GST Number (Optional)', description: 'Description', saving: 'Saving...', noExpenses: 'No expenses logged yet',
   },
   hi: {
-    total: 'कुल व्यय', logExpense: 'व्यय नोंदवा',
+    total: 'कुल व्यय', logExpense: 'व्यय दर्ज करें',
     campaign: 'अभियान', selectCampaign: 'अभियान चुनें...', category: 'श्रेणी', amount: 'राशि (₹)',
     date: 'तारीख', vendor: 'विक्रेता / प्राप्तकर्ता का नाम', paymentMode: 'भुगतान मोड', recipientPhone: 'प्राप्तकर्ता का फोन',
     gst: 'GST नंबर (वैकल्पिक)', description: 'विवरण', saving: 'सहेजा जा रहा है...', noExpenses: 'अभी तक कोई व्यय नहीं जोड़ा गया',
@@ -115,23 +115,23 @@ function ExpensesPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-theme-fg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-theme-fg">
           {language === 'mr' ? 'खर्च' : language === 'hi' ? 'व्यय' : 'Expenses'}
         </h1>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">
-          <Plus size={15} /> {language === 'mr' ? 'खर्च नोंदवा' : 'Log Expense'}
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm w-full sm:w-auto justify-center">
+          <Plus size={15} /> {l.logExpense}
         </button>
       </div>
 
       {/* Summary */}
-      <div className="glass-card p-5">
+      <div className="glass-card p-4 sm:p-5">
         <p className="form-label">{l.total}</p>
-        <p className="text-xl font-bold text-red-400">{formatCurrency(totalExpenses)}</p>
+        <p className="text-xl sm:text-2xl font-bold text-red-400">{formatCurrency(totalExpenses)}</p>
       </div>
 
       {showForm && (
-        <div className="glass-card p-6 animate-slide-up">
+        <div className="glass-card p-4 sm:p-6 animate-slide-up">
           <h3 className="text-sm font-semibold text-theme-fg mb-4">{l.logExpense}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -150,8 +150,8 @@ function ExpensesPageInner() {
                   ...Object.values(ExpenseCategory).map((cat) => ({ value: cat, label: `${CATEGORY_EMOJI[cat] || '📦'} ${EXPENSE_CATEGORY_LABELS[cat][language]}` })),
                   ...(customExpenseCategories || []).map((c: any) => ({ value: c.label, label: c.label })),
                 ]}
-                addLabel={language === 'mr' ? '+ नवीन प्रकार जोडा…' : '+ Add new category…'}
-                addPlaceholder={language === 'mr' ? 'उदा. केटरिंग' : 'e.g. Catering'}
+                addLabel={language === 'mr' ? '+ नवीन प्रकार जोडा…' : language === 'hi' ? '+ नई श्रेणी जोड़ें…' : '+ Add new category…'}
+                addPlaceholder={language === 'mr' ? 'उदा. केटरिंग' : language === 'hi' ? 'उदा. केटरिंग' : 'e.g. Catering'}
                 onAddNew={async (label) => {
                   const created = await orgsApi.createCategory('EXPENSE', label);
                   queryClient.invalidateQueries({ queryKey: ['categories', 'EXPENSE'] });

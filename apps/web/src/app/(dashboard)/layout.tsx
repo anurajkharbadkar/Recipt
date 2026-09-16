@@ -14,6 +14,7 @@ import NoActiveCampaignBanner from '@/components/campaign/NoActiveCampaignBanner
 import OnboardingWelcomeModal from '@/components/onboarding/OnboardingWelcomeModal';
 import PageGuideSpotlight from '@/components/onboarding/PageGuideSpotlight';
 import NewReceiptFab from '@/components/layout/NewReceiptFab';
+import PushNotificationInit from '@/components/layout/PushNotificationInit';
 import toast from 'react-hot-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <NewReceiptFab />
       <OnboardingWelcomeModal />
       <PageGuideSpotlight />
+      <PushNotificationInit />
     </div>
   );
 }

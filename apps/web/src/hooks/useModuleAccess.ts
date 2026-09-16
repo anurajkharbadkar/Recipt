@@ -14,13 +14,17 @@ export function useModuleAccessResolver() {
     if (!moduleName || moduleName === 'Dashboard') return true;
 
     if (user.role === 'COLLECTOR') {
-      return moduleName === 'Receipts';
+      // Settings is allowed too, but only shows a small scoped-down screen
+      // (app language + account link) — see settings/page.tsx's early
+      // COLLECTOR/TREASURER branch — not the full org-configuration page.
+      return moduleName === 'Receipts' || moduleName === 'Settings';
     }
     if (user.role === 'TREASURER') {
-      // Subscription (billing/plan changes) is admin territory, same as
-      // Settings — a Treasurer manages money the org collects, not what
-      // the org itself pays this app.
-      return moduleName !== 'Settings' && moduleName !== 'Subscription';
+      // Subscription (billing/plan changes) stays admin-only — a Treasurer
+      // manages money the org collects, not what the org itself pays this
+      // app. Settings is allowed, but see the same scoped-down screen note
+      // above for COLLECTOR.
+      return moduleName !== 'Subscription';
     }
     if (user.role === 'VIEWER') {
       return ['Receipts', 'Reports'].includes(moduleName);

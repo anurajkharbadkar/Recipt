@@ -134,27 +134,27 @@
   /* Form Elements */
   .form-input {
     @apply w-full px-4 py-3 rounded-xl outline-none transition-all duration-200;
-    background: #FFFFFF;
-    border: 1px solid #E2D7CB;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     color: var(--text-color);
     font-size: 0.95rem;
     &::placeholder { color: var(--text-placeholder); }
     &:focus {
       border-color: var(--primary-brand-color);
-      background: #FFFFFF;
+      background: var(--card-bg);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-brand-color) 12%, transparent);
     }
   }
 
   .form-select {
     @apply w-full px-4 py-3 rounded-xl outline-none transition-all duration-200 cursor-pointer;
-    background: #FFFFFF;
-    border: 1px solid #E2D7CB;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     color: var(--text-color);
     font-size: 0.95rem;
     &:focus {
       border-color: var(--primary-brand-color);
-      background: #FFFFFF;
+      background: var(--card-bg);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-brand-color) 12%, transparent);
     }
     appearance: none;
@@ -163,6 +163,42 @@
     background-size: 16px;
     padding-right: 40px;
     option { background: var(--bg-color); color: var(--text-color); }
+  }
+
+  /* Dark mode form controls explicit contrast overrides */
+  .dark .form-input,
+  .dark .form-select,
+  .dark input[type="text"],
+  .dark input[type="number"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="tel"],
+  .dark input[type="date"],
+  .dark select,
+  .dark textarea {
+    background-color: #1F1710 !important;
+    border-color: #382416 !important;
+    color: #F4F0E0 !important;
+  }
+
+  .dark .form-input:focus,
+  .dark .form-select:focus,
+  .dark input:focus,
+  .dark select:focus,
+  .dark textarea:focus {
+    background-color: #271E15 !important;
+    border-color: #E8C878 !important;
+    box-shadow: 0 0 0 3px rgba(232, 200, 120, 0.2) !important;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #8C6A48 !important;
+  }
+
+  .dark select option {
+    background-color: #1A120B !important;
+    color: #F4F0E0 !important;
   }
 
   .form-label {

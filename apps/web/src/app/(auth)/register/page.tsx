@@ -9,12 +9,80 @@ import toast from 'react-hot-toast';
 import { ArrowRight, ArrowLeft, Check, Star, KeyRound, Copy, CheckCheck, CreditCard, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import LogoMark from '@/components/brand/LogoMark';
+import AuthLanguageSwitcher from '@/components/auth/AuthLanguageSwitcher';
 import { launchSubscriptionCheckout } from '@/lib/cashfreeCheckout';
+
+// Plan names/taglines/price notes stay English everywhere in the app (see
+// PRICING_PLANS in packages/shared — a deliberate choice, not an omission),
+// so only the surrounding form chrome gets translated here.
+const labels = {
+  en: {
+    back: 'Back', title: 'Register Your Mandal',
+    mandalCodeTitle: 'Your Mandal Code',
+    mandalCodeDesc: "Every collector or treasurer you add needs this — along with their own phone number and password — to log in. Share it with them, and keep it somewhere you won't lose it (it's also always in Settings).",
+    payAndActivate: (amt: string) => `Pay ${amt} & Activate`,
+    continueToDashboard: 'Continue to Dashboard',
+    orgDetails: 'Organization Details', orgName: 'Organization Name *', orgNamePlaceholder: 'Shree Ganesh Mandal',
+    city: 'City *', cityPlaceholder: 'Pune', address: 'Address *', addressPlaceholder: '123, MG Road', state: 'State',
+    adminAccount: 'Your Admin Account', yourName: 'Your Name *', yourNamePlaceholder: 'Rajesh Kumar',
+    mobileNumber: 'Mobile Number *', email: 'Email (optional)', password: 'Password *', passwordPlaceholder: 'At least 8 characters',
+    choosePlan: 'Choose Your Plan',
+    freePlanNote: "Free — no payment needed, you're active immediately.",
+    paidPlanNote: 'You can start using the app right away — your plan activates once payment is confirmed.',
+    popular: 'Popular', instant: 'Instant',
+    creatingAccount: 'Creating account...', startFreeTrial: 'Start Free Trial', createAccount: 'Create Account & Continue',
+    alreadyHaveAccount: 'Already have an account? Sign in',
+    fillRequired: 'Please fill all required fields', accountCreated: 'Account created! 🙏',
+    registrationFailed: 'Registration failed. Please check your details and try again.',
+    checkoutFailed: 'Could not start checkout — please try again.', loading: 'Loading...',
+  },
+  hi: {
+    back: 'वापस', title: 'अपने मंडल का पंजीकरण करें',
+    mandalCodeTitle: 'आपका मंडल कोड',
+    mandalCodeDesc: 'आपके जोड़े गए हर संग्रहकर्ता या कोषाध्यक्ष को लॉगिन के लिए यह कोड, अपने फोन नंबर और पासवर्ड के साथ चाहिए। इसे उनके साथ साझा करें और सुरक्षित रखें (यह हमेशा सेटिंग्स में भी मिलेगा)।',
+    payAndActivate: (amt: string) => `${amt} भुगतान करें व सक्रिय करें`,
+    continueToDashboard: 'डैशबोर्ड पर जाएं',
+    orgDetails: 'संस्था विवरण', orgName: 'संस्था का नाम *', orgNamePlaceholder: 'श्री गणेश मंडल',
+    city: 'शहर *', cityPlaceholder: 'पुणे', address: 'पता *', addressPlaceholder: '123, एमजी रोड', state: 'राज्य',
+    adminAccount: 'आपका एडमिन खाता', yourName: 'आपका नाम *', yourNamePlaceholder: 'राजेश कुमार',
+    mobileNumber: 'मोबाइल नंबर *', email: 'ईमेल (वैकल्पिक)', password: 'पासवर्ड *', passwordPlaceholder: 'कम से कम 8 अक्षर',
+    choosePlan: 'अपना प्लान चुनें',
+    freePlanNote: 'फ्री — कोई भुगतान नहीं, आप तुरंत सक्रिय हो जाते हैं।',
+    paidPlanNote: 'आप ऐप का उपयोग तुरंत शुरू कर सकते हैं — भुगतान की पुष्टि होते ही आपका प्लान सक्रिय हो जाएगा।',
+    popular: 'लोकप्रिय', instant: 'तुरंत',
+    creatingAccount: 'खाता बनाया जा रहा है...', startFreeTrial: 'फ्री ट्रायल शुरू करें', createAccount: 'खाता बनाएं व आगे बढ़ें',
+    alreadyHaveAccount: 'पहले से खाता है? साइन इन करें',
+    fillRequired: 'कृपया सभी आवश्यक जानकारी भरें', accountCreated: 'खाता बन गया! 🙏',
+    registrationFailed: 'पंजीकरण विफल रहा। कृपया अपनी जानकारी जांचें और फिर से प्रयास करें।',
+    checkoutFailed: 'चेकआउट शुरू नहीं हो सका — कृपया फिर से प्रयास करें।', loading: 'लोड हो रहा है...',
+  },
+  mr: {
+    back: 'मागे', title: 'तुमच्या मंडळाची नोंदणी करा',
+    mandalCodeTitle: 'तुमचा मंडळ कोड',
+    mandalCodeDesc: 'तुम्ही जोडलेल्या प्रत्येक संग्राहक किंवा कोषाध्यक्षाला लॉगिन करण्यासाठी हा कोड, त्यांचा स्वतःचा फोन नंबर व पासवर्ड लागेल. तो त्यांच्यासोबत शेअर करा व सुरक्षित ठेवा (तो नेहमी सेटिंग्जमध्येही मिळेल).',
+    payAndActivate: (amt: string) => `${amt} भरा व सक्रिय करा`,
+    continueToDashboard: 'डॅशबोर्डवर जा',
+    orgDetails: 'संस्थेचा तपशील', orgName: 'संस्थेचे नाव *', orgNamePlaceholder: 'श्री गणेश मंडळ',
+    city: 'शहर *', cityPlaceholder: 'पुणे', address: 'पत्ता *', addressPlaceholder: '123, एमजी रोड', state: 'राज्य',
+    adminAccount: 'तुमचे अ‍ॅडमिन खाते', yourName: 'तुमचे नाव *', yourNamePlaceholder: 'राजेश कुमार',
+    mobileNumber: 'मोबाइल नंबर *', email: 'ईमेल (पर्यायी)', password: 'पासवर्ड *', passwordPlaceholder: 'किमान 8 अक्षरे',
+    choosePlan: 'तुमचा प्लॅन निवडा',
+    freePlanNote: 'मोफत — पैसे भरण्याची गरज नाही, तुम्ही लगेच सक्रिय व्हाल.',
+    paidPlanNote: 'तुम्ही अ‍ॅप लगेच वापरणे सुरू करू शकता — पेमेंटची पुष्टी झाल्यावर तुमचा प्लॅन सक्रिय होईल.',
+    popular: 'लोकप्रिय', instant: 'त्वरित',
+    creatingAccount: 'खाते तयार होत आहे...', startFreeTrial: 'मोफत ट्रायल सुरू करा', createAccount: 'खाते तयार करा व पुढे जा',
+    alreadyHaveAccount: 'आधीच खाते आहे? साइन इन करा',
+    fillRequired: 'कृपया सर्व आवश्यक माहिती भरा', accountCreated: 'खाते तयार झाले! 🙏',
+    registrationFailed: 'नोंदणी अयशस्वी झाली. कृपया तुमची माहिती तपासा व पुन्हा प्रयत्न करा.',
+    checkoutFailed: 'चेकआउट सुरू करता आले नाही — कृपया पुन्हा प्रयत्न करा.', loading: 'लोड होत आहे...',
+  },
+};
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setAuth } = useAuthStore();
+  const { setAuth, language } = useAuthStore();
+  const l = labels[language] || labels.en;
   const [loading, setLoading] = useState(false);
   // Shown once, right after signup — this is the only time an admin is
   // guaranteed to be looking at the screen when their Mandal Code exists.
@@ -48,15 +116,15 @@ function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) { toast.error('Please fill all required fields'); return; }
+    if (!canSubmit) { toast.error(l.fillRequired); return; }
     setLoading(true);
     try {
       const data = await authApi.register(form);
       setAuth(data);
-      toast.success('Account created! 🙏');
+      toast.success(l.accountCreated);
       setNewMandalCode(data.organization?.mandalCode || null);
     } catch (err: any) {
-      toast.error(getErrorMessage(err, 'Registration failed. Please check your details and try again.'));
+      toast.error(getErrorMessage(err, l.registrationFailed));
     } finally {
       setLoading(false);
     }
@@ -78,7 +146,7 @@ function RegisterForm() {
       // Redirects the whole page to Cashfree on success — this only runs
       // if it threw before getting there.
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Could not start checkout — please try again.');
+      toast.error(err?.response?.data?.message || l.checkoutFailed);
       setPayingViaCheckout(false);
     }
   };
@@ -91,9 +159,9 @@ function RegisterForm() {
           <div className="w-14 h-14 rounded-2xl bg-saffron-500/10 flex items-center justify-center mx-auto mb-4">
             <KeyRound size={26} className="text-saffron-500" />
           </div>
-          <h2 className="text-lg font-bold text-theme-fg mb-1">Your Mandal Code</h2>
+          <h2 className="text-lg font-bold text-theme-fg mb-1">{l.mandalCodeTitle}</h2>
           <p className="text-xs text-theme-fg/50 mb-5">
-            Every collector or treasurer you add needs this — along with their own phone number and password — to log in. Share it with them, and keep it somewhere you won&apos;t lose (it&apos;s also always in Settings).
+            {l.mandalCodeDesc}
           </p>
           <button
             onClick={handleCopyCode}
@@ -115,11 +183,11 @@ function RegisterForm() {
             // removes the *invitation* to skip, not the ability to log in.
             <button onClick={handlePayNow} disabled={payingViaCheckout} className="btn-primary w-full disabled:opacity-60">
               {payingViaCheckout ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-              Pay {formatCurrency(selectedPlan?.priceInr || 0)} & Activate
+              {l.payAndActivate(formatCurrency(selectedPlan?.priceInr || 0))}
             </button>
           ) : (
             <button onClick={() => router.push('/dashboard')} className="btn-primary w-full">
-              Continue to Dashboard <ArrowRight size={16} />
+              {l.continueToDashboard} <ArrowRight size={16} />
             </button>
           )}
         </div>
@@ -135,37 +203,47 @@ function RegisterForm() {
       </div>
 
       <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-saffron-800/70 dark:text-saffron-200/70 hover:text-saffron-700 dark:hover:text-saffron-300 transition-colors"
+          >
+            <ArrowLeft size={14} /> {l.back}
+          </Link>
+          <AuthLanguageSwitcher />
+        </div>
+
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex mx-auto mb-4">
             <LogoMark size={64} className="rounded-2xl" />
           </Link>
-          <h1 className="text-2xl font-bold text-theme-fg">Register Your Mandal</h1>
+          <h1 className="text-2xl font-bold text-theme-fg">{l.title}</h1>
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">आपल्या मंडळाची नोंदणी करा</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Organization Details */}
           <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold text-theme-fg mb-4">Organization Details</h3>
+            <h3 className="text-sm font-semibold text-theme-fg mb-4">{l.orgDetails}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className="form-label">Organization Name *</label>
-                <input value={form.organizationName} onChange={e => set({ organizationName: e.target.value })} className="form-input" placeholder="Shree Ganesh Mandal" required />
+                <label className="form-label">{l.orgName}</label>
+                <input value={form.organizationName} onChange={e => set({ organizationName: e.target.value })} className="form-input" placeholder={l.orgNamePlaceholder} required />
               </div>
               <div>
                 <label className="form-label">मराठी नाव</label>
                 <input value={form.organizationNameMarathi} onChange={e => set({ organizationNameMarathi: e.target.value })} className="form-input font-devanagari" placeholder="श्री गणेश मंडळ" />
               </div>
               <div>
-                <label className="form-label">City *</label>
-                <input value={form.city} onChange={e => set({ city: e.target.value })} className="form-input" placeholder="Pune" required />
+                <label className="form-label">{l.city}</label>
+                <input value={form.city} onChange={e => set({ city: e.target.value })} className="form-input" placeholder={l.cityPlaceholder} required />
               </div>
               <div className="sm:col-span-2">
-                <label className="form-label">Address *</label>
-                <input value={form.address} onChange={e => set({ address: e.target.value })} className="form-input" placeholder="123, MG Road" required />
+                <label className="form-label">{l.address}</label>
+                <input value={form.address} onChange={e => set({ address: e.target.value })} className="form-input" placeholder={l.addressPlaceholder} required />
               </div>
               <div>
-                <label className="form-label">State</label>
+                <label className="form-label">{l.state}</label>
                 <input value={form.state} onChange={e => set({ state: e.target.value })} className="form-input" />
               </div>
             </div>
@@ -173,34 +251,32 @@ function RegisterForm() {
 
           {/* Admin Account */}
           <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold text-theme-fg mb-4">Your Admin Account</h3>
+            <h3 className="text-sm font-semibold text-theme-fg mb-4">{l.adminAccount}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="form-label">Your Name *</label>
-                <input value={form.adminName} onChange={e => set({ adminName: e.target.value })} className="form-input" placeholder="Rajesh Kumar" required />
+                <label className="form-label">{l.yourName}</label>
+                <input value={form.adminName} onChange={e => set({ adminName: e.target.value })} className="form-input" placeholder={l.yourNamePlaceholder} required />
               </div>
               <div>
-                <label className="form-label">Mobile Number *</label>
+                <label className="form-label">{l.mobileNumber}</label>
                 <input value={form.phone} onChange={e => set({ phone: e.target.value })} className="form-input" placeholder="98XXXXXXXX" type="tel" inputMode="numeric" required />
               </div>
               <div>
-                <label className="form-label">Email (optional)</label>
+                <label className="form-label">{l.email}</label>
                 <input value={form.email} onChange={e => set({ email: e.target.value })} className="form-input" placeholder="admin@mandal.org" type="email" />
               </div>
               <div>
-                <label className="form-label">Password *</label>
-                <input value={form.password} onChange={e => set({ password: e.target.value })} className="form-input" placeholder="At least 8 characters" type="password" required />
+                <label className="form-label">{l.password}</label>
+                <input value={form.password} onChange={e => set({ password: e.target.value })} className="form-input" placeholder={l.passwordPlaceholder} type="password" required />
               </div>
             </div>
           </div>
 
           {/* Plan Picker */}
           <div className="glass-card p-6">
-            <h3 className="text-sm font-semibold text-theme-fg mb-1">Choose Your Plan</h3>
+            <h3 className="text-sm font-semibold text-theme-fg mb-1">{l.choosePlan}</h3>
             <p className="text-xs text-theme-fg/40 mb-4">
-              {form.subscriptionPlan === SubscriptionPlan.FREE
-                ? "Free — no payment needed, you're active immediately."
-                : 'You can start using the app right away — your plan activates once payment is confirmed.'}
+              {form.subscriptionPlan === SubscriptionPlan.FREE ? l.freePlanNote : l.paidPlanNote}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {PRICING_PLANS.map((plan) => {
@@ -228,12 +304,12 @@ function RegisterForm() {
                   >
                     {isStandard && (
                       <span className="absolute -top-2.5 right-3 badge-royal text-[9px] flex items-center gap-0.5 font-bold">
-                        <Star size={9} className="fill-gold-500 text-gold-500" /> Popular
+                        <Star size={9} className="fill-gold-500 text-gold-500" /> {l.popular}
                       </span>
                     )}
                     {isFree && (
                       <span className="absolute -top-2.5 right-3 badge-neutral text-[9px] flex items-center gap-0.5 font-bold">
-                        Instant
+                        {l.instant}
                       </span>
                     )}
                     {/* Positioning word only here, not the full Marathi/feature
@@ -266,14 +342,14 @@ function RegisterForm() {
           </div>
 
           <button type="submit" disabled={!canSubmit || loading} className="btn-primary w-full">
-            {loading ? 'Creating account...' : form.subscriptionPlan === SubscriptionPlan.FREE
-              ? <>Start Free Trial <ArrowRight size={16} /></>
-              : <>Create Account & Continue <ArrowRight size={16} /></>}
+            {loading ? l.creatingAccount : form.subscriptionPlan === SubscriptionPlan.FREE
+              ? <>{l.startFreeTrial} <ArrowRight size={16} /></>
+              : <>{l.createAccount} <ArrowRight size={16} /></>}
           </button>
 
           <div className="text-center">
             <Link href="/login" className="text-sm text-theme-fg/40 hover:text-theme-fg inline-flex items-center gap-1">
-              <ArrowLeft size={14} /> Already have an account? Sign in
+              <ArrowLeft size={14} /> {l.alreadyHaveAccount}
             </Link>
           </div>
         </form>
@@ -282,9 +358,15 @@ function RegisterForm() {
   );
 }
 
+function RegisterFallback() {
+  const { language } = useAuthStore();
+  const l = labels[language] || labels.en;
+  return <div className="min-h-screen flex items-center justify-center text-theme-fg/40 text-sm">{l.loading}</div>;
+}
+
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-theme-fg/40 text-sm">Loading...</div>}>
+    <Suspense fallback={<RegisterFallback />}>
       <RegisterForm />
     </Suspense>
   );
