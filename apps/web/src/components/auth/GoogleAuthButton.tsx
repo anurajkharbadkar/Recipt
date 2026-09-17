@@ -36,15 +36,15 @@ export default function GoogleAuthButton({ onSuccess, onUnregistered, text }: Go
         if (onUnregistered) {
           onUnregistered(data);
         } else {
-          toast.error('Account not registered yet. Please register your Mandal.');
+          toast.error('या Google खात्याशी कोणतेही मंडळ जोडलेले नाही. कृपया प्रथम नोंदणी करा.');
         }
       } else {
         setAuth(data);
-        toast.success(`Welcome back, ${data.user.name}!`);
+        toast.success(`स्वागत आहे, ${data.user.name}!`);
         if (onSuccess) onSuccess(data);
       }
     } catch (err: any) {
-      toast.error(getErrorMessage(err, 'Google Sign-In failed. Please try again.'));
+      toast.error(getErrorMessage(err, 'Google Sign-In द्वारे प्रवेश करता आला नाही. पुन्हा प्रयत्न करा.'));
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export default function GoogleAuthButton({ onSuccess, onUnregistered, text }: Go
     if (loading) return;
 
     if (!googleClientId) {
-      toast.error('Google Client ID is not configured yet. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID in Vercel environment variables & redeploy.');
+      toast.error('Google Sign-In सध्या उपलब्ध नाही — कृपया मोबाईल नंबरने लॉगिन करा.');
       return;
     }
 
@@ -107,7 +107,7 @@ export default function GoogleAuthButton({ onSuccess, onUnregistered, text }: Go
       });
       window.google.accounts.id.prompt();
     } else {
-      toast.error('Google Sign-In script is loading. Please try again in a second.');
+      toast.error('कृपया एक क्षण थांबा आणि पुन्हा प्रयत्न करा.');
     }
   };
 

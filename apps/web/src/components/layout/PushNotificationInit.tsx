@@ -24,11 +24,9 @@ export default function PushNotificationInit() {
         }
 
         // Listen for successful token registration
-        await PushNotifications.addListener('registration', (token) => {
-          if (isMounted) {
-            console.log('====================================');
-            console.log('FCM REGISTRATION TOKEN:', token.value);
-            console.log('====================================');
+        await PushNotifications.addListener('registration', (_token) => {
+          if (isMounted && process.env.NODE_ENV === 'development') {
+            console.log('Push Notifications registered successfully.');
           }
         });
 

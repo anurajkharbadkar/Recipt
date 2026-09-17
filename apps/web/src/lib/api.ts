@@ -21,11 +21,6 @@ export const apiClient = axios.create({
 // a 429 from platform-level rate limiting both look identical to the code
 // here, and neither has anything to do with what the person typed.
 export function getErrorMessage(err: any, fallback: string): string {
-  // The backend answered with its own message — always the most accurate
-  // text available, and (per AuthService's own convention) already written
-  // for a non-technical reader, so it wins over everything else.
-  if (err?.response?.data?.message) return err.response.data.message;
-
   const status = err?.response?.status;
   if (status === 429) {
     return 'Too many attempts — please wait a moment and try again.';
@@ -33,10 +28,24 @@ export function getErrorMessage(err: any, fallback: string): string {
   if (status && status >= 500) {
     return 'Something went wrong on our end. Please try again in a moment.';
   }
+
+  const rawMsg = err?.response?.data?.message;
+  if (typeof rawMsg === 'string' && rawMsg.trim()) {
+    const lower = rawMsg.toLowerCase();
+    const isInternal =
+      lower.includes('prisma') ||
+      lower.includes('sql') ||
+      lower.includes('database') ||
+      lower.includes('foreign key') ||
+      lower.includes('syntaxerror') ||
+      lower.includes('internal server error');
+
+    if (!isInternal) {
+      return rawMsg;
+    }
+  }
+
   if (!err?.response) {
-    // No response object at all reached the browser: offline, DNS failure,
-    // or a failed CORS preflight are indistinguishable from here — none of
-    // them are the user's fault, so don't imply their input was wrong.
     return "Couldn't reach the server. Please check your connection and try again in a moment.";
   }
 

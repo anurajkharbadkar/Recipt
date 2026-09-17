@@ -5,6 +5,7 @@ import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { WhatsAppOtpService } from './whatsapp-otp.service';
+import { GoogleAuthService } from './google-auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@pavti/shared';
 
@@ -40,6 +41,7 @@ describe('AuthService.login', () => {
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: WhatsAppOtpService, useValue: { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) } },
+        { provide: GoogleAuthService, useValue: { verifyIdToken: jest.fn() } },
       ],
     }).compile();
 
@@ -161,6 +163,7 @@ describe('AuthService.changePassword', () => {
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: WhatsAppOtpService, useValue: { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) } },
+        { provide: GoogleAuthService, useValue: { verifyIdToken: jest.fn() } },
       ],
     }).compile();
 
@@ -216,6 +219,7 @@ describe('AuthService.deleteMyAccount', () => {
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: WhatsAppOtpService, useValue: { sendOtp: jest.fn().mockResolvedValue(true), isConfigured: jest.fn().mockReturnValue(true) } },
+        { provide: GoogleAuthService, useValue: { verifyIdToken: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
@@ -284,6 +288,7 @@ describe('AuthService.requestPasswordReset / resetPassword', () => {
         { provide: JwtService, useValue: { signAsync: jest.fn().mockResolvedValue('token') } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: WhatsAppOtpService, useValue: whatsAppOtpService },
+        { provide: GoogleAuthService, useValue: { verifyIdToken: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
