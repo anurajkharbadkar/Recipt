@@ -92,19 +92,21 @@ async function bootstrap() {
             "'unsafe-inline'", // Next.js build-time inline scripts
             "'unsafe-eval'",   // Next.js dev-mode hot reload (remove in production if possible)
             'https://www.googletagmanager.com',
+            'https://accounts.google.com/gsi/',
           ],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com/gsi/style'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-          imgSrc: ["'self'", 'data:', 'blob:', 'https://*.r2.dev', 'https://*.cloudflare.com'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://*.r2.dev', 'https://*.cloudflare.com', 'https://lh3.googleusercontent.com'],
           connectSrc: [
             "'self'",
             'https://our.epavtibook.com',
             'https://app.epavtibook.com',
             'https://api.epavtibook.com',
             'https://api.cashfree.com',
+            'https://accounts.google.com/gsi/',
             'wss://*.vercel.app', // Vercel real-time preview
           ],
-          frameSrc: ["'none'"],
+          frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
           frameAncestors: ["'none'"],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],

@@ -22,7 +22,8 @@ const config: CapacitorConfig = {
       'api.epavtibook.com',
       'recipt-web-wheat.vercel.app',
       '*.cashfree.com',
-      '*.cashfreepayments.com'
+      '*.cashfreepayments.com',
+      'accounts.google.com'
     ],
   },
   android: {

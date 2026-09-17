@@ -59,7 +59,7 @@ apiClient.interceptors.request.use((config) => {
 // block ever gets to show *why* — the browser navigation tears the page
 // down first, so the real backend message (already a well-written, non-
 // technical one — see AuthService.login) never had a chance to render.
-const SKIP_AUTH_RECOVERY = ['/auth/login', '/auth/register'];
+const SKIP_AUTH_RECOVERY = ['/auth/login', '/auth/register', '/auth/google'];
 
 // Exported (not just inlined in the interceptor below) so this is unit-
 // testable on its own — a regression here silently reintroduces the "wrong
@@ -102,6 +102,7 @@ apiClient.interceptors.response.use(
 // Auth
 export const authApi = {
   register: (data: any) => apiClient.post('/auth/register', data).then(r => r.data),
+  googleLogin: (idToken: string) => apiClient.post('/auth/google', { idToken }).then(r => r.data),
   // mandalCode is omitted entirely (not sent as '') for the Mandal Admin
   // tab — the backend's optional-mandalCode branch keys off the field being
   // absent, not empty (see LoginDto/AuthService.login).

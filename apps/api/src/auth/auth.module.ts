@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WhatsAppOtpService } from './whatsapp-otp.service';
+import { GoogleAuthService } from './google-auth.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { WhatsAppOtpService } from './whatsapp-otp.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, WhatsAppOtpService],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, JwtStrategy, WhatsAppOtpService, GoogleAuthService],
+  exports: [AuthService, JwtModule, GoogleAuthService],
 })
 export class AuthModule {}

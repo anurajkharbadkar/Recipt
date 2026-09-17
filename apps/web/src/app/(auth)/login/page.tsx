@@ -9,6 +9,7 @@ import { Phone, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, KeyRound, ShieldCheck,
 import Link from 'next/link';
 import LogoMark from '@/components/brand/LogoMark';
 import { BRAND_NAME } from '@pavti/shared';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 
 // Not sensitive — closer to a workspace slug than a secret — so it's safe
 // to remember locally for returning staff who'd otherwise retype it every
@@ -142,6 +143,20 @@ export default function LoginPage() {
                 {t.label}
               </button>
             ))}
+          </div>
+
+          {/* Google SSO */}
+          <div className="mb-4">
+            <GoogleAuthButton
+              onSuccess={() => router.push('/dashboard')}
+              onUnregistered={(profile) => {
+                router.push(`/register?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.name)}`);
+              }}
+            />
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-theme-fg/10" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-theme-bg/80 px-2 text-theme-fg/40 font-semibold">किंवा (OR)</span></div>
+            </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">

@@ -165,3 +165,9 @@ export class ResetPasswordDto {
   @MinLength(8)
   newPassword: string;
 }
+
+export class GoogleLoginDto {
+  @ApiProperty({ description: 'Google OAuth ID Token received from Google Sign-In' })
+  @IsString()
+  idToken: string;
+}

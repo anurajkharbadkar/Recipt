@@ -6,7 +6,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
   RegisterDto, LoginDto, RefreshTokenDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto,
-  RequestPasswordResetDto, ResetPasswordDto,
+  RequestPasswordResetDto, ResetPasswordDto, GoogleLoginDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -27,6 +27,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with phone + password' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login or check registration with Google ID Token' })
+  googleLogin(@Body() dto: GoogleLoginDto) {
+    return this.authService.googleLogin(dto);
   }
 
   @Post('refresh')

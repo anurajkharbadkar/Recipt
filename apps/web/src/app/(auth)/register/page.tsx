@@ -11,6 +11,7 @@ import Link from 'next/link';
 import LogoMark from '@/components/brand/LogoMark';
 import AuthLanguageSwitcher from '@/components/auth/AuthLanguageSwitcher';
 import { launchSubscriptionCheckout } from '@/lib/cashfreeCheckout';
+import GoogleAuthButton from '@/components/auth/GoogleAuthButton';
 
 // Plan names/taglines/price notes stay English everywhere in the app (see
 // PRICING_PLANS in packages/shared — a deliberate choice, not an omission),
@@ -93,19 +94,19 @@ function RegisterForm() {
   const [payingViaCheckout, setPayingViaCheckout] = useState(false);
 
   const preselected = searchParams.get('plan')?.toUpperCase();
+  const initialEmail = searchParams.get('email') || '';
+  const initialName = searchParams.get('name') || '';
+
   const [form, setForm] = useState({
     organizationName: '',
     organizationNameMarathi: '',
-    adminName: '',
+    adminName: initialName,
     phone: '',
-    email: '',
+    email: initialEmail,
     password: '',
     address: '',
     city: '',
     state: 'Maharashtra',
-    // Explicit lookup rather than a hardcoded array index — PRICING_PLANS[1]
-    // used to be STANDARD before FREE was added as the first card, and would
-    // have silently defaulted new signups to BASIC otherwise.
     subscriptionPlan: PRICING_PLANS.some((p) => p.id === preselected) ? preselected! : SubscriptionPlan.STANDARD,
   });
 
@@ -219,6 +220,19 @@ function RegisterForm() {
           </Link>
           <h1 className="text-2xl font-bold text-theme-fg">{l.title}</h1>
           <p className="text-sm text-theme-fg/40 mt-1 font-devanagari">आपल्या मंडळाची नोंदणी करा</p>
+        </div>
+
+        {/* Google SSO Fast Registration */}
+        <div className="glass-card p-5 mb-6 text-center">
+          <p className="text-xs text-theme-fg/60 mb-3">Google द्वारे माहिती आपोआप भरा (Auto-fill details with Google):</p>
+          <GoogleAuthButton
+            text="Google ने खाते नोंदवा (Register with Google)"
+            onSuccess={() => router.push('/dashboard')}
+            onUnregistered={(profile) => {
+              set({ adminName: profile.name, email: profile.email });
+              toast.success('Google माहिती भरली गेली आहे! (Details auto-filled!)');
+            }}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

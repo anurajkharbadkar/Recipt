@@ -241,6 +241,8 @@ model User {
   name         String
   phone        String
   email        String?
+  googleId     String?   @unique
+  avatarUrl    String?
   passwordHash String?
   role         UserRole  @default(COLLECTOR)
   areaId       String?

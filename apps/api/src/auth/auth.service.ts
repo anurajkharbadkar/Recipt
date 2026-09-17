@@ -19,9 +19,11 @@ import {
   DeleteAccountDto,
   RequestPasswordResetDto,
   ResetPasswordDto,
+  GoogleLoginDto,
 } from './dto/auth.dto';
 import { UserRole, SubscriptionStatus, SubscriptionPlan, SUBSCRIPTION_PERIOD_DAYS, FREE_TRIAL_PERIOD_DAYS } from '@pavti/shared';
 import { WhatsAppOtpService } from './whatsapp-otp.service';
+import { GoogleAuthService } from './google-auth.service';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +32,62 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private whatsAppOtpService: WhatsAppOtpService,
+    private googleAuthService: GoogleAuthService,
   ) {}
+
+  async googleLogin(dto: GoogleLoginDto) {
+    const googleUser = await this.googleAuthService.verifyIdToken(dto.idToken);
+
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId: googleUser.googleId },
+          { email: googleUser.email },
+        ],
+      },
+      include: { organization: true },
+    });
+
+    if (!user) {
+      return {
+        registered: false,
+        email: googleUser.email,
+        name: googleUser.name,
+        avatarUrl: googleUser.avatarUrl,
+        googleId: googleUser.googleId,
+      };
+    }
+
+    if (!user.isActive || !user.organization.isActive) {
+      throw new UnauthorizedException('Account or organization is inactive');
+    }
+
+    if (!user.googleId || !user.avatarUrl) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: googleUser.googleId,
+          avatarUrl: user.avatarUrl || googleUser.avatarUrl,
+          lastLoginAt: new Date(),
+        },
+        include: { organization: true },
+      });
+    } else {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+    }
+
+    const tokens = await this.generateTokens(user.id, user.role, user.orgId);
+
+    return {
+      registered: true,
+      organization: user.organization,
+      user,
+      ...tokens,
+    };
+  }
 
   async register(dto: RegisterDto) {
     // Check if org phone already exists
