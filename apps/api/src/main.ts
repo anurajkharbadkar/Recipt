@@ -98,6 +98,8 @@ async function bootstrap() {
           imgSrc: ["'self'", 'data:', 'blob:', 'https://*.r2.dev', 'https://*.cloudflare.com'],
           connectSrc: [
             "'self'",
+            'https://our.epavtibook.com',
+            'https://app.epavtibook.com',
             'https://api.epavtibook.com',
             'https://api.cashfree.com',
             'wss://*.vercel.app', // Vercel real-time preview
@@ -126,11 +128,12 @@ async function bootstrap() {
   // misconfiguration worth fixing before this handles production traffic,
   // even though this app sends auth via a Bearer header (not cookies) so
   // there's no session to silently steal. This now actually enforces the
-  // allowlist — app.epavtibook.com is hardcoded below as a permanent entry
-  // (same treatment as localhost) so the real production frontend keeps
-  // working even if CORS_ORIGIN is ever unset/misconfigured on Railway;
-  // CORS_ORIGIN itself should still be set there too, for any additional
-  // origin (a staging domain, etc.) beyond this hardcoded pair.
+  // allowlist — our.epavtibook.com / app.epavtibook.com are hardcoded below
+  // as permanent entries (same treatment as localhost) so the real
+  // production frontend keeps working even if CORS_ORIGIN is ever
+  // unset/misconfigured on Railway; CORS_ORIGIN itself should still be set
+  // there too, for any additional origin (a staging domain, etc.) beyond
+  // this hardcoded pair.
   app.enableCors({
     origin: (origin, callback) => {
       const isAllowed =
@@ -141,7 +144,7 @@ async function bootstrap() {
         /\.ngrok-free\.dev$/.test(origin) ||
         /\.ngrok\.io$/.test(origin) ||
         /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-        /^https:\/\/(app\.)?epavtibook\.com$/.test(origin);
+        /^https:\/\/(app\.|our\.)?epavtibook\.com$/.test(origin);
       callback(isAllowed ? null : new Error(`Origin ${origin} not allowed by CORS`), isAllowed);
     },
     credentials: true,

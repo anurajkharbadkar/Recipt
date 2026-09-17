@@ -49,7 +49,7 @@ const tiroMarathi = Tiro_Devanagari_Marathi({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://epavtibook.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://our.epavtibook.com'),
   title: {
     default: `${BRAND_NAME} — Digital Receipt & Collection Management`,
     template: `%s | ${BRAND_NAME}`,
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IN',
-    url: 'https://epavtibook.com',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://our.epavtibook.com',
     title: `${BRAND_NAME} — ${BRAND_TAGLINE_ALT}`,
     description: `${BRAND_TAGLINE} Digital receipt and collection management for Mandals, trusts, NGOs and community organizations.`,
     siteName: BRAND_NAME,
