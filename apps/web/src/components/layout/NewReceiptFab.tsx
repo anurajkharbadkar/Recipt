@@ -22,7 +22,7 @@ export default function NewReceiptFab() {
   const { language } = useAuthStore();
   const canView = useModuleAccessResolver();
 
-  if (pathname?.startsWith('/receipts/new')) return null;
+  if (pathname?.startsWith('/receipts/new') || pathname?.match(/\/receipts\/[^\/]+/)) return null;
   if (!canView('Receipts')) return null;
 
   const label = language === 'mr' ? 'नवीन पावती' : language === 'hi' ? 'नई रसीद' : 'New Receipt';

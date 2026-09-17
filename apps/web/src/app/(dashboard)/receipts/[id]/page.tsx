@@ -121,7 +121,7 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="btn-ghost p-2">
             <ArrowLeft size={18} />
@@ -131,13 +131,13 @@ export default function ReceiptDetailPage({ params }: { params: { id: string } }
             <p className="text-xs text-theme-fg/40">{format(new Date(receipt.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {receipt.donorPhone && (
-            <button onClick={handleShareWhatsApp} className="btn-primary text-xs font-semibold gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white">
+            <button onClick={handleShareWhatsApp} className="btn-primary text-xs font-semibold gap-1.5 px-3 py-2 bg-emerald-700 hover:bg-emerald-600 text-white flex-1 sm:flex-none justify-center">
               <Share2 size={14} /> WhatsApp
             </button>
           )}
-          <button onClick={handleShareGeneric} disabled={sharing} className="btn-secondary text-xs gap-1.5 px-3 py-2">
+          <button onClick={handleShareGeneric} disabled={sharing} className="btn-secondary text-xs gap-1.5 px-3 py-2 flex-1 sm:flex-none justify-center">
             {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} {receiptLanguage === 'mr' ? 'इतर शेअर' : 'Other Apps'}
           </button>
           <button onClick={handlePrint} className="btn-ghost p-2">

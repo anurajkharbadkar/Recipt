@@ -13,9 +13,9 @@ import {
 import { formatCurrency } from '@pavti/shared';
 import { format } from 'date-fns';
 
-function StatCard({ title, value, icon: Icon, change, hero, variant }: any) {
-  return (
-    <div className={`glass-card p-5 animate-slide-up ${hero ? 'sm:p-6' : ''}`}>
+function StatCard({ title, value, icon: Icon, change, hero, variant, href }: any) {
+  const content = (
+    <div className={`glass-card ${href ? 'glass-card-hover cursor-pointer transition-all transform hover:scale-[1.02] active:scale-[0.98]' : ''} p-5 animate-slide-up ${hero ? 'sm:p-6' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className={`text-theme-fg/50 font-semibold uppercase tracking-wider mb-1 ${hero ? 'text-xs' : 'text-[11px]'}`}>{title}</p>
@@ -43,6 +43,12 @@ function StatCard({ title, value, icon: Icon, change, hero, variant }: any) {
       </div>
     </div>
   );
+
+  if (href) {
+    return <Link href={href} className="block">{content}</Link>;
+  }
+
+  return content;
 }
 
 // Large, thumb-friendly tap targets
@@ -140,18 +146,18 @@ export default function DashboardPage() {
 
       {/* Hero stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard hero title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} />
-        <StatCard hero title={l.expenses} value={formatCurrency(stats.totalExpenses || 0)} icon={IndianRupee} variant="danger" />
-        <StatCard hero title={l.balance} value={formatCurrency(stats.netBalance || 0)} icon={Wallet} variant={(stats.netBalance || 0) >= 0 ? 'success' : 'danger'} />
+        <StatCard hero title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} href="/receipts" />
+        <StatCard hero title={l.expenses} value={formatCurrency(stats.totalExpenses || 0)} icon={IndianRupee} variant="danger" href="/expenses" />
+        <StatCard hero title={l.balance} value={formatCurrency(stats.netBalance || 0)} icon={Wallet} variant={(stats.netBalance || 0) >= 0 ? 'success' : 'danger'} href="/reports" />
       </div>
 
       {/* Supporting counts */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard title={l.today} value={formatCurrency(stats.todayCollections || 0)} icon={Wallet} />
-        <StatCard title={l.receipts} value={(stats.totalReceipts || 0).toLocaleString('en-IN')} icon={Receipt} />
-        <StatCard title={l.todayR} value={(stats.todayReceipts || 0).toLocaleString('en-IN')} icon={FileText} />
-        <StatCard title={l.collectors} value={stats.activeCollectors || 0} icon={Users} />
-        <StatCard title={l.pending} value={formatCurrency(stats.pendingCollections || 0)} icon={FileText} />
+        <StatCard title={l.today} value={formatCurrency(stats.todayCollections || 0)} icon={Wallet} href="/receipts" />
+        <StatCard title={l.receipts} value={(stats.totalReceipts || 0).toLocaleString('en-IN')} icon={Receipt} href="/receipts" />
+        <StatCard title={l.todayR} value={(stats.todayReceipts || 0).toLocaleString('en-IN')} icon={FileText} href="/receipts" />
+        <StatCard title={l.collectors} value={stats.activeCollectors || 0} icon={Users} href="/members?tab=staff" />
+        <StatCard title={l.pending} value={formatCurrency(stats.pendingCollections || 0)} icon={FileText} href="/receipts?status=PENDING" />
       </div>
 
       {/* Charts Row */}
@@ -180,21 +186,26 @@ export default function DashboardPage() {
 
         {/* Top Collectors */}
         <div className="glass-card p-5">
-          <h3 className="text-sm font-semibold text-theme-fg mb-4">
-            {language === 'mr' ? 'संग्राहक क्रमवारी' : language === 'hi' ? 'संग्रहकर्ता रैंकिंग' : 'Collector Rankings'}
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-theme-fg">
+              {language === 'mr' ? 'संग्राहक क्रमवारी' : language === 'hi' ? 'संग्रहकर्ता रैंकिंग' : 'Collector Rankings'}
+            </h3>
+            <Link href="/members?tab=staff" className="text-xs text-saffron-400 hover:text-saffron-300 flex items-center gap-1">
+              View all <ArrowUpRight size={12} />
+            </Link>
+          </div>
           <div className="space-y-3">
             {(collectorStats || []).slice(0, 5).map((c: any, i: number) => (
-              <div key={c.collectorId} className="flex items-center gap-3">
+              <Link key={c.collectorId} href={`/members?tab=staff&search=${encodeURIComponent(c.collectorName)}`} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-theme-fg/5 transition-colors group cursor-pointer">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-gold-500 text-navy-900' : i === 1 ? 'bg-theme-fg/20' : i === 2 ? 'bg-amber-800/40 text-amber-300' : 'bg-theme-fg/8 text-theme-fg/40'}`}>
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-theme-fg/90 truncate">{c.collectorName}</p>
+                  <p className="text-xs font-medium text-theme-fg/90 truncate group-hover:text-saffron-400 transition-colors">{c.collectorName}</p>
                   <p className="text-[10px] text-theme-fg/40">{c.receiptCount} receipts</p>
                 </div>
                 <span className="text-xs font-semibold text-saffron-400">{formatCurrency(c.totalAmount)}</span>
-              </div>
+              </Link>
             ))}
             {(!collectorStats || collectorStats.length === 0) && (
               <p className="text-xs text-theme-fg/30 text-center py-4">No data yet</p>

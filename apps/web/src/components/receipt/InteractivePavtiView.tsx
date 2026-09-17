@@ -1307,25 +1307,8 @@ export default function InteractivePavtiView({
                   तुमचा संग्राहक लवकरच खात्री करून पावती अद्ययावत करेल. Your collector will confirm and update this shortly.
                 </p>
               </div>
-            ) : org.paymentEnabled && cashfreeOrder?.paymentSessionId ? (
-              // Cashfree Gateway Checkout — dormant today (paymentEnabled is
-              // false for every org until vendor onboarding exists), kept
-              // for when that changes.
-              <div className="space-y-2.5">
-                <button
-                  type="button"
-                  onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  <Sparkles size={18} className="text-amber-200 animate-pulse" />
-                  <span>ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
-                </button>
-              </div>
             ) : org.upiId ? (
-              // Direct UPI — the real, working path today. A plain upi://
-              // link (not app-specific) so tapping it on a phone opens
-              // whatever UPI apps are installed as a native chooser; the QR
-              // covers the "someone else's phone/desktop" case.
+              // Direct UPI — prioritized direct payment to Mandal's bank account
               <div className="space-y-3">
                 <a
                   href={buildUpiPaymentLink({
@@ -1363,6 +1346,18 @@ export default function InteractivePavtiView({
                 >
                   {claimingPaid ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                   <span>मी पेमेंट पूर्ण केले (I've Completed the Payment)</span>
+                </button>
+              </div>
+            ) : org.paymentEnabled && cashfreeOrder?.paymentSessionId ? (
+              // Cashfree Gateway Checkout fallback
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 hover:brightness-110 text-white font-bold text-sm rounded-xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <Sparkles size={18} className="text-amber-200 animate-pulse" />
+                  <span>ऑनलाईन वर्गणी द्या (PhonePe, GPay, Paytm, QR)</span>
                 </button>
               </div>
             ) : (
@@ -1713,22 +1708,6 @@ export default function InteractivePavtiView({
                       <CheckCircle2 size={13} />
                       <span>पेमेंट कळवले — संग्राहकाकडून पडताळणी प्रलंबित</span>
                     </div>
-                  ) : org.paymentEnabled && cashfreeOrder?.paymentSessionId ? (
-                    // Cashfree Gateway Checkout — dormant today, see overlay's comment.
-                    <div className="w-full text-center space-y-2">
-                      <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-[0.68rem]">
-                        <Sparkles size={12} className="text-amber-500 animate-pulse" />
-                        <span>ऑनलाइन वर्गणी द्या (ऑटो-वेरिफाइड)</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
-                        className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                      >
-                        <Sparkles size={14} className="text-amber-300 animate-pulse" />
-                        <span>ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
-                      </button>
-                    </div>
                   ) : org.upiId ? (
                     <div className="w-full text-center space-y-2">
                       <a
@@ -1741,7 +1720,7 @@ export default function InteractivePavtiView({
                         className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                       >
                         <Sparkles size={14} className="text-amber-300 animate-pulse" />
-                        <span>UPI ॲपने भरणा करा</span>
+                        <span>UPI ॲपने भरणा करा (GPay, PhonePe, Paytm)</span>
                       </a>
                       <div className="p-1.5 bg-white rounded-md inline-block border border-amber-900/10">
                         <QRCodeSVG
@@ -1762,6 +1741,22 @@ export default function InteractivePavtiView({
                       >
                         {claimingPaid ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                         <span>मी पेमेंट पूर्ण केले</span>
+                      </button>
+                    </div>
+                  ) : org.paymentEnabled && cashfreeOrder?.paymentSessionId ? (
+                    // Cashfree Gateway Checkout fallback
+                    <div className="w-full text-center space-y-2">
+                      <div className="flex items-center justify-center gap-1.5 text-emerald-800 font-bold text-[0.68rem]">
+                        <Sparkles size={12} className="text-amber-500 animate-pulse" />
+                        <span>ऑनलाइन वर्गणी द्या (ऑटो-वेरिफाइड)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => launchCashfreeCheckout(cashfreeOrder.paymentSessionId!)}
+                        className="w-full py-2 px-3 bg-gradient-to-r from-emerald-800 to-amber-900 hover:from-emerald-700 hover:to-amber-800 text-white font-bold text-xs rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Sparkles size={14} className="text-amber-300 animate-pulse" />
+                        <span>ऑनलाईन वर्गणी द्या (GPay, PhonePe, Paytm, UPI QR)</span>
                       </button>
                     </div>
                   ) : null}
