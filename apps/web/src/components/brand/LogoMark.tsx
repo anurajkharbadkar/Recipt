@@ -16,8 +16,8 @@ import { useTheme } from '@/hooks/useTheme';
 // landing nav/footer, receipt verification — follows the user's actual
 // light/dark toggle instead of freezing on whichever variant shipped first.
 const SOURCES: Record<'light' | 'dark', string> = {
-  light: '/brand/logo-mark-192.png',
-  dark: '/brand/logo-mark-192.png',
+  light: '/brand/logo-mark-light.png',
+  dark: '/brand/logo-mark-light.png',
 };
 
 interface LogoMarkProps {
