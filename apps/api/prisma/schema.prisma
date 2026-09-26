@@ -192,6 +192,7 @@ model Organization {
   auditLogs        AuditLog[]
   members          Member[]
   customCategories CustomCategory[]
+  mandalPageConfig MandalPageConfig?
 
   receiptTemplateSettings Json?
   // { instagram?, facebook?, youtube?, website? } — see OrganizationSocialLinks
@@ -491,3 +492,82 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([createdAt])
 }
+
+// ─── Mandal Public Webpage & Event Bulletin Models ──────────────────────────
+
+model MandalPageConfig {
+  id              String   @id @default(uuid())
+  orgId           String   @unique
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  slug            String   @unique
+  isPublic        Boolean  @default(true)
+  tagline         String?
+  aboutHistory    String?  @db.Text
+  coverImageUrl   String?
+  themeColor      String   @default("#d97706") // Saffron default
+  googleMapUrl    String?
+
+  // Custom Payment Details (Direct Bank & UPI Details)
+  bankName          String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  upiId             String?
+  qrImageUrl        String?
+
+  days            MandalDaySchedule[]
+  sponsors        MandalSponsor[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model MandalDaySchedule {
+  id              String   @id @default(uuid())
+  pageConfigId    String
+  pageConfig      MandalPageConfig @relation(fields: [pageConfigId], references: [id], onDelete: Cascade)
+
+  dayNumber       Int
+  date            DateTime?
+  title           String
+  dressCodeColor  String?
+  colorHex        String?
+  deityAvatar     String?
+
+  events          MandalEventItem[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([pageConfigId, dayNumber])
+}
+
+model MandalEventItem {
+  id              String   @id @default(uuid())
+  dayScheduleId   String
+  daySchedule     MandalDaySchedule @relation(fields: [dayScheduleId], references: [id], onDelete: Cascade)
+
+  time            String
+  title           String
+  description     String?
+  eventType       String   @default("AARTI") // AARTI, POOJA, PRASAD, CULTURAL, SPECIAL
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model MandalSponsor {
+  id              String   @id @default(uuid())
+  pageConfigId    String
+  pageConfig      MandalPageConfig @relation(fields: [pageConfigId], references: [id], onDelete: Cascade)
+
+  name            String
+  logoUrl         String?
+  tier            String   @default("GOLD") // PLATINUM | GOLD | SILVER | LOCAL
+  websiteUrl      String?
+  phone           String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+

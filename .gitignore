@@ -41,3 +41,7 @@ apps/web/public/workbox-*.js.map
 # unconfigured) — generated receipt PDFs, logos and template images should
 # never be committed; production uses Cloudflare R2 instead.
 apps/api/uploads/
+scratch/
+navratri_pavti-1.html
+apps/web/android/app/release/
+

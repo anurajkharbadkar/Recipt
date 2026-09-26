@@ -1,0 +1,587 @@
+/* =============================================
+   Bhandara / Mahaprasad Experience Component Styles
+   Premium Cultural Editorial Layout
+   ============================================= */
+
+.bhandara {
+  background-color: var(--color-warm-paper);
+  padding-top: var(--space-3xl);
+  padding-bottom: var(--space-3xl);
+  border-top: 1px solid var(--color-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
+  position: relative;
+}
+
+.bhandara__header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto var(--space-2xl);
+}
+
+.bhandara__eyebrow-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.bhandara__sacred-icon {
+  font-size: var(--text-md);
+  color: var(--color-brass);
+}
+
+.bhandara__header .eyebrow {
+  color: var(--color-sindoor);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.bhandara__title {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-3xl);
+  letter-spacing: -0.01em;
+}
+
+.bhandara__subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* Optional Banner Visual */
+.bhandara__banner {
+  position: relative;
+  max-width: 1040px;
+  margin: 0 auto var(--space-2xl);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  aspect-ratio: 21 / 9;
+  max-height: 380px;
+}
+
+.bhandara__banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bhandara__banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(36, 31, 29, 0.45) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Grid Layout: Single Column Mobile, 2-Column Desktop */
+.bhandara__content-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+  max-width: 1040px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .bhandara__content-grid {
+    grid-template-columns: 1.1fr 1fr;
+    gap: var(--space-2xl);
+  }
+}
+
+/* Left Column: Details & Instructions */
+.bhandara__info-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Description Box */
+.bhandara__description-box {
+  background-color: var(--color-warm-white);
+  border-left: 3px solid var(--color-brass);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.bhandara__description-text {
+  font-size: var(--text-base);
+  color: var(--color-ink-light);
+  line-height: 1.65;
+  font-style: italic;
+}
+
+/* Date & Time Highlights Card */
+.bhandara__meta-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  background-color: var(--color-warm-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 480px) {
+  .bhandara__meta-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.bhandara__meta-block {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.bhandara__meta-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-warm);
+  color: var(--color-sindoor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-soft);
+}
+
+.bhandara__meta-label {
+  display: block;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-subtle);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.bhandara__meta-value {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.4;
+}
+
+/* Venue & Maps Card */
+.bhandara__venue-card {
+  background-color: var(--color-warm-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.bhandara__venue-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.bhandara__venue-name {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  color: var(--color-ink);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.bhandara__venue-address {
+  font-size: var(--text-sm);
+  color: var(--color-ink-light);
+  line-height: 1.55;
+  margin-left: calc(40px + var(--space-md));
+  margin-bottom: var(--space-xs);
+}
+
+.bhandara__venue-landmark {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-left: calc(40px + var(--space-md));
+  margin-bottom: var(--space-md);
+}
+
+.bhandara__landmark-label {
+  font-weight: 600;
+  color: var(--color-brass);
+}
+
+.bhandara__maps-row {
+  margin-left: calc(40px + var(--space-md));
+  margin-top: var(--space-xs);
+}
+
+@media (max-width: 480px) {
+  .bhandara__venue-address,
+  .bhandara__venue-landmark,
+  .bhandara__maps-row {
+    margin-left: 0;
+  }
+}
+
+.bhandara__maps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-sindoor);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-surface-warm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-warm);
+}
+
+.bhandara__maps-link:hover,
+.bhandara__maps-link:focus-visible {
+  color: var(--color-sindoor-dark);
+  border-color: var(--color-sindoor);
+  background-color: var(--color-warm-paper);
+  transform: translateY(-1px);
+}
+
+/* Instructions Box */
+.bhandara__instructions-box {
+  background-color: var(--color-warm-white);
+  border: 1px dashed var(--color-border-warm);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.bhandara__instructions-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-sindoor);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-md);
+}
+
+.bhandara__instructions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.bhandara__instruction-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-ink-light);
+  line-height: 1.55;
+}
+
+.bhandara__instruction-bullet {
+  color: var(--color-brass);
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Footer Actions: Partner & Share */
+.bhandara__footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+@media (min-width: 540px) {
+  .bhandara__footer-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+/* Partner Box */
+.bhandara__partner-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  background-color: var(--color-warm-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  flex: 1;
+}
+
+.bhandara__partner-eyebrow {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-subtle);
+  font-weight: 600;
+}
+
+.bhandara__partner-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.bhandara__partner-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-warm);
+  border: 1px solid var(--color-border-warm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-sindoor);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bhandara__partner-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bhandara__partner-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bhandara__partner-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.bhandara__partner-link {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-brass);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.bhandara__partner-link:hover,
+.bhandara__partner-link:focus-visible {
+  color: var(--color-sindoor);
+  text-decoration: underline;
+}
+
+/* Share Wrap */
+.bhandara__share-wrap {
+  flex-shrink: 0;
+}
+
+.bhandara__share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 600;
+  background-color: var(--color-warm-white);
+  border: 1px solid var(--color-border-warm);
+  color: var(--color-ink);
+  transition: all var(--duration-fast) var(--ease-out);
+  width: 100%;
+  justify-content: center;
+}
+
+@media (min-width: 540px) {
+  .bhandara__share-btn {
+    width: auto;
+  }
+}
+
+.bhandara__share-btn:hover,
+.bhandara__share-btn:focus-visible {
+  border-color: var(--color-sindoor);
+  color: var(--color-sindoor);
+  background-color: var(--color-surface-warm);
+  transform: translateY(-1px);
+}
+
+/* =============================================
+   Right Column: Structured Mahaprasad Menu
+   Clean Editorial Style with Brass / Maroon Accents
+   ============================================= */
+
+.bhandara__menu-col {
+  width: 100%;
+}
+
+.bhandara__menu-card {
+  background-color: var(--color-warm-white);
+  border: 1px solid var(--color-border-warm);
+  border-top: 4px solid var(--color-sindoor);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+.bhandara__menu-card::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  border: 1px solid rgba(169, 120, 50, 0.15); /* Subtle brass inner frame */
+  border-radius: calc(var(--radius-md) - 4px);
+  pointer-events: none;
+}
+
+.bhandara__menu-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-soft);
+  position: relative;
+  z-index: 1;
+}
+
+.bhandara__menu-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-warm);
+  color: var(--color-brass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-warm);
+  flex-shrink: 0;
+}
+
+.bhandara__menu-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  color: var(--color-ink);
+  line-height: 1.25;
+}
+
+.bhandara__menu-sub {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-brass);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Category Groups */
+.bhandara__menu-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.bhandara__menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.bhandara__group-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.bhandara__group-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-sindoor);
+  flex-shrink: 0;
+}
+
+.bhandara__group-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border-soft);
+}
+
+/* Menu Items List */
+.bhandara__group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: var(--space-xs);
+}
+
+.bhandara__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 0;
+}
+
+.bhandara__item-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brass);
+  flex-shrink: 0;
+}
+
+.bhandara__item-name {
+  font-size: var(--text-base);
+  color: var(--color-ink);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.bhandara__no-menu {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--space-lg) 0;
+}
+
+/* =============================================
+   Mobile Responsiveness (360px, 390px, 430px)
+   ============================================= */
+
+@media (max-width: 480px) {
+  .bhandara {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-2xl);
+  }
+
+  .bhandara__title {
+    font-size: var(--text-2xl);
+  }
+
+  .bhandara__menu-card {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .bhandara__meta-card,
+  .bhandara__venue-card,
+  .bhandara__instructions-box {
+    padding: var(--space-md);
+  }
+}

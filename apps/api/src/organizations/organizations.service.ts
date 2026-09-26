@@ -149,6 +149,15 @@ export class OrganizationsService {
     return { url };
   }
 
+  async uploadBanner(orgId: string, file: Express.Multer.File) {
+    const url = await this.storage.uploadFile(
+      `banners/${orgId}-${Date.now()}.${extensionFor(file.mimetype)}`,
+      file.buffer,
+      file.mimetype,
+    );
+    return { url };
+  }
+
   async getAreas(orgId: string) {
     return this.prisma.collectorArea.findMany({
       where: { orgId },

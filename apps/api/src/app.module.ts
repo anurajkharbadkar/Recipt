@@ -17,6 +17,7 @@ import { MembersModule } from './members/members.module';
 import { InternalCollectionsModule } from './internal-collections/internal-collections.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CashfreeModule } from './payments/cashfree/cashfree.module';
+import { MandalPagesModule } from './mandal-pages/mandal-pages.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { CashfreeModule } from './payments/cashfree/cashfree.module';
     InternalCollectionsModule,
     PaymentsModule,
     CashfreeModule,
+    MandalPagesModule,
   ],
   providers: [
     // Applies the ThrottlerModule limits above to every route by default

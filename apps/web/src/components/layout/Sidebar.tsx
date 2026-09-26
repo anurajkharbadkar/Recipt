@@ -9,7 +9,7 @@ import { USER_ROLE_LABELS, UserRole, BRAND_NAME } from '@pavti/shared';
 import {
   Home, Plus, Megaphone,
   Receipt, BarChart3, Settings, LogOut, Menu, X,
-  IndianRupee, Sun, Moon, UserSquare2, CreditCard, Sparkles
+  IndianRupee, Sun, Moon, UserSquare2, CreditCard, Sparkles, Globe
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import LogoMark from '@/components/brand/LogoMark';
@@ -23,6 +23,7 @@ const navItems = [
   { href: '/receipts/new', label: 'New Receipt', icon: Plus, labelMr: 'नवीन पावती', labelHi: 'नई रसीद', highlight: true, module: 'Receipts' },
   { href: '/receipts', label: 'Receipts', icon: Receipt, labelMr: 'पावत्या', labelHi: 'रसीदें', module: 'Receipts' },
   { href: '/campaigns', label: 'Events', icon: Megaphone, labelMr: 'इवेंट्स / उपक्रम', labelHi: 'इवेंट्स / कार्यक्रम', module: 'Campaigns' },
+  { href: '/mandal-page', label: 'Public Webpage', icon: Globe, labelMr: 'मंडळ संकेतस्थळ', labelHi: 'मंडल वेबसाइट', module: 'Settings' },
   { href: '/members', label: 'Members', icon: UserSquare2, labelMr: 'सभासद', labelHi: 'सदस्य', module: 'Members', altModule: 'Collectors' },
   { href: '/expenses', label: 'Expenses', icon: IndianRupee, labelMr: 'खर्च', labelHi: 'व्यय', module: 'Expenses' },
   { href: '/reports', label: 'Reports', icon: BarChart3, labelMr: 'अहवाल', labelHi: 'रिपोर्ट', module: 'Reports' },
@@ -70,7 +71,9 @@ export default function Sidebar() {
     window.location.href = '/login';
   };
 
-  const SidebarContent = () => (
+  const bottomBarModules = ['/receipts', '/expenses', '/members', '/settings', '/receipts/new'];
+
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-5 border-b border-theme">
@@ -108,6 +111,9 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           if (!isAllowed(item)) return null;
+          // On mobile drawer sidebar, filter out modules that are in the bottom bar
+          if (isMobile && bottomBarModules.includes(item.href)) return null;
+
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href) && item.href !== '/receipts/new');
           return (
             <Link
@@ -132,7 +138,7 @@ export default function Sidebar() {
       {/* User, Theme Toggle & Logout */}
       <div className="p-3 border-t border-theme">
         {user && (
-          <Link href="/profile" className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg hover:bg-theme-fg/5 transition-colors">
+          <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg hover:bg-theme-fg/5 transition-colors">
             <div className="w-8 h-8 rounded-full bg-saffron-600/20 flex items-center justify-center text-saffron-400 font-semibold text-sm">
               {user.name[0]}
             </div>
@@ -198,13 +204,14 @@ export default function Sidebar() {
         'bg-navy-800 border-l border-theme shadow-2xl',
         mobileOpen ? 'translate-x-0' : 'translate-x-full',
       )}>
-        <SidebarContent />
+        <SidebarContent isMobile={true} />
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden md:flex flex-col w-64 bg-navy-800 border-r border-theme">
-        <SidebarContent />
+        <SidebarContent isMobile={false} />
       </div>
     </>
   );
 }
+

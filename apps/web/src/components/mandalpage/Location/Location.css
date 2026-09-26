@@ -1,0 +1,636 @@
+/* =============================================
+   Location & Visit the Mandal Section Styles (Step 15)
+   Premium Indian Cultural Digital Identity
+   ============================================= */
+
+.location-section {
+  background-color: var(--color-warm-white);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header */
+.location__header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto var(--space-2xl);
+}
+
+.location__eyebrow {
+  margin-bottom: var(--space-xs);
+  color: var(--color-sindoor);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.location__title {
+  margin-bottom: var(--space-sm);
+  color: var(--color-ink);
+}
+
+.location__subtitle {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+/* Two-Column Grid */
+.location__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+/* Column wrappers */
+.location__primary-col,
+.location__secondary-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* =============================================
+   Location Card (Hero Destination Card)
+   ============================================= */
+.location-card {
+  background-color: var(--color-warm-paper);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Identity header */
+.location-card__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.location-card__emblem {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(122, 24, 48, 0.1) 0%, rgba(169, 120, 50, 0.12) 100%);
+  border: 1px solid rgba(169, 120, 50, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-devanagari), var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-sindoor);
+  flex-shrink: 0;
+}
+
+.location-card__identity-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-card__mandal-name {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.3;
+}
+
+.location-card__festival-dates {
+  font-size: var(--text-xs);
+  color: var(--color-brass);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Address group */
+.location-card__address-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.location-card__field {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.location-card__field-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.location-card__field--venue .location-card__field-icon {
+  background-color: rgba(122, 24, 48, 0.08);
+  color: var(--color-sindoor);
+}
+
+.location-card__field--address .location-card__field-icon {
+  background-color: rgba(169, 120, 50, 0.1);
+  color: var(--color-brass);
+}
+
+.location-card__field-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.location-card__field-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-subtle);
+  margin-bottom: 3px;
+}
+
+.location-card__venue-text {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-sindoor-dark);
+  line-height: 1.35;
+}
+
+.location-card__address-text {
+  font-size: var(--text-base);
+  color: var(--color-ink);
+  line-height: 1.45;
+}
+
+.location-card__city-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* Landmark highlight box */
+.location-card__landmark {
+  background-color: rgba(244, 237, 224, 0.7);
+  border: 1px dashed var(--color-border-warm);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.location-card__landmark-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-brass);
+}
+
+.location-card__landmark-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+  line-height: 1.4;
+}
+
+/* Primary CTA Button */
+.location-card__primary-cta {
+  margin-top: var(--space-xs);
+}
+
+.location-card__btn-maps {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 48px;
+  font-weight: 600;
+  font-size: var(--text-base);
+  background: linear-gradient(135deg, var(--color-sindoor) 0%, var(--color-sindoor-dark) 100%);
+  color: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(122, 24, 48, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+}
+
+.location-card__btn-maps:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(122, 24, 48, 0.28);
+}
+
+.location-card__btn-maps:active {
+  transform: translateY(0);
+}
+
+.location-card__btn-maps:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 3px;
+}
+
+.location-card__external-arrow {
+  margin-left: 2px;
+  opacity: 0.85;
+}
+
+/* Actions Row: Copy & Share */
+.location-card__actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.location-card__btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-warm);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  transition: all 0.2s ease;
+  padding: 0 var(--space-sm);
+}
+
+.location-card__btn-action:hover {
+  background-color: var(--color-warm-paper);
+  border-color: var(--color-brass);
+  color: var(--color-sindoor);
+}
+
+.location-card__btn-action:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+/* Toast Message */
+.location__toast {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-sm) var(--space-md);
+  background-color: #1A4731;
+  color: #FFFFFF;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  animation: locationToastIn 0.25s ease-out;
+}
+
+@keyframes locationToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =============================================
+   Contextual Visiting Today Banner
+   ============================================= */
+.location-today {
+  background: linear-gradient(135deg, rgba(169, 120, 50, 0.08) 0%, rgba(122, 24, 48, 0.05) 100%);
+  border: 1px solid rgba(169, 120, 50, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.location-today:hover {
+  border-color: var(--color-brass);
+  transform: translateY(-1px);
+}
+
+.location-today__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.location-today__badge {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-sindoor);
+  background-color: rgba(122, 24, 48, 0.08);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.location-today__time {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-brass);
+}
+
+.location-today__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.4;
+}
+
+.location-today__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-sindoor);
+  text-decoration: none;
+  margin-top: 2px;
+  align-self: flex-start;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.location-today__link:hover {
+  color: var(--color-sindoor-dark);
+  transform: translateX(2px);
+}
+
+.location-today__link:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+/* =============================================
+   Contact Card & Channels
+   ============================================= */
+.location-contact-card {
+  background-color: var(--color-warm-paper);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.location-contact-card__header {
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.location-contact-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-bottom: 4px;
+}
+
+.location-contact-card__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.location-contact-card__channels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.location-contact-channel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  min-height: 52px;
+  text-decoration: none;
+  color: var(--color-ink);
+  transition: all 0.2s ease;
+}
+
+.location-contact-channel:hover {
+  background-color: var(--color-warm-white);
+  border-color: var(--color-brass);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.location-contact-channel:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+.location-contact-channel__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.location-contact-channel__icon--call {
+  background-color: rgba(122, 24, 48, 0.08);
+  color: var(--color-sindoor);
+}
+
+.location-contact-channel__icon--whatsapp {
+  background-color: rgba(37, 211, 102, 0.12);
+  color: #128C7E;
+}
+
+.location-contact-channel__icon--email {
+  background-color: rgba(169, 120, 50, 0.1);
+  color: var(--color-brass);
+}
+
+.location-contact-channel__icon--website {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563EB;
+}
+
+.location-contact-channel__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.location-contact-channel__label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-subtle);
+}
+
+.location-contact-channel__value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =============================================
+   Social Presence Card
+   ============================================= */
+.location-social-card {
+  background-color: var(--color-warm-paper);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.location-social-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.location-social-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.location-social-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.location-social-btn:hover {
+  background-color: var(--color-warm-white);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+}
+
+.location-social-btn--instagram:hover {
+  border-color: #E1306C;
+  color: #E1306C;
+}
+
+.location-social-btn--facebook:hover {
+  border-color: #1877F2;
+  color: #1877F2;
+}
+
+.location-social-btn--youtube:hover {
+  border-color: #FF0000;
+  color: #FF0000;
+}
+
+.location-social-btn--twitter:hover {
+  border-color: #000000;
+  color: #000000;
+}
+
+.location-social-btn:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+/* =============================================
+   Responsive Breakpoints
+   ============================================= */
+@media (max-width: 480px) {
+  .location-card {
+    padding: var(--space-md);
+  }
+
+  .location-card__actions-row {
+    grid-template-columns: 1fr;
+  }
+
+  .location-social-btn {
+    flex: 1 1 calc(50% - var(--space-sm));
+    justify-content: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .location__grid {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .location-card {
+    padding: var(--space-xl);
+  }
+
+  .location-contact-card {
+    padding: var(--space-xl);
+  }
+}
+
+@media (min-width: 1024px) {
+  .location__grid {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: var(--space-2xl);
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .location-card__btn-maps,
+  .location-card__btn-action,
+  .location-contact-channel,
+  .location-social-btn,
+  .location-today,
+  .location-today__link {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .location__toast {
+    animation: none !important;
+  }
+}

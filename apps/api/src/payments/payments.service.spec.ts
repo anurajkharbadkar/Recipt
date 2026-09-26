@@ -75,9 +75,15 @@ describe('PaymentsService.resolveSubscriptionPaymentContext', () => {
     service = moduleRef.get(PaymentsService);
   });
 
-  it('refuses a plain re-pay when already ACTIVE on the same plan (no targetPlan given)', async () => {
-    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'ACTIVE' });
+  it('refuses a plain re-pay when already ACTIVE on the same plan if NOT expired (no targetPlan given)', async () => {
+    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'ACTIVE', subscriptionExpiry: new Date(Date.now() + 86400000).toISOString() });
     await expect(service.resolveSubscriptionPaymentContext('org1')).rejects.toThrow('already active on this plan');
+  });
+
+  it('allows an org with an EXPIRED subscription to renew the same plan even if subscriptionStatus is ACTIVE', async () => {
+    prisma.organization.findUniqueOrThrow.mockResolvedValue({ id: 'org1', subscriptionPlan: 'STANDARD', subscriptionStatus: 'ACTIVE', subscriptionExpiry: new Date(Date.now() - 86400000).toISOString() });
+    const { plan } = await service.resolveSubscriptionPaymentContext('org1');
+    expect(plan.id).toBe('STANDARD');
   });
 
   it('allows an ACTIVE org to price a different plan — the actual Change Plan case this fixes', async () => {

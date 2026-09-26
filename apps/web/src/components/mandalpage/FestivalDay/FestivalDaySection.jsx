@@ -1,0 +1,119 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useMandal } from '@/context/MandalContext';
+import { useLanguage } from '@/hooks/useLanguage';
+import { useInView } from '@/hooks/useInView';
+import { toDevanagariNumerals, getFestivalDurationDays } from '@/utils/dateUtils';
+import {
+  getFestivalDays,
+  getTodayFestivalDay,
+  parseDayFromHash,
+} from '@/utils/festivalSelectors';
+
+import FestivalDayNav from './FestivalDayNav';
+import FestivalDayView from './FestivalDayView';
+import './FestivalDaySection.css';
+
+/**
+ * FestivalDaySection (Step 16)
+ *
+ * Core Day-by-Day Festival Information Architecture.
+ * Reorganizes all festival elements (Dress Code, Events, Aarti, Activities,
+ * Bhandara, Visarjan, Announcements, Sponsors) into a cohesive day-first experience.
+ *
+ * Replaces the long collection of standalone sections with a single,
+ * expandable day-centric interface.
+ */
+export default function FestivalDaySection() {
+  const mandal = useMandal();
+  const { t, language } = useLanguage();
+  const [ref, isVisible] = useInView({ threshold: 0.05 });
+
+  const festivalDays = getFestivalDays(mandal);
+
+  // Compute initial active day:
+  // 1. URL hash (#day-X, #bhandara, #visarjan, #activities)
+  // 2. Today's active festival day
+  // 3. First day
+  const getInitialDay = useCallback(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    const hashDay = parseDayFromHash(hash, festivalDays, mandal);
+    if (hashDay != null) return hashDay;
+
+    const todayDay = getTodayFestivalDay(festivalDays);
+    if (todayDay != null) return todayDay.dayNumber;
+
+    return festivalDays[0]?.dayNumber || 1;
+  }, [festivalDays, mandal]);
+
+  const [activeDayNumber, setActiveDayNumber] = useState(getInitialDay);
+
+  // Synchronize hash on browser forward/back or external anchor link
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      const targetDay = parseDayFromHash(hash, festivalDays, mandal);
+      if (targetDay != null) {
+        setActiveDayNumber(targetDay);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [festivalDays, mandal]);
+
+  // Handle day selection
+  const handleSelectDay = useCallback((dayNum) => {
+    setActiveDayNumber(dayNum);
+
+    // Update URL hash smoothly without triggering a window scroll jump
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      window.history.replaceState(null, '', `#day-${dayNum}`);
+    }
+  }, []);
+
+  if (festivalDays.length === 0) {
+    return null;
+  }
+
+  const selectedDay = festivalDays.find(d => d.dayNumber === activeDayNumber) || festivalDays[0];
+  const totalDays = getFestivalDurationDays(mandal.festival, festivalDays);
+  const localizedDays = (language === 'mr' || language === 'hi')
+    ? toDevanagariNumerals(totalDays)
+    : totalDays;
+
+  return (
+    <section
+      id="schedule"
+      className="festival-day-section section"
+      aria-labelledby="festival-day-heading"
+    >
+      <div className="container">
+        {/* Section Header */}
+        <div
+          ref={ref}
+          className={`festival-day-section__header reveal ${isVisible ? 'reveal--visible' : ''}`}
+        >
+          <p className="eyebrow festival-day-section__eyebrow">
+            {t('exploreFestivalDays')}
+          </p>
+          <h2 id="festival-day-heading" className="heading-display heading-display--lg festival-day-section__title">
+            {localizedDays} {t('daysOfCelebration')}
+          </h2>
+          <p className="festival-day-section__subtitle">
+            {t('scheduleSubtitle')}
+          </p>
+        </div>
+
+        {/* Day Navigation Tabs */}
+        <FestivalDayNav
+          festivalDays={festivalDays}
+          activeDayNumber={activeDayNumber}
+          onSelectDay={handleSelectDay}
+        />
+
+        {/* Active Day Content Panel */}
+        <FestivalDayView day={selectedDay} />
+      </div>
+    </section>
+  );
+}

@@ -137,13 +137,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3">
-        <QuickAction href="/receipts/new" icon={Plus} label={l.newReceipt} />
-        <QuickAction href="/expenses?new=1" icon={IndianRupee} label={l.addExpense} />
-        <QuickAction href="/members?tab=internal" icon={Users2} label={l.memberContribution} />
-      </div>
-
       {/* Hero stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard hero title={l.total} value={formatCurrency(stats.totalCollections || 0)} icon={TrendingUp} href="/receipts" />

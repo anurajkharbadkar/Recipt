@@ -158,6 +158,11 @@ export const orgsApi = {
     form.append('file', file);
     return apiClient.post('/organizations/me/idol-image', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data as { url: string });
   },
+  uploadBannerImage: (file: File) => {
+    const form = new FormData();
+    form.append('banner', file);
+    return apiClient.post('/organizations/me/banner', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data as { url: string });
+  },
   getAreas: () => apiClient.get('/organizations/areas').then(r => r.data),
   createArea: (data: any) => apiClient.post('/organizations/areas', data).then(r => r.data),
   deleteArea: (id: string) => apiClient.delete(`/organizations/areas/${id}`).then(r => r.data),
@@ -287,3 +292,12 @@ export const donationPaymentApi = {
     } | null;
   }> => apiClient.post(`/payments/donations/public/${receiptId}`).then(r => r.data),
 };
+
+// Mandal Public Webpage & Event Bulletin API
+export const mandalPagesApi = {
+  getPublicPage: (slug: string) => apiClient.get(`/mandal-pages/public/${slug}`).then((r) => r.data),
+  getMyConfig: () => apiClient.get('/mandal-pages/me').then((r) => r.data),
+  updateConfig: (data: any) => apiClient.put('/mandal-pages/me', data).then((r) => r.data),
+  applyPreset: (presetType: 'NAVRATRI' | 'GANESHOTSAV') => apiClient.post('/mandal-pages/me/preset', { presetType }).then((r) => r.data),
+};
+

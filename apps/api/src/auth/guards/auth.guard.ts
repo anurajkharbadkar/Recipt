@@ -37,25 +37,28 @@ export class RolesGuard implements CanActivate {
     if (!user) return false;
 
     if (user.role !== UserRole.SUPER_ADMIN && method !== 'GET') {
-      const expiry = user.organization?.subscriptionExpiry;
-      if (expiry && new Date(expiry).getTime() < Date.now()) {
-        throw new ForbiddenException(`Your plan has expired. Renew to keep using ${BRAND_NAME}.`);
-      }
-
-      // A paid plan (FREE has nothing to pay, so it's never PENDING_PAYMENT
-      // — see AuthService.register) that hasn't been paid yet can't create
-      // new records either — same "view past data, can't add new" shape as
-      // the expiry check above, just gated on payment instead of time.
-      // SkipSubscriptionGate exempts SubscriptionPaymentController's own
-      // order-creation endpoint, which is itself a write and would
-      // otherwise be blocked by the exact gate it exists to satisfy.
       const skipGate = this.reflector.getAllAndOverride<boolean>(SKIP_SUBSCRIPTION_GATE_KEY, [
         context.getHandler(),
         context.getClass(),
       ]);
-      const org = user.organization;
-      if (!skipGate && org?.subscriptionPlan !== SubscriptionPlan.FREE && org?.subscriptionStatus === SubscriptionStatus.PENDING_PAYMENT) {
-        throw new ForbiddenException('Complete your subscription payment to keep creating new records.');
+
+      if (!skipGate) {
+        const expiry = user.organization?.subscriptionExpiry;
+        if (expiry && new Date(expiry).getTime() < Date.now()) {
+          throw new ForbiddenException(`Your plan has expired. Renew to keep using ${BRAND_NAME}.`);
+        }
+
+        // A paid plan (FREE has nothing to pay, so it's never PENDING_PAYMENT
+        // — see AuthService.register) that hasn't been paid yet can't create
+        // new records either — same "view past data, can't add new" shape as
+        // the expiry check above, just gated on payment instead of time.
+        // SkipSubscriptionGate exempts SubscriptionPaymentController's own
+        // order-creation endpoint, which is itself a write and would
+        // otherwise be blocked by the exact gate it exists to satisfy.
+        const org = user.organization;
+        if (org?.subscriptionPlan !== SubscriptionPlan.FREE && org?.subscriptionStatus === SubscriptionStatus.PENDING_PAYMENT) {
+          throw new ForbiddenException('Complete your subscription payment to keep creating new records.');
+        }
       }
     }
 

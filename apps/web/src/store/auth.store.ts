@@ -16,12 +16,16 @@ interface Organization {
   name: string;
   nameMarathi?: string;
   nameHindi?: string;
+  slug?: string;
   logoUrl?: string;
   brandColor?: string;
   /** Short login identifier every collector/treasurer needs alongside their phone + password. Shown in Settings. */
   mandalCode?: string;
   /** Standard+ only (see organizations.service.ts) — the mandal's own UPI VPA, used to build the donor-facing payment QR/link. Never rendered on the pavti itself. */
   upiId?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankIfsc?: string;
   subscriptionPlan: string;
   subscriptionStatus?: string;
   subscriptionExpiry?: string | Date;

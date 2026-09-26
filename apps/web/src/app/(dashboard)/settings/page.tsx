@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { orgsApi } from '@/lib/api';
+import { orgsApi, mandalPagesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Building2, Phone, Mail, MapPin, Landmark, Loader2, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, Check, Lock, KeyRound, Copy, CheckCheck, CreditCard, ArrowRight, ChevronRight, Clock } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, Landmark, Loader2, Plus, Trash2, Palette, Plug, CheckCircle2, AlertTriangle, Tag, Globe, Sparkles, Eye, X, Check, Lock, KeyRound, Copy, CheckCheck, CreditCard, ArrowRight, ChevronRight, Clock, ImageIcon, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
@@ -170,7 +170,7 @@ const settingsLabels = {
     chooseFile: 'Choose File', uploading: 'Uploading...',
     brandTitle: 'Brand & Appearance',
     resetColor: 'Reset color',
-    bankTitle: 'Bank Details',
+    bankTitle: 'UPI & Payment Details',
     saving: 'Saving...', allSaved: 'All changes saved', saveFailed: "Couldn't save — check your connection",
     areasTitle: 'Collection Areas', areasPlaceholder: 'Ward A, Market Area, etc.', addArea: 'Add Area', noAreas: 'No collection areas defined',
     areaCount: (c: number, r: number) => `${c} collectors · ${r} receipts`,
@@ -179,7 +179,7 @@ const settingsLabels = {
     expenseCategoriesLabel: 'Expense Categories', donationCategoriesLabel: 'Donation Categories', addCategory: 'Add', noCategories: 'No custom categories yet',
     socialTitle: 'Social Media Links',
     instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', website: 'Website',
-    tabGeneral: 'General', tabBank: 'Bank & Integrations', tabDesign: 'Receipt Design', tabInteractive: 'Interactive View', tabAreas: 'Areas & Categories',
+    tabGeneral: 'General', tabBank: 'UPI & Integrations', tabDesign: 'Receipt Design', tabInteractive: 'Interactive View', tabAreas: 'Areas & Categories',
     interactiveNote: 'Web-only — shown when donors open receipt links online, separate from the printed/WhatsApp pavti.',
   },
   hi: {
@@ -192,7 +192,7 @@ const settingsLabels = {
     chooseFile: 'फ़ाइल चुनें', uploading: 'अपलोड हो रहा है...',
     brandTitle: 'ब्रांड व स्वरूप',
     resetColor: 'डिफ़ॉल्ट रंग पर जाएं',
-    bankTitle: 'बैंक विवरण',
+    bankTitle: 'UPI व भुगतान विवरण',
     saving: 'सहेजा जा रहा है...', allSaved: 'सभी बदलाव सहेजे गए', saveFailed: 'सहेज नहीं सके — कनेक्शन जांचें',
     areasTitle: 'संग्रह क्षेत्र', areasPlaceholder: 'वार्ड A, बाजार क्षेत्र, आदि।', addArea: 'क्षेत्र जोड़ें', noAreas: 'कोई संग्रह क्षेत्र नहीं',
     areaCount: (c: number, r: number) => `${c} संग्रहकर्ता · ${r} रसीदें`,
@@ -201,7 +201,7 @@ const settingsLabels = {
     expenseCategoriesLabel: 'व्यय श्रेणियां', donationCategoriesLabel: 'दान श्रेणियां', addCategory: 'जोड़ें', noCategories: 'कोई कस्टम श्रेणी नहीं',
     socialTitle: 'सोशल मीडिया लिंक',
     instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
-    tabGeneral: 'सामान्य', tabBank: 'बैंक व एकीकरण', tabDesign: 'रसीद डिज़ाइन', tabInteractive: 'इंटरैक्टिव दृश्य', tabAreas: 'क्षेत्र व श्रेणियां',
+    tabGeneral: 'सामान्य', tabBank: 'UPI व एकीकरण', tabDesign: 'रसीद डिज़ाइन', tabInteractive: 'इंटरैक्टिव दृश्य', tabAreas: 'क्षेत्र व श्रेणियां',
     interactiveNote: 'केवल वेब पर — जब दानकर्ता रसीद लिंक ऑनलाइन खोलते हैं, छपी/व्हाट्सएप पावती से अलग।',
   },
   mr: {
@@ -214,7 +214,7 @@ const settingsLabels = {
     chooseFile: 'फाइल निवडा', uploading: 'अपलोड होत आहे...',
     brandTitle: 'ब्रँड व स्वरूप',
     resetColor: 'मूळ रंगावर जा',
-    bankTitle: 'बँक तपशील',
+    bankTitle: 'UPI व पेमेंट तपशील',
     saving: 'जतन होत आहे...', allSaved: 'सर्व बदल जतन झाले', saveFailed: 'जतन करता आले नाही — कनेक्शन तपासा',
     areasTitle: 'संकलन क्षेत्रे', areasPlaceholder: 'वार्ड A, मार्केट परिसर, इ.', addArea: 'क्षेत्र जोडा', noAreas: 'कोणतेही संकलन क्षेत्र नाही',
     areaCount: (c: number, r: number) => `${c} संग्राहक · ${r} पावत्या`,
@@ -223,7 +223,7 @@ const settingsLabels = {
     expenseCategoriesLabel: 'खर्च श्रेणी', donationCategoriesLabel: 'देणगी श्रेणी', addCategory: 'जोडा', noCategories: 'कोणतीही कस्टम श्रेणी नाही',
     socialTitle: 'सोशल मीडिया लिंक्स',
     instagram: 'इंस्टाग्राम', facebook: 'फेसबुक', youtube: 'यूट्यूब', website: 'वेबसाइट',
-    tabGeneral: 'सामान्य', tabBank: 'बँक व इंटिग्रेशन्स', tabDesign: 'पावती डिझाइन', tabInteractive: 'इंटरॅक्टिव्ह दृश्य', tabAreas: 'क्षेत्रे व श्रेणी',
+    tabGeneral: 'सामान्य', tabBank: 'UPI व इंटिग्रेशन्स', tabDesign: 'पावती डिझाइन', tabInteractive: 'इंटरॅक्टिव्ह दृश्य', tabAreas: 'क्षेत्रे व श्रेणी',
     interactiveNote: 'फक्त वेबवर — देणगीदार पावती लिंक ऑनलाइन उघडतात तेव्हा दिसते, छापील/व्हॉट्सअॅप पावतीपेक्षा वेगळी.',
   },
 };
@@ -337,6 +337,11 @@ export default function SettingsPage() {
     queryFn: orgsApi.getIntegrationsStatus,
     enabled: user?.role === 'ORG_ADMIN' || user?.role === 'SUPER_ADMIN',
   });
+  const { data: mandalConfig } = useQuery({
+    queryKey: ['mandal-page-config'],
+    queryFn: mandalPagesApi.getMyConfig,
+    enabled: user?.role === 'ORG_ADMIN' || user?.role === 'SUPER_ADMIN',
+  });
 
   const [form, setForm] = useState<any>({});
   const [newArea, setNewArea] = useState('');
@@ -344,6 +349,44 @@ export default function SettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingIdol, setUploadingIdol] = useState(false);
+  const [coverImageUrl, setCoverImageUrl] = useState<string>('');
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  useEffect(() => {
+    if (mandalConfig?.coverImageUrl !== undefined) {
+      setCoverImageUrl(mandalConfig.coverImageUrl || '');
+    }
+  }, [mandalConfig]);
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBanner(true);
+    const loadingToast = toast.loading('Uploading banner image...');
+    try {
+      const res = await orgsApi.uploadBannerImage(file);
+      if (res?.url) {
+        setCoverImageUrl(res.url);
+        await mandalPagesApi.updateConfig({ coverImageUrl: res.url });
+        queryClient.invalidateQueries({ queryKey: ['mandal-page-config'] });
+        toast.success('Mandal Webpage Cover Banner uploaded successfully!', { id: loadingToast });
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to upload banner image.', { id: loadingToast });
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleBannerUrlChange = async (newUrl: string) => {
+    setCoverImageUrl(newUrl);
+    try {
+      await mandalPagesApi.updateConfig({ coverImageUrl: newUrl });
+      queryClient.invalidateQueries({ queryKey: ['mandal-page-config'] });
+    } catch (err: any) {
+      console.error('Failed to update banner URL', err);
+    }
+  };
   const [codeCopied, setCodeCopied] = useState(false);
   const handleCopyMandalCode = () => {
     if (!org?.mandalCode) return;
@@ -703,6 +746,69 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Mandal Webpage Cover Banner Upload Section */}
+        <div className="mb-6 pb-6 border-b border-theme space-y-2">
+          <div className="flex items-center justify-between flex-wrap gap-1">
+            <span className="text-xs font-bold text-saffron-700 dark:text-saffron-400 uppercase tracking-wider">
+              MANDAL WEBPAGE COVER BANNER
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-theme-fg/40 font-semibold">
+              Appears at top hero section of public webpage
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap pt-1">
+            {coverImageUrl ? (
+              <div className="relative h-20 w-36 sm:w-44 rounded-xl overflow-hidden border border-theme-fg/15 group shrink-0 bg-theme-fg/5 shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverImageUrl}
+                  alt="Mandal Banner"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleBannerUrlChange('')}
+                  className="absolute top-1 right-1 bg-red-500/80 hover:bg-red-600 text-white p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove Banner"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ) : (
+              <div className="h-20 w-36 sm:w-44 rounded-xl border border-dashed border-theme-fg/20 flex flex-col items-center justify-center text-theme-fg/40 shrink-0 bg-theme-fg/[0.02]">
+                <ImageIcon size={22} className="mb-1 text-theme-fg/30" />
+                <span className="text-[11px] font-medium text-theme-fg/50">No Banner Uploaded</span>
+              </div>
+            )}
+
+            <div className="flex-1 space-y-2 min-w-[200px]">
+              <div className="flex items-center gap-2">
+                <label className="btn-secondary text-xs px-3.5 py-2 rounded-xl cursor-pointer flex items-center gap-1.5 shrink-0 font-medium shadow-xs">
+                  {uploadingBanner ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                  <span>{uploadingBanner ? 'Uploading...' : 'Upload Banner Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerFileChange}
+                    disabled={uploadingBanner}
+                    className="hidden"
+                  />
+                </label>
+                <span className="text-[11px] text-theme-fg/40">PNG, JPG, WEBP (Max 5MB)</span>
+              </div>
+
+              <input
+                type="text"
+                value={coverImageUrl || ''}
+                onChange={(e) => handleBannerUrlChange(e.target.value)}
+                placeholder="Or paste image URL (https://...)"
+                className="form-input text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">Organization Name *</label>
@@ -955,33 +1061,20 @@ export default function SettingsPage() {
           </div>
           <h3 className="text-base font-semibold text-theme-fg">{sl.bankTitle}</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div>
-            <label className="form-label">Bank Name</label>
-            <input value={form.bankName || ''} onChange={e => setForm((p: any) => ({ ...p, bankName: e.target.value }))} className="form-input" placeholder="State Bank of India" />
-          </div>
-          <div>
-            <label className="form-label">Account Number</label>
-            <input value={form.bankAccountNumber || ''} onChange={e => setForm((p: any) => ({ ...p, bankAccountNumber: e.target.value }))} className="form-input" placeholder="XXXXXXXXXXXX" inputMode="numeric" />
-          </div>
-          <div>
-            <label className="form-label">IFSC Code</label>
-            <input value={form.bankIfsc || ''} onChange={e => setForm((p: any) => ({ ...p, bankIfsc: e.target.value.toUpperCase() }))} className="form-input" placeholder="SBIN0001234" />
-          </div>
-          <div>
-            <label className="form-label">Branch</label>
-            <input value={form.bankBranch || ''} onChange={e => setForm((p: any) => ({ ...p, bankBranch: e.target.value }))} className="form-input" placeholder="Pune Main Branch" />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="form-label flex items-center gap-1.5">
-              UPI ID
-              {!hasPremiumFeatures && <Lock size={11} className="text-theme-fg/40" />}
+            <label className="form-label flex items-center gap-1.5 text-sm font-semibold">
+              Mandal UPI ID (For Direct Donations)
+              {!hasPremiumFeatures && <Lock size={12} className="text-theme-fg/40" />}
             </label>
+            <p className="text-xs text-theme-fg/50 mb-2">
+              Donors will use this UPI ID to pay directly via Google Pay, PhonePe, Paytm, BHIM, or QR Code.
+            </p>
             <input
               value={form.upiId || ''}
               onChange={e => setForm((p: any) => ({ ...p, upiId: e.target.value }))}
-              className="form-input font-mono disabled:opacity-60 disabled:cursor-not-allowed"
-              placeholder="mandal@upi"
+              className="form-input font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              placeholder="e.g. ganeshmandal@sbi or 9876543210@upi"
               disabled={!hasPremiumFeatures}
             />
             {!hasPremiumFeatures && (

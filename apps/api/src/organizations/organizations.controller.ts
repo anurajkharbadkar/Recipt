@@ -84,6 +84,19 @@ export class OrganizationsController {
     return this.service.uploadIdolImage(orgId, file);
   }
 
+  @Post('me/banner')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ORG_ADMIN)
+  @UseInterceptors(FileInterceptor('banner'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload Mandal public webpage banner image' })
+  uploadBanner(
+    @CurrentUser('orgId') orgId: string,
+    @UploadedFile(imageUploadPipe()) file: Express.Multer.File,
+  ) {
+    return this.service.uploadBanner(orgId, file);
+  }
+
   @Get('areas')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.TREASURER, UserRole.COLLECTOR, UserRole.VIEWER)

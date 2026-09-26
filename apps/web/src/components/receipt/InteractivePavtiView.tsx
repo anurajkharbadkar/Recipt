@@ -26,6 +26,7 @@ import { Volume2, VolumeX, Download, Share2, ArrowDown, Sparkles, CheckCircle2, 
 // to actual image files instead, same as every other brand asset.
 const ENV_TEXTURE_URL = '/brand/pavti/envelope-texture.jpg';
 const GANPATI_IMAGE_URL = 'https://pub-b087a5790d1e4f0f9943ea8e70d1f4ae.r2.dev/defaults/ganpati_portrait.jpg';
+const NAVRATRI_DEVI_IMAGE_URL = 'https://images.unsplash.com/photo-1601058268499-e52658b8bb88?w=800&auto=format&fit=crop&q=80';
 const ASHIRVAAD_IMAGE_URL = 'https://pub-b087a5790d1e4f0f9943ea8e70d1f4ae.r2.dev/defaults/bappa_ashirvaad.jpg';
 
 interface InteractivePavtiViewProps {
@@ -1404,7 +1405,7 @@ export default function InteractivePavtiView({
                 <div className="envelope-back" />
                 <div ref={insideGlowRef} className="inside-glow" />
                 <div ref={insideLetterRef} className="inside-letter">
-                  <p>|| श्री गणेशाय नमः ||</p>
+                  <p>|| 🪔 शुभ नवरात्रोत्सव 🪔 ||</p>
                   <p>{receipt.donorName} जी, आपली देणगी यशस्वीरीत्या प्राप्त झाली आहे</p>
                 </div>
                 <div className="envelope-pocket" />
@@ -1528,10 +1529,10 @@ export default function InteractivePavtiView({
           <div className="flex flex-col items-center text-center z-10 px-4 max-w-sm">
             {/* Sacred Tagline */}
             <p className="text-xs sm:text-sm font-semibold tracking-widest text-amber-300/90 uppercase mb-3" style={{ fontFamily: 'var(--font-eyebrow)' }}>
-              {settings.headerTagline || "|| श्री गणेशाय नमः ||"}
+              {settings.headerTagline || "|| 🪔 शुभ नवरात्रोत्सव 🪔 ||"}
             </p>
 
-            {/* Ganesha Darshan Idol + flanking diyas */}
+            {/* Ganesha / Devi Darshan Idol + flanking diyas */}
             <div className="ganpati-stage my-1">
               <div ref={(el) => { diyaRefs.current[0] = el; }} className="brass-diya">
                 <div className="diya-chain" />
@@ -1545,7 +1546,7 @@ export default function InteractivePavtiView({
                 <div className="darshan-aura" />
                 <div className="darshan-frame">
                   <div className="darshan-frame-inner">
-                    <img src={customDarshan || GANPATI_IMAGE_URL} alt="Shree Ganesh Darshan" className="darshan-img" />
+                    <img src={customDarshan || NAVRATRI_DEVI_IMAGE_URL} alt="Navratri Devi Darshan" className="darshan-img" />
                   </div>
                 </div>
               </div>
@@ -1561,10 +1562,10 @@ export default function InteractivePavtiView({
 
             {/* Devotional Chanting Subtitle */}
             <h2 className="text-xl sm:text-2xl font-bold text-amber-100 mt-3 tracking-wide drop-shadow-md" style={{ fontFamily: 'var(--font-devotional)' }}>
-              गणपती बाप्पा मोरया
+              जय अंबे जगदंबे
             </h2>
             <p className="text-xs sm:text-sm text-amber-200/80 mt-1" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
-              मंगलमूर्ती मोरया
+              अष्टभुजा देवीची कृपा आपणावर सदैव राहो
             </p>
           </div>
 
@@ -1852,7 +1853,7 @@ export default function InteractivePavtiView({
             </div>
 
             <p className="text-xs font-bold text-amber-300 tracking-widest uppercase">
-              श्रींचे शुभाशीर्वाद
+              देवीचा आशीर्वाद
             </p>
 
             <div ref={blessDividerRef} className="royal-divider">
@@ -1861,15 +1862,15 @@ export default function InteractivePavtiView({
 
             {/* Personalized Blessing Quote */}
             <p ref={blessMsgRef} className="bless-message mt-1">
-              "{settings.blessingMessage || "गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो!"}"
+              "{settings.blessingMessage || "जगदंबेच्या असीम कृपेने आपल्या परिवाराला सुख, समृद्धी आणि उत्तम आरोग्य लाभो!"}"
             </p>
 
             <div ref={blessClosingRef} className="closing-chant-wrap">
               <svg className="closing-flourish" viewBox="0 0 44 16" fill="none"><path d="M2 8 Q16 1 42 8" stroke="#c9a24a" strokeWidth="1" /></svg>
-              <span className="closing-chant">गणपती बाप्पा मोरया</span>
+              <span className="closing-chant">जय अंबे जगदंबे</span>
               <svg className="closing-flourish flip" viewBox="0 0 44 16" fill="none"><path d="M2 8 Q16 1 42 8" stroke="#c9a24a" strokeWidth="1" /></svg>
             </div>
-            <p ref={blessSubRef} className="bless-sub">मंगलमूर्ती मोरया</p>
+            <p ref={blessSubRef} className="bless-sub">शुभ नवरात्रोत्सव</p>
 
             <p className="text-xs text-amber-200/80 mt-3">
               - {org.nameMarathi || org.name}

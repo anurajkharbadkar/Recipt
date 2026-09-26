@@ -88,11 +88,13 @@ export class PaymentsService {
     if (plan.id === SubscriptionPlan.FREE) {
       throw new BadRequestException('The Free Trial plan has nothing to pay.');
     }
-    // Only refuse when there's genuinely nothing to do — already ACTIVE on
-    // the exact plan being requested. An ACTIVE org choosing a *different*
-    // plan (Change Plan — upgrade or downgrade) is exactly what this
-    // param exists for, so it must not get caught by this guard.
-    if (organization.subscriptionStatus === SubscriptionStatus.ACTIVE && planId === organization.subscriptionPlan) {
+    const isExpired = !!organization.subscriptionExpiry && new Date(organization.subscriptionExpiry).getTime() < Date.now();
+
+    // Only refuse when there's genuinely nothing to do — an active, non-expired org
+    // requesting the exact plan they're already on. An expired org renewing their plan,
+    // or an active org choosing a *different* plan (Change Plan — upgrade or downgrade),
+    // must be allowed to create a payment order.
+    if (!isExpired && organization.subscriptionStatus === SubscriptionStatus.ACTIVE && planId === organization.subscriptionPlan) {
       throw new BadRequestException('Your subscription is already active on this plan.');
     }
 
@@ -306,11 +308,17 @@ export class PaymentsService {
           // anymore) — those stay a plain renewal, same as this code
           // always did.
           const isValidPlan = Object.values(SubscriptionPlan).includes(updatedPayment.targetPlan as SubscriptionPlan);
+          const currentOrg = await tx.organization.findUnique({ where: { id: updatedPayment.orgId }, select: { subscriptionExpiry: true } });
+          const currentExpiry = currentOrg?.subscriptionExpiry && new Date(currentOrg.subscriptionExpiry).getTime() > Date.now()
+            ? new Date(currentOrg.subscriptionExpiry)
+            : new Date();
+          const nextExpiry = new Date(currentExpiry.getTime() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+
           await tx.organization.update({
             where: { id: updatedPayment.orgId },
             data: {
               subscriptionStatus: SubscriptionStatus.ACTIVE,
-              subscriptionExpiry: new Date(Date.now() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000),
+              subscriptionExpiry: nextExpiry,
               ...(isValidPlan ? { subscriptionPlan: updatedPayment.targetPlan as SubscriptionPlan } : {}),
             },
           });
