@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2 } from 'lucide-react';
+import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DailyBannerModalProps {
@@ -83,29 +83,49 @@ export default function DailyBannerModal({
       const fileName = `${mandalName.replace(/\s+/g, '_')}_Day_${day.dayNumber}_Banner.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: `${mandalName} - Day ${day.dayNumber}`,
-          text: `🚩 ${mandalName}\n✨ ${titleText}\n${mandalUrl}`,
-          files: [file],
-        });
-        toast.success('Banner image shared!');
-        return;
+      let sharedSuccessfully = false;
+
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: `${mandalName} - Day ${day.dayNumber}`,
+            text: `🚩 ${mandalName}\n✨ ${titleText}\n${mandalUrl}`,
+            files: [file],
+          });
+          toast.success('Banner image shared!');
+          sharedSuccessfully = true;
+          return;
+        } catch (shareErr: any) {
+          if (shareErr?.name === 'AbortError') {
+            return;
+          }
+          // Fall through to file download + WhatsApp link fallback below
+        }
       }
 
-      // Fallback if direct file share isn't supported on browser:
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
-      toast.success('Banner image saved!');
+      if (!sharedSuccessfully) {
+        // Fallback for desktop / browsers where direct file share is unsupported:
+        // 1. Download image poster
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        link.click();
 
-      const text = `🚩 *${mandalName}* 🚩\n\n📅 *${titleText}*\n👕 *आजचा पोशाख / Color:* ${dressCodeText || 'Traditional'}\n${deityAvatarText ? `✨ *अलंकार / Avatar:* ${deityAvatarText}\n` : ''}\n📋 *दैनिक वेळापत्रक (Schedule):*\n${(day.events || []).map((e: any) => `• ${e.time || e.startTime || ''} - ${resolveText(e.title)}`).join('\n')}\n\n🔗 अधिक माहिती व डिजिटल पावती:\n${mandalUrl}`;
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+        // 2. Open WhatsApp share text
+        const text = `🚩 *${mandalName}* 🚩\n\n📅 *${titleText}*\n👕 *आजचा पोशाख / Color:* ${dressCodeText || 'Traditional'}\n${deityAvatarText ? `✨ *अलंकार / Avatar:* ${deityAvatarText}\n` : ''}\n📋 *दैनिक वेळापत्रक (Schedule):*\n${(day.events || []).map((e: any) => `• ${e.time || e.startTime || ''} - ${resolveText(e.title)}`).join('\n')}\n\n🔗 अधिक माहिती व डिजिटल पावती:\n${mandalUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+        toast.success('Banner downloaded & WhatsApp link opened!');
+      }
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error(err);
-        toast.error('Could not share image banner directly.');
+        try {
+          const text = `🚩 *${mandalName}* 🚩\n\n📅 *${titleText}*\n🔗 ${mandalUrl}`;
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+          toast.success('WhatsApp link opened!');
+        } catch {
+          toast.error('Could not share banner. Please use download button.');
+        }
       }
     } finally {
       setSharing(false);
@@ -118,10 +138,24 @@ export default function DailyBannerModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-theme-fg/10 mb-4">
           <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-theme-fg/70 hover:text-theme-fg hover:bg-theme-fg/10 transition-colors flex items-center gap-1 text-xs font-semibold"
+              aria-label="Back / Close"
+              title="Back"
+            >
+              <ArrowLeft size={16} />
+              <span className="hidden sm:inline">Back</span>
+            </button>
             <Sparkles className="text-saffron-500" size={18} />
             <h2 className="text-xs sm:text-sm font-bold text-theme-fg">Daily Festival Banner (शेअर करण्यायोग्य इमेज)</h2>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-theme-fg/50 hover:text-theme-fg hover:bg-theme-fg/5" aria-label="Close modal">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/10 transition-colors flex items-center gap-1"
+            aria-label="Close modal"
+            title="Close (X)"
+          >
             <X size={20} />
           </button>
         </div>
@@ -217,11 +251,11 @@ export default function DailyBannerModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
           <button
             onClick={handleDownload}
             disabled={downloading || sharing}
-            className="btn-secondary text-xs flex items-center justify-center gap-1.5 py-2.5 min-h-[42px]"
+            className="btn-secondary text-xs flex-1 flex items-center justify-center gap-1.5 py-2.5 min-h-[42px] w-full"
           >
             {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             {downloading ? 'Generating...' : 'Download Image'}
@@ -229,13 +263,23 @@ export default function DailyBannerModal({
           <button
             onClick={handleShareBannerImage}
             disabled={downloading || sharing}
-            className="flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white min-h-[42px] transition-colors shadow-sm"
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white min-h-[42px] transition-colors shadow-sm w-full"
           >
             {sharing ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}
             {sharing ? 'Sharing...' : 'Share Image / WhatsApp'}
+          </button>
+          <button
+            onClick={onClose}
+            className="btn-secondary text-xs flex items-center justify-center gap-1 py-2.5 px-3 min-h-[42px] w-full sm:w-auto text-theme-fg/70 hover:text-theme-fg shrink-0"
+            aria-label="Close modal"
+            title="Close"
+          >
+            <X size={15} />
+            <span>Close</span>
           </button>
         </div>
       </div>
     </div>
   );
 }
+
