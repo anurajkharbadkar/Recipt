@@ -3,6 +3,8 @@ import { useMandal } from '@/context/MandalContext';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
+import { Share2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -101,6 +103,38 @@ export default function Navbar() {
   const mandalName = getLocalized(identity?.name);
   const initials = mandalName ? mandalName.slice(0, 2) : 'मं';
 
+  const handleShareWebpage = async () => {
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const shareTitle = mandalName || 'Mandal Public Webpage';
+    const shareText = `पहा ${mandalName || 'मंडळ'} चे अधिकृत सार्वजनिक संकेतस्थळ!`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        if (err?.name !== 'AbortError') {
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success(t('linkCopied', 'वेबपेज लिंक कॉपी झाली!'));
+          } catch {
+            // fallback
+          }
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success(t('linkCopied', 'वेबपेज लिंक कॉपी झाली!'));
+      } catch {
+        toast.error('Failed to copy link.');
+      }
+    }
+  };
+
   const navClass = [
     'navbar',
     scrolled ? 'navbar--scrolled' : 'navbar--hero',
@@ -137,6 +171,16 @@ export default function Navbar() {
         {/* Desktop Actions */}
         <div className="navbar__actions">
           <LanguageSwitcher isHero={!scrolled} />
+          <button
+            type="button"
+            className="navbar__share-btn"
+            onClick={handleShareWebpage}
+            aria-label={t('shareWebpage', 'Share Webpage')}
+            title={t('shareWebpage', 'Share Webpage')}
+          >
+            <Share2 size={15} />
+            <span>{t('shareWebpage', 'Share')}</span>
+          </button>
           <a
             href="#support"
             className="navbar__cta btn btn--primary btn--sm"
@@ -148,6 +192,15 @@ export default function Navbar() {
 
         {/* Mobile Header Actions */}
         <div className="navbar__mobile-actions">
+          <button
+            type="button"
+            className="navbar__share-btn navbar__share-btn--mobile"
+            onClick={handleShareWebpage}
+            aria-label={t('shareWebpage', 'Share Webpage')}
+            title={t('shareWebpage', 'Share Webpage')}
+          >
+            <Share2 size={16} />
+          </button>
           <LanguageSwitcher isHero={!scrolled} />
           <button
             ref={hamburgerRef}
@@ -187,10 +240,22 @@ export default function Navbar() {
             </li>
           ))}
         </ul>
-        <div className="navbar__mobile-cta">
+        <div className="navbar__mobile-cta flex flex-col gap-2 w-full max-w-xs">
+          <button
+            type="button"
+            className="btn btn--secondary w-full flex items-center justify-center gap-2"
+            onClick={() => {
+              closeMenu();
+              handleShareWebpage();
+            }}
+            tabIndex={menuOpen ? 0 : -1}
+          >
+            <Share2 size={16} />
+            <span>{t('shareWebpage', 'Share Webpage')}</span>
+          </button>
           <a
             href="#support"
-            className="btn btn--primary"
+            className="btn btn--primary w-full text-center"
             onClick={(e) => handleNavClick(e, '#support')}
             tabIndex={menuOpen ? 0 : -1}
           >
@@ -201,3 +266,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

@@ -7,7 +7,7 @@ import { mandalPagesApi, orgsApi, getErrorMessage } from '@/lib/api';
 import {
   Globe, Calendar, Sparkles, Save, ExternalLink, Plus, Trash2,
   Shirt, Clock, Award, Building2, CreditCard, MapPin, Eye, Loader2,
-  Upload, ImageIcon, Layers, ArrowUp, ArrowDown, LayoutGrid
+  Upload, ImageIcon, Layers, ArrowUp, ArrowDown, LayoutGrid, Share2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -368,6 +368,37 @@ export default function MandalPageBuilderDashboard() {
 
   const publicUrl = `/mandal/${formData.slug || organization?.slug}`;
 
+  const handleShareWebpageAdmin = async () => {
+    const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${publicUrl}` : publicUrl;
+    const shareData = {
+      title: formData.tagline || organization?.name || 'Mandal Public Webpage',
+      text: `Check out ${organization?.name || 'our Mandal'}'s public festival webpage!`,
+      url: fullUrl,
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          try {
+            await navigator.clipboard.writeText(fullUrl);
+            toast.success('Public webpage link copied to clipboard!');
+          } catch {
+            // fallback
+          }
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success('Public webpage link copied to clipboard!');
+      } catch {
+        toast.error('Failed to copy link.');
+      }
+    }
+  };
+
   const handleAddDay = () => {
     const nextDayNum = (formData.days?.length || 0) + 1;
     const newDay = {
@@ -428,6 +459,14 @@ export default function MandalPageBuilderDashboard() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShareWebpageAdmin}
+            className="btn-secondary text-xs px-3 py-2 min-h-[38px] flex items-center gap-1.5"
+            title="Share Webpage Link"
+          >
+            <Share2 size={14} /> Share Webpage
+          </button>
           <a
             href={publicUrl}
             target="_blank"

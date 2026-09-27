@@ -17,6 +17,7 @@ export const translations = {
     support: 'सहकार्य',
     location: 'आमचे ठिकाण',
     share: 'मंडळ शेअर करा',
+    shareWebpage: 'वेबपेज शेअर करा',
 
     // Section headers & actions
     viewSchedule: 'कार्यक्रम पहा',
@@ -319,6 +320,7 @@ export const translations = {
     support: 'सहयोग',
     location: 'हमारा स्थान',
     share: 'मंडल शेयर करें',
+    shareWebpage: 'वेबपेज शेयर करें',
 
     // Section headers & actions
     viewSchedule: 'कार्यक्रम देखें',
@@ -621,6 +623,7 @@ export const translations = {
     support: 'Support',
     location: 'Visit Us',
     share: 'Share Mandal',
+    shareWebpage: 'Share Webpage',
 
     // Section headers & actions
     viewSchedule: 'View Festival Schedule',
