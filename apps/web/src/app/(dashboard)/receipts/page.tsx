@@ -221,23 +221,23 @@ function ReceiptsPageInner() {
         ) : (
           <>
             {/* Mobile: cards */}
-            <div className="sm:hidden divide-y divide-theme-fg/8">
+            <div className="sm:hidden p-3 space-y-3">
               {(data?.data || []).map((r: any) => (
-                <div key={r.id} className={`p-4 space-y-2.5 ${r.isVoided ? 'opacity-50' : ''}`}>
+                <div key={r.id} className={`p-4 rounded-xl bg-theme-fg/[0.03] border border-theme-fg/10 space-y-3 shadow-sm hover:border-theme-fg/20 transition-all ${r.isVoided ? 'opacity-50' : ''}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <Link href={`/receipts/${r.id}`} className="text-saffron-400 font-mono text-xs block">
+                      <Link href={`/receipts/${r.id}`} className="text-saffron-400 font-mono text-xs font-semibold hover:underline block mb-0.5">
                         {r.receiptNumber}
                       </Link>
-                      <p className="font-semibold text-theme-fg truncate">{r.donorName}</p>
-                      {r.donorPhone && <p className="text-xs text-theme-fg/40">{r.donorPhone}</p>}
+                      <h4 className="font-bold text-theme-fg text-base truncate">{r.donorName}</h4>
+                      {r.donorPhone && <p className="text-xs text-theme-fg/60 font-mono">{r.donorPhone}</p>}
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="font-bold text-emerald-400">{formatCurrency(r.amount)}</p>
+                      <p className="font-extrabold text-emerald-400 text-lg">{formatCurrency(r.amount)}</p>
                       {r.isVoided ? (
                         <span className="badge badge-danger text-[10px] mt-1">Voided</span>
                       ) : r.status === 'PENDING' ? (
-                        <div className="flex flex-col items-end gap-0.5">
+                        <div className="flex flex-col items-end gap-0.5 mt-0.5">
                           <span className="badge badge-warning text-[10px]">🟡 {RECEIPT_STATUS_LABELS[ReceiptStatus.PENDING][language]}</span>
                           {r.donorClaimedPaidAt && (
                             <span className="text-[9px] text-emerald-500 font-medium">✓ Donor says paid</span>
@@ -250,20 +250,33 @@ function ReceiptsPageInner() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
+
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-theme-fg/5 text-xs">
                     <span className="badge badge-saffron text-[10px]">{RECEIPT_CATEGORIES_LABELS[r.category as DonationCategory]?.[language] || r.category}</span>
                     <span className="badge badge-info text-[10px]">{PAYMENT_MODE_LABELS[r.paymentMode as PaymentMode]?.[language] || r.paymentMode}</span>
                     <span className="text-[11px] text-theme-fg/40 ml-auto">{format(new Date(r.createdAt), 'dd MMM, hh:mm a')}</span>
                   </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-theme-fg/60">{r.collector?.name}</span>
-                    <div className="flex gap-1 -mr-2">
-                      <Link href={`/receipts/${r.id}`} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-theme-fg/8 text-theme-fg/50 hover:text-theme-fg transition-colors">
-                        <Eye size={17} />
+
+                  <div className="flex items-center justify-between pt-1 gap-2">
+                    <span className="text-xs text-theme-fg/50 font-medium truncate">By: {r.collector?.name || 'Admin'}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link
+                        href={`/receipts/${r.id}`}
+                        className="px-3 py-1.5 rounded-lg bg-saffron-500/10 hover:bg-saffron-500/20 text-saffron-400 border border-saffron-500/20 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Eye size={13} />
+                        <span>{language === 'mr' ? 'पावती' : language === 'hi' ? 'रसीद' : 'View'}</span>
                       </Link>
                       {r.donorPhone && (
-                        <button onClick={() => handleShare(r)} onMouseEnter={() => prefetchReceiptImage(r.id)} onTouchStart={() => prefetchReceiptImage(r.id)} disabled={sharingId === r.id} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-green-500/10 text-theme-fg/50 hover:text-green-400 transition-colors">
-                          {sharingId === r.id ? <Loader2 size={17} className="animate-spin" /> : <Share2 size={17} />}
+                        <button
+                          onClick={() => handleShare(r)}
+                          onMouseEnter={() => prefetchReceiptImage(r.id)}
+                          onTouchStart={() => prefetchReceiptImage(r.id)}
+                          disabled={sharingId === r.id}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                        >
+                          {sharingId === r.id ? <Loader2 size={13} className="animate-spin" /> : <Share2 size={13} />}
+                          <span>Share</span>
                         </button>
                       )}
                     </div>

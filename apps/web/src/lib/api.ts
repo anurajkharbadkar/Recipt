@@ -217,6 +217,11 @@ export const expensesApi = {
   create: (data: any) => apiClient.post('/expenses', data).then(r => r.data),
   delete: (id: string) => apiClient.delete(`/expenses/${id}`).then(r => r.data),
   downloadVoucher: (id: string) => apiClient.get(`/expenses/${id}/voucher`, { responseType: 'blob' }).then(r => r.data),
+  uploadBillPhoto: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post('/expenses/upload-receipt', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data as { url: string });
+  },
 };
 
 // Reports

@@ -218,30 +218,34 @@ export default function DashboardPage() {
           </Link>
         </div>
         {/* Mobile: cards */}
-        <div className="sm:hidden -mx-5 divide-y divide-theme-fg/8">
+        <div className="sm:hidden space-y-2.5">
           {(recentReceipts?.data || []).map((r: any) => (
-            <Link href={`/receipts/${r.id}`} key={r.id} className="block p-4 space-y-1.5 active:bg-theme-fg/5">
+            <Link
+              href={`/receipts/${r.id}`}
+              key={r.id}
+              className="block p-3.5 rounded-xl bg-theme-fg/[0.03] border border-theme-fg/10 space-y-2 hover:border-theme-fg/20 transition-all active:bg-theme-fg/5"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-saffron-400 font-mono text-xs">{r.receiptNumber}</p>
-                  <p className="font-semibold text-theme-fg truncate">{r.donorName}</p>
+                  <span className="text-saffron-400 font-mono text-[11px] font-semibold block">{r.receiptNumber}</span>
+                  <h4 className="font-bold text-theme-fg text-sm truncate">{r.donorName}</h4>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-bold text-emerald-400">{formatCurrency(r.amount)}</p>
+                  <p className="font-extrabold text-emerald-400 text-base">{formatCurrency(r.amount)}</p>
                   {r.isVoided ? (
-                    <span className="badge badge-danger text-[10px] mt-1">Voided</span>
+                    <span className="badge badge-danger text-[9px]">Voided</span>
                   ) : r.status === 'PENDING' ? (
-                    <span className="badge badge-warning text-[10px] mt-1">Pending</span>
+                    <span className="badge badge-warning text-[9px]">Pending</span>
                   ) : r.status === 'CANCELLED' ? (
-                    <span className="badge badge-neutral text-[10px] mt-1">Cancelled</span>
+                    <span className="badge badge-neutral text-[9px]">Cancelled</span>
                   ) : (
-                    <span className="badge badge-success text-[10px] mt-1">Paid</span>
+                    <span className="badge badge-success text-[9px]">Paid</span>
                   )}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-theme-fg/60">{r.collector?.name}</span>
-                <span className="text-[11px] text-theme-fg/40">{format(new Date(r.createdAt), 'dd MMM, h:mm a')}</span>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-theme-fg/5 text-theme-fg/50">
+                <span>By: {r.collector?.name || 'Admin'}</span>
+                <span>{format(new Date(r.createdAt), 'dd MMM, h:mm a')}</span>
               </div>
             </Link>
           ))}

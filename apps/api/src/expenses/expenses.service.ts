@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PdfService } from '../pdf/pdf.service';
+import { StorageService } from '../storage/storage.service';
 import { CreateExpenseDto } from './dto/expense.dto';
 import { Prisma } from '@prisma/client';
+import { extensionFor } from '../common/pipes/image-upload.pipe';
 
 // Expenses are a straight ledger — logged, viewed, deleted if entered in
 // error. No approval workflow: whoever has access to log an expense
@@ -12,7 +14,20 @@ import { Prisma } from '@prisma/client';
 // workflow with pending/approved states).
 @Injectable()
 export class ExpensesService {
-  constructor(private prisma: PrismaService, private pdfService: PdfService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pdfService: PdfService,
+    private storage: StorageService,
+  ) {}
+
+  async uploadReceiptImage(orgId: string, file: Express.Multer.File) {
+    const url = await this.storage.uploadFile(
+      `expenses/${orgId}-${Date.now()}.${extensionFor(file.mimetype)}`,
+      file.buffer,
+      file.mimetype,
+    );
+    return { url };
+  }
 
   async findAll(orgId: string, campaignId?: string) {
     const where: Prisma.ExpenseWhereInput = { campaign: { orgId } };

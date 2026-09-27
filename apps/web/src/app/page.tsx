@@ -12,38 +12,43 @@ import { MessageCircle, ArrowRight } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
+import { DEFAULT_MANDAL_LOGO, DEFAULT_DARSHAN_PHOTO } from '@/lib/defaultPavtiImages';
 
 // Sample receipt — same structure the real portal uses when issuing a pavti.
 // FESTIVE theme is the closest built-in design to the landing page's saffron
 // palette so what visitors see here is never out of sync with the real product.
 const HERO_PREVIEW_RECEIPT = {
   id: 'preview',
-  receiptNumber: 'SGM-2026-0001',
+  receiptNumber: 'NAV-2026-0042',
   donorName: 'Rajendra Deshmukh',
   donorNameMarathi: 'राजेंद्र देशमुख',
-  amount: 1100,
-  amountInWords: 'One Thousand One Hundred Rupees Only',
+  amount: 501,
+  amountInWords: 'Five Hundred One Rupees Only',
   category: 'GENERAL',
-  paymentMode: 'UPI',
+  paymentMode: 'CASH',
   status: 'PAID',
   collectionType: 'DONATION',
-  createdAt: '2026-08-21T12:00:00.000Z',
-  collector: { name: 'Amit Joshi', nameMarathi: 'अमित जोशी' },
+  createdAt: '2026-09-27T12:00:00.000Z',
+  collector: { name: 'Amit Joshi', nameMarathi: 'अमित जोशी (कार्यकर्ता)' },
   area: { name: 'Kasba Peth', nameMarathi: 'कसबा पेठ' },
   campaign: {
     id: 'demo-campaign',
-    name: 'Ganesh Utsav 2026',
-    nameMarathi: 'गणेशोत्सव २०२६',
+    name: 'Navratri Utsav 2026',
+    nameMarathi: 'शुभ नवरात्रोत्सव २०२६',
     organization: {
       id: 'demo-org',
-      name: 'Shree Ganesh Mandal, Pune',
-      nameMarathi: 'श्री गणेश मंडळ, पुणे',
+      name: 'Shree Navdurga Utsav Mandal, Pune',
+      nameMarathi: 'श्री नवदुर्गा उत्सव मंडळ, पुणे',
       city: 'Pune',
-      upiId: 'ganesh.mandal@upi',
+      upiId: 'navdurga.mandal@upi',
+      logoUrl: DEFAULT_MANDAL_LOGO,
+      customDarshanUrl: DEFAULT_DARSHAN_PHOTO,
       receiptTemplateSettings: {
         theme: 'FESTIVE',
         language: 'mr',
         interactiveTemplate: 'GANESHA_PORTRAIT_SAFFRON',
+        headerTagline: '॥ श्री दुर्गे नमः ॥',
+        footerNote: 'देवी मातेचा कृपाप्रसाद आपल्यावर व आपल्या कुटुंबावर सदैव राहो.',
         shareMessage: 'नमस्कार! {{donorName}} यांनी {{organizationName}} ला ₹{{amount}} ची देणगी दिली. पावती पाहण्यासाठी: {{receiptUrl}}',
       },
     },
@@ -96,8 +101,8 @@ const HOW_IT_WORKS = [
 ];
 
 const OCCASIONS: { en: string; mr: string; hi: string }[] = [
+  { en: 'Navratri Mandals & Samitis', mr: 'नवरात्रोत्सव मंडळे व समित्या', hi: 'नवरात्रि मंडल और समितियां' },
   { en: 'Ganesh Utsav Mandals', mr: 'गणेशोत्सव मंडळे', hi: 'गणेशोत्सव मंडल' },
-  { en: 'Navratri Samitis', mr: 'नवरात्र समित्या', hi: 'नवरात्रि समितियां' },
   { en: 'Bhandara & Special Events', mr: 'भंडारा व विशेष इवेंट्स', hi: 'भंडारा और विशेष इवेंट्स' },
   { en: 'Temple & Public Trusts', mr: 'सार्वजनिक ट्रस्ट', hi: 'सार्वजनिक ट्रस्ट' },
   { en: 'Housing Society Funds', mr: 'गृहनिर्माण सोसायटी निधी', hi: 'हाउसिंग सोसाइटी फंड' },
@@ -579,9 +584,9 @@ export default function HomePage() {
             <div className="flex items-center gap-2 text-sm text-saffron-900/50 dark:text-saffron-100/40">
               <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0" />
               {t(
-                'Built for Ganesh Utsav, Navratri and everyday mandal collections',
-                'गणेशोत्सव, नवरात्र आणि दैनंदिन मंडळ वर्गणीसाठी तयार',
-                'गणेशोत्सव, नवरात्रि और रोज़मर्रा की मंडल वसूली के लिए बनाया गया',
+                'Built for Navratri Utsav, Ganesh Utsav and everyday mandal collections',
+                'नवरात्रोत्सव, गणेशोत्सव आणि दैनंदिन मंडळ वर्गणीसाठी तयार',
+                'नवरात्रि उत्सव, गणेशोत्सव और रोज़मर्रा की मंडल वसूली के लिए बनाया गया',
               )}
             </div>
           </Reveal>
@@ -723,7 +728,7 @@ export default function HomePage() {
           <Reveal>
             <div className="flex items-center gap-4 flex-wrap">
               <span className="text-xs font-semibold uppercase tracking-wider text-saffron-900/40 dark:text-saffron-100/40 shrink-0">
-                {t('Events (e.g. Ganesh Utsav) —', 'इवेंट्स (उदा. गणेशोत्सव) —', 'इवेंट्स (जैसे गणेशोत्सव) —')}
+                {t('Events (e.g. Navratri Utsav) —', 'इवेंट्स (उदा. नवरात्रोत्सव) —', 'इवेंट्स (जैसे नवरात्रि उत्सव) —')}
               </span>
               {OCCASIONS.map((o, i) => (
                 <span

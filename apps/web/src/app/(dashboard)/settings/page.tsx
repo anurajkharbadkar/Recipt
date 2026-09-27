@@ -467,7 +467,7 @@ export default function SettingsPage() {
     createdAt: new Date().toISOString(),
     collector: { name: 'अमित जोशी (कार्यकर्ता)' },
     campaign: {
-      name: 'श्री गणेशोत्सव २०२६',
+      name: 'शुभ नवरात्रोत्सव २०२६',
       organization: {
         ...org,
         name: form.name || org?.name,
@@ -812,15 +812,15 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">Organization Name *</label>
-            <input value={form.name || ''} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Shree Ganesh Mandal, Pune" />
+            <input value={form.name || ''} onChange={e => setForm((p: any) => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Shree Navdurga Utsav Mandal, Pune" />
           </div>
           <div>
             <label className="form-label">मराठी नाव</label>
-            <input value={form.nameMarathi || ''} onChange={e => setForm((p: any) => ({ ...p, nameMarathi: e.target.value }))} className="form-input font-devanagari" placeholder="श्री गणेश मंडळ, पुणे" />
+            <input value={form.nameMarathi || ''} onChange={e => setForm((p: any) => ({ ...p, nameMarathi: e.target.value }))} className="form-input font-devanagari" placeholder="श्री नवदुर्गा उत्सव मंडळ, पुणे" />
           </div>
           <div>
             <label className="form-label">हिंदी नाम</label>
-            <input value={form.nameHindi || ''} onChange={e => setForm((p: any) => ({ ...p, nameHindi: e.target.value }))} className="form-input font-devanagari" placeholder="श्री गणेश मंडल, पुणे" />
+            <input value={form.nameHindi || ''} onChange={e => setForm((p: any) => ({ ...p, nameHindi: e.target.value }))} className="form-input font-devanagari" placeholder="श्री नवदुर्गा उत्सव मंडल, पुणे" />
           </div>
           <div>
             <label className="form-label">Registration Number</label>
@@ -1528,7 +1528,7 @@ export default function SettingsPage() {
                               donorName: 'Saurabh Deshpande',
                               amount: 501,
                               receiptNumber: 'SGM-2026-0001',
-                              organizationName: form.name || org?.name || 'श्री गणेश मंडळ',
+                              organizationName: form.name || org?.name || 'श्री नवदुर्गा उत्सव मंडळ',
                               receiptUrl: 'https://pavtibook.com/receipt/sample-id',
                               date: new Date().toLocaleDateString('en-IN'),
                               category: 'GENERAL',
@@ -1552,26 +1552,166 @@ export default function SettingsPage() {
       </div>
       )}
 
-      {/* 5. Interactive Devotional Pavti — separate tab, own card.
-          Deliberately not folded into Receipt Design: this is an optional
-          web-view experience, not part of the official pavti (that's the
-          PDF/print/WhatsApp text handled in the Design tab). Keeping it
-          apart is what makes the "which pavti actually gets generated"
-          question answerable at a glance. */}
+      {/* 5. Interactive Devotional Pavti Settings Tab */}
       {activeTab === 'interactive' && (
-      <div className="glass-card p-6 sm:p-8">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
-            <Sparkles size={18} />
+      <div className="glass-card p-6 sm:p-8 space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-theme">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-saffron-500/10 flex items-center justify-center text-saffron-500">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-theme-fg">इंटेरॅक्टिव्ह दर्शन व पावती (Interactive Devotional Pavti)</h3>
+              <p className="text-xs text-theme-fg/50">4-स्लाईड पडदा उघडणारा उत्सव अनुभव व डिजिटल पावती (4-Slide Velvet Curtain Reveal &amp; Blessing Card)</p>
+            </div>
           </div>
-          <h3 className="text-base font-semibold text-theme-fg">{sl.tabInteractive} (Placeholder)</h3>
+          <button
+            type="button"
+            onClick={() => setPreviewTemplateId('GANESHA_ROYAL_MAROON')}
+            className="px-4 py-2 bg-gradient-to-r from-saffron-500 to-amber-500 hover:from-saffron-600 hover:to-amber-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md transition-all hover:scale-105 shrink-0"
+          >
+            <Eye size={14} />
+            <span>लाईव्ह प्रीव्ह्यू पहा (Preview)</span>
+          </button>
         </div>
-        <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/15 text-center space-y-2">
-          <Sparkles size={28} className="mx-auto text-amber-400 opacity-60" />
-          <h4 className="text-sm font-bold text-theme-fg">Interactive Pavti View Disabled</h4>
-          <p className="text-xs text-theme-fg/60 max-w-md mx-auto leading-relaxed">
-            The multi-slide interactive view has been removed. All donor receipts are generated and verified using the official standard digital receipt format.
-          </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Column 1: Feature Enable & Darshan Photo */}
+          <div className="space-y-4">
+            {/* Enable Toggle */}
+            <div className="p-4 rounded-xl bg-theme-fg/[0.02] border border-theme-fg/10 flex items-center justify-between gap-3">
+              <div>
+                <label className="text-xs font-bold text-theme-fg block">
+                  इंटेरॅक्टिव्ह पावती सुरू ठेवा (Enable Interactive View)
+                </label>
+                <p className="text-[11px] text-theme-fg/50 mt-0.5">
+                  देणगीदारांना व्हॉट्सॲपवर पडदा उघडणारी व दर्शनाची खास पावती दिसेल.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={form.receiptTemplateSettings?.interactivePavtiEnabled ?? true}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setForm((p: any) => ({
+                    ...p,
+                    receiptTemplateSettings: { ...p.receiptTemplateSettings, interactivePavtiEnabled: val },
+                  }));
+                }}
+                className="w-5 h-5 accent-saffron-500 cursor-pointer"
+              />
+            </div>
+
+            {/* Darshan Photo Upload */}
+            <div className="space-y-2">
+              <label className="form-label text-xs font-bold text-theme-fg flex items-center justify-between">
+                <span>श्री दर्शन फोटो (Sacred Idol / Darshan Photo)</span>
+                <span className="text-[10px] text-theme-fg/50 font-normal">स्लाईड २ वर दिसेल</span>
+              </label>
+              <div className="flex items-center gap-3">
+                {form.receiptTemplateSettings?.customDarshanUrl ? (
+                  <div className="relative w-20 h-24 rounded-xl overflow-hidden border border-saffron-500/40 shadow-sm shrink-0 bg-black">
+                    <img src={form.receiptTemplateSettings.customDarshanUrl} alt="Darshan" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForm((p: any) => ({
+                          ...p,
+                          receiptTemplateSettings: { ...p.receiptTemplateSettings, customDarshanUrl: '' },
+                        }));
+                      }}
+                      className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-black rounded-full text-white/80"
+                      title="Remove Photo"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-24 rounded-xl border-2 border-dashed border-theme-fg/20 flex flex-col items-center justify-center text-theme-fg/40 text-center p-2 shrink-0 bg-theme-fg/[0.02]">
+                    <ImageIcon size={20} className="mb-1" />
+                    <span className="text-[9px]">फोटो नाही</span>
+                  </div>
+                )}
+
+                <div className="flex-1 space-y-2">
+                  <label className="btn-secondary text-xs px-3.5 py-2 cursor-pointer inline-flex items-center gap-1.5 w-auto">
+                    {uploadingIdol ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <span>{uploadingIdol ? 'अपलोड होत आहे...' : 'दर्शन फोटो अपलोड करा'}</span>
+                    <input type="file" accept="image/*" onChange={handleIdolImageChange} className="hidden" />
+                  </label>
+                  <p className="text-[11px] text-theme-fg/50">
+                    आपल्या मंडळाच्या मूर्तीचा किंवा देवीचा फोटो अपलोड करा. नसेल तर सुंदर डीफॉल्ट दर्शन दिसेल.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 2: Blessing Message Editor */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="form-label text-xs font-bold text-theme-fg">
+                  शुभ आशीर्वाद संदेश (Blessing Message)
+                </label>
+                <span className="text-[10px] text-theme-fg/50">स्लाईड ४ वर दिसेल</span>
+              </div>
+
+              {/* Presets */}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {[
+                  'देवी मातेचा कृपाप्रसाद आपल्यावर व आपल्या कुटुंबावर सदैव राहो. सुख, समृद्धी, शांती आणि उत्तम आरोग्य लाभो हीच प्रार्थना!',
+                  'गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो हीच प्रार्थना!',
+                  'आपल्या अमूल्य देणगीबद्दल मनःपूर्वक धन्यवाद! माता राणीचा आशीर्वाद आपल्या पाठीशी सदैव राहो!',
+                ].map((presetText, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setForm((p: any) => ({
+                        ...p,
+                        receiptTemplateSettings: { ...p.receiptTemplateSettings, blessingMessage: presetText },
+                      }));
+                    }}
+                    className="text-[11px] px-2.5 py-1.5 rounded-lg bg-theme-fg/5 hover:bg-theme-fg/10 border border-theme-fg/10 text-theme-fg/80 transition-colors"
+                  >
+                    पर्याय {idx + 1}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows={4}
+                value={form.receiptTemplateSettings?.blessingMessage || 'देवी मातेचा कृपाप्रसाद आपल्यावर व आपल्या कुटुंबावर सदैव राहो. सुख, समृद्धी, शांती आणि उत्तम आरोग्य लाभो हीच प्रार्थना!'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm((p: any) => ({
+                    ...p,
+                    receiptTemplateSettings: { ...p.receiptTemplateSettings, blessingMessage: val },
+                  }));
+                }}
+                className="form-input font-devanagari text-xs leading-relaxed w-full resize-y"
+                placeholder="आपला खास आशीर्वाद संदेश इथे लिहा..."
+              />
+            </div>
+
+            {/* Quick Preview Callout */}
+            <div className="p-3.5 rounded-xl bg-saffron-500/10 border border-saffron-500/20 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-saffron-500 shrink-0" />
+                <p className="text-xs text-theme-fg font-medium">
+                  बदलांची अनुभव पाहणी करण्यासाठी प्रीव्ह्यू बटन दाबा.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewTemplateId('GANESHA_ROYAL_MAROON')}
+                className="text-xs font-bold text-saffron-500 hover:underline shrink-0"
+              >
+                प्रीव्ह्यू करा →
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       )}
@@ -1735,7 +1875,7 @@ export default function SettingsPage() {
                         donorName: 'Saurabh Deshpande',
                         amount: 501,
                         receiptNumber: 'SGM-2026-0001',
-                        organizationName: form.name || org?.name || 'श्री गणेश मंडळ',
+                        organizationName: form.name || org?.name || 'श्री नवदुर्गा उत्सव मंडळ',
                         receiptUrl: 'https://pavtibook.com/receipt/sample-id',
                         date: new Date().toLocaleDateString('en-IN'),
                         category: 'GENERAL',

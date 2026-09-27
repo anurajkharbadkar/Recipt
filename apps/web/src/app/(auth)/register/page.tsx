@@ -43,7 +43,7 @@ const labels = {
     mandalCodeDesc: 'आपके जोड़े गए हर संग्रहकर्ता या कोषाध्यक्ष को लॉगिन के लिए यह कोड, अपने फोन नंबर और पासवर्ड के साथ चाहिए। इसे उनके साथ साझा करें और सुरक्षित रखें (यह हमेशा सेटिंग्स में भी मिलेगा)।',
     payAndActivate: (amt: string) => `${amt} भुगतान करें व सक्रिय करें`,
     continueToDashboard: 'डैशबोर्ड पर जाएं',
-    orgDetails: 'संस्था विवरण', orgName: 'संस्था का नाम *', orgNamePlaceholder: 'श्री गणेश मंडल',
+    orgDetails: 'संस्था विवरण', orgName: 'संस्था का नाम *', orgNamePlaceholder: 'श्री नवदुर्गा उत्सव मंडल',
     city: 'शहर *', cityPlaceholder: 'पुणे', address: 'पता *', addressPlaceholder: '123, एमजी रोड', state: 'राज्य',
     adminAccount: 'आपका एडमिन खाता', yourName: 'आपका नाम *', yourNamePlaceholder: 'राजेश कुमार',
     mobileNumber: 'मोबाइल नंबर *', email: 'ईमेल (वैकल्पिक)', password: 'पासवर्ड *', passwordPlaceholder: 'कम से कम 8 अक्षर',
@@ -63,7 +63,7 @@ const labels = {
     mandalCodeDesc: 'तुम्ही जोडलेल्या प्रत्येक संग्राहक किंवा कोषाध्यक्षाला लॉगिन करण्यासाठी हा कोड, त्यांचा स्वतःचा फोन नंबर व पासवर्ड लागेल. तो त्यांच्यासोबत शेअर करा व सुरक्षित ठेवा (तो नेहमी सेटिंग्जमध्येही मिळेल).',
     payAndActivate: (amt: string) => `${amt} भरा व सक्रिय करा`,
     continueToDashboard: 'डॅशबोर्डवर जा',
-    orgDetails: 'संस्थेचा तपशील', orgName: 'संस्थेचे नाव *', orgNamePlaceholder: 'श्री गणेश मंडळ',
+    orgDetails: 'संस्थेचा तपशील', orgName: 'संस्थेचे नाव *', orgNamePlaceholder: 'श्री नवदुर्गा उत्सव मंडळ',
     city: 'शहर *', cityPlaceholder: 'पुणे', address: 'पत्ता *', addressPlaceholder: '123, एमजी रोड', state: 'राज्य',
     adminAccount: 'तुमचे अ‍ॅडमिन खाते', yourName: 'तुमचे नाव *', yourNamePlaceholder: 'राजेश कुमार',
     mobileNumber: 'मोबाइल नंबर *', email: 'ईमेल (पर्यायी)', password: 'पासवर्ड *', passwordPlaceholder: 'किमान 8 अक्षरे',
@@ -246,7 +246,7 @@ function RegisterForm() {
               </div>
               <div>
                 <label className="form-label">मराठी नाव</label>
-                <input value={form.organizationNameMarathi} onChange={e => set({ organizationNameMarathi: e.target.value })} className="form-input font-devanagari" placeholder="श्री गणेश मंडळ" />
+                <input value={form.organizationNameMarathi} onChange={e => set({ organizationNameMarathi: e.target.value })} className="form-input font-devanagari" placeholder="श्री नवदुर्गा उत्सव मंडळ" />
               </div>
               <div>
                 <label className="form-label">{l.city}</label>

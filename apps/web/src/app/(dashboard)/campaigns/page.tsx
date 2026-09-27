@@ -93,11 +93,11 @@ export default function CampaignsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">{l.name} *</label>
-              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Ganesh Utsav 2027" />
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Navratri Utsav 2027" />
             </div>
             <div>
               <label className="form-label">{l.marathiName}</label>
-              <input value={form.nameMarathi} onChange={e => setForm(p => ({ ...p, nameMarathi: e.target.value }))} className="form-input font-devanagari" placeholder="गणेश उत्सव 2027" />
+              <input value={form.nameMarathi} onChange={e => setForm(p => ({ ...p, nameMarathi: e.target.value }))} className="form-input font-devanagari" placeholder="शुभ नवरात्रोत्सव 2027" />
             </div>
             <div>
               <label className="form-label">{l.year} *</label>

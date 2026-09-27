@@ -14,8 +14,8 @@ export default function NoActiveCampaignBanner() {
   const currentYear = new Date().getFullYear();
 
   const [form, setForm] = useState({
-    name: `Ganesh Utsav ${currentYear}`,
-    nameMarathi: `श्री गणेशोत्सव ${currentYear}`,
+    name: `Navratri Utsav ${currentYear}`,
+    nameMarathi: `शुभ नवरात्रोत्सव ${currentYear}`,
     year: currentYear,
     startDate: new Date().toISOString().split('T')[0],
     targetAmount: '',
@@ -156,7 +156,7 @@ export default function NoActiveCampaignBanner() {
                   value={form.nameMarathi}
                   onChange={(e) => setForm((p) => ({ ...p, nameMarathi: e.target.value }))}
                   className="form-input text-sm font-devanagari"
-                  placeholder="श्री गणेशोत्सव 2026"
+                  placeholder="शुभ नवरात्रोत्सव 2026"
                 />
               </div>
 
