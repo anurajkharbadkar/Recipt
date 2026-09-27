@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2, ArrowLeft } from 'lucide-react';
+import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DailyBannerModalProps {
@@ -140,77 +140,69 @@ export default function DailyBannerModal({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-theme-fg/70 hover:text-theme-fg hover:bg-theme-fg/10 transition-colors flex items-center gap-1 text-xs font-semibold"
-              aria-label="Back / Close"
-              title="Back"
+              className="p-1.5 rounded-full text-theme-fg/70 hover:text-theme-fg hover:bg-theme-fg/10 transition-colors flex items-center justify-center shrink-0"
+              aria-label="Close modal"
+              title="Close"
             >
-              <ArrowLeft size={16} />
-              <span className="hidden sm:inline">Back</span>
+              <X size={20} />
             </button>
-            <Sparkles className="text-saffron-500" size={18} />
-            <h2 className="text-xs sm:text-sm font-bold text-theme-fg">Daily Festival Banner (शेअर करण्यायोग्य इमेज)</h2>
+            <Sparkles className="text-saffron-500 shrink-0" size={18} />
+            <h2 className="text-xs sm:text-sm font-bold text-theme-fg line-clamp-1">Daily Festival Banner (शेअर करण्यायोग्य इमेज)</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/10 transition-colors flex items-center gap-1"
-            aria-label="Close modal"
-            title="Close (X)"
-          >
-            <X size={20} />
-          </button>
         </div>
 
-        {/* Banner Canvas Container (9:16 Aspect Ratio) */}
+        {/* Banner Canvas Container (Light Theme 9:16 Poster) */}
         <div className="flex justify-center mb-5 overflow-hidden">
           <div
             ref={bannerRef}
-            className="w-[330px] sm:w-[360px] rounded-2xl p-5 text-white shadow-2xl relative overflow-hidden"
+            className="w-[330px] sm:w-[360px] rounded-2xl p-5 shadow-2xl relative overflow-hidden border-2"
             style={{
-              background: 'linear-gradient(135deg, #180800 0%, #2b0c02 40%, #0d0300 100%)',
-              border: '2px solid rgba(234, 179, 8, 0.4)',
+              background: 'linear-gradient(135deg, #fffdf7 0%, #fff7ed 45%, #fef3c7 100%)',
+              borderColor: '#d97706',
+              color: '#451a03',
             }}
           >
             {/* Background Glow Overlay */}
             <div
-              className="absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-30 pointer-events-none"
+              className="absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none"
               style={{ backgroundColor: activeColorHex }}
             />
 
             {/* Top Mandal Header */}
-            <div className="text-center relative z-10 pb-3 border-b border-amber-500/20">
+            <div className="text-center relative z-10 pb-3 border-b border-amber-600/20">
               {mandalLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={mandalLogo} alt={mandalName} className="w-12 h-12 rounded-full mx-auto mb-2 border border-amber-400/50 object-cover shadow-md" />
+                <img src={mandalLogo} alt={mandalName} className="w-12 h-12 rounded-full mx-auto mb-2 border-2 border-amber-500 object-cover shadow-sm bg-white" />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400/40 mx-auto mb-2 flex items-center justify-center font-bold text-amber-400 text-lg">
+                <div className="w-12 h-12 rounded-full bg-amber-500/15 border-2 border-amber-500/40 mx-auto mb-2 flex items-center justify-center font-bold text-amber-700 text-lg shadow-xs">
                   🚩
                 </div>
               )}
-              <h3 className="text-sm sm:text-base font-extrabold text-amber-300 tracking-wide uppercase line-clamp-1">{mandalName}</h3>
-              {mandalCode && <p className="text-[10px] text-amber-200/70 font-semibold tracking-wider">MANDAL CODE: {mandalCode}</p>}
+              <h3 className="text-sm sm:text-base font-extrabold text-amber-950 tracking-wide uppercase line-clamp-1">{mandalName}</h3>
+              {mandalCode && <p className="text-[10px] text-amber-800 font-bold tracking-wider mt-0.5">MANDAL CODE: {mandalCode}</p>}
             </div>
 
             {/* Day Title Badge */}
             <div className="text-center my-3 relative z-10">
-              <span className="inline-block text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest text-amber-950 bg-amber-400 shadow-lg">
+              <span className="inline-block text-[11px] font-extrabold px-3.5 py-1 rounded-full uppercase tracking-widest text-white bg-gradient-to-r from-amber-600 to-amber-700 shadow-md">
                 {titleText}
               </span>
 
               {/* Dress Code & Avatar */}
-              <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 items-center">
+              <div className="mt-2.5 p-2.5 rounded-xl bg-white/80 border border-amber-500/25 shadow-xs flex flex-col gap-1 items-center">
                 {dressCodeText && (
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <Shirt size={13} className="text-amber-400" />
+                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-950">
+                    <Shirt size={14} className="text-amber-600" />
                     <span>पोशाख / Color:</span>
-                    <span className="flex items-center gap-1 font-bold text-amber-300">
-                      <span className="w-3 h-3 rounded-full border border-white/40 shadow-xs" style={{ backgroundColor: activeColorHex }} />
+                    <span className="flex items-center gap-1.5 font-bold text-amber-900">
+                      <span className="w-3.5 h-3.5 rounded-full border border-amber-900/30 shadow-xs" style={{ backgroundColor: activeColorHex }} />
                       {dressCodeText}
                     </span>
                   </div>
                 )}
                 {deityAvatarText && (
-                  <div className="text-[11px] text-amber-200/90 font-medium">
-                    ✨ <strong className="text-amber-300">अलंकार / Avatar:</strong> {deityAvatarText}
+                  <div className="text-[11px] text-amber-900 font-medium">
+                    ✨ <strong className="text-amber-950 font-bold">अलंकार / Avatar:</strong> {deityAvatarText}
                   </div>
                 )}
               </div>
@@ -218,32 +210,32 @@ export default function DailyBannerModal({
 
             {/* Events Timeline List */}
             <div className="space-y-2 my-3 relative z-10">
-              <p className="text-[11px] font-bold tracking-wider text-amber-400/80 uppercase border-b border-amber-500/20 pb-1 flex items-center gap-1.5">
-                <Clock size={12} /> दैनिक वेळापत्रक (Schedule)
+              <p className="text-[11px] font-bold tracking-wider text-amber-900 uppercase border-b border-amber-600/20 pb-1 flex items-center gap-1.5">
+                <Clock size={12} className="text-amber-600" /> दैनिक वेळापत्रक (Schedule)
               </p>
               {day.events && day.events.length > 0 ? (
                 day.events.slice(0, 5).map((evt, idx) => (
-                  <div key={idx} className="flex items-start justify-between gap-2 text-xs bg-black/40 p-2 rounded-lg border border-amber-500/15">
-                    <span className="font-semibold text-amber-300 shrink-0 text-[11px] min-w-[65px]">{evt.time || evt.startTime || ''}</span>
+                  <div key={idx} className="flex items-start justify-between gap-2 text-xs bg-white/90 p-2 rounded-lg border border-amber-500/20 shadow-xs">
+                    <span className="font-bold text-amber-800 shrink-0 text-[11px] min-w-[65px] bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">{evt.time || evt.startTime || ''}</span>
                     <div className="flex-1 text-right">
-                      <p className="font-bold text-white text-[11px]">{resolveText(evt.title)}</p>
-                      {evt.description && <p className="text-[10px] text-amber-200/60 line-clamp-1">{resolveText(evt.description)}</p>}
+                      <p className="font-bold text-amber-950 text-[11px]">{resolveText(evt.title)}</p>
+                      {evt.description && <p className="text-[10px] text-amber-800/80 line-clamp-1">{resolveText(evt.description)}</p>}
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-amber-200/50 text-center italic py-2">Kakad Aarti & Daily Darshan</p>
+                <p className="text-xs text-amber-800/60 text-center italic py-2">Kakad Aarti & Daily Darshan</p>
               )}
             </div>
 
             {/* Bottom QR Code & Website URL */}
-            <div className="pt-2.5 border-t border-amber-500/20 flex items-center justify-between gap-3 relative z-10">
+            <div className="pt-2.5 border-t border-amber-600/20 flex items-center justify-between gap-3 relative z-10">
               <div className="flex-1">
-                <p className="text-[10px] text-amber-200/70 font-semibold">स्कॅन करा किंवा भेट द्या:</p>
-                <p className="text-[9px] text-amber-400 font-mono truncate">{mandalUrl.replace(/^https?:\/\//, '')}</p>
-                <p className="text-[8px] text-amber-200/40 mt-0.5">Powered by E-PavtiBook</p>
+                <p className="text-[10px] text-amber-900 font-bold">स्कॅन करा किंवा भेट द्या:</p>
+                <p className="text-[9.5px] text-amber-700 font-mono font-bold truncate">{mandalUrl.replace(/^https?:\/\//, '')}</p>
+                <p className="text-[8.5px] text-amber-800/60 mt-0.5 font-medium">Powered by E-PavtiBook</p>
               </div>
-              <div className="bg-white p-1 rounded-lg shrink-0 shadow-md">
+              <div className="bg-white p-1 rounded-lg shrink-0 shadow-md border border-amber-300">
                 <QRCodeSVG value={mandalUrl} size={44} level="M" />
               </div>
             </div>
@@ -282,4 +274,5 @@ export default function DailyBannerModal({
     </div>
   );
 }
+
 
