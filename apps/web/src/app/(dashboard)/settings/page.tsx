@@ -1564,135 +1564,14 @@ export default function SettingsPage() {
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
             <Sparkles size={18} />
           </div>
-          <h3 className="text-base font-semibold text-theme-fg">{sl.tabInteractive}</h3>
+          <h3 className="text-base font-semibold text-theme-fg">{sl.tabInteractive} (Placeholder)</h3>
         </div>
-        <div className="mb-6 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/15 flex items-start gap-2.5">
-          <Sparkles size={15} className="text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-theme-fg/70 leading-relaxed">{sl.interactiveNote}</p>
-        </div>
-
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span className="text-xs uppercase tracking-wider font-semibold text-theme-fg/70">
-              Choose a Template
-            </span>
-            <button
-              type="button"
-              onClick={() => setPreviewTemplateId(form.receiptTemplateSettings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON')}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-amber-900/20 transition-all shrink-0 min-h-[38px] w-full sm:w-auto"
-            >
-              <Eye size={14} />
-              <span>सध्याची निवड पहा (Preview Current)</span>
-            </button>
-          </div>
-
-          {/* Template Chooser — wallpaper-style gallery: tap a card to see its
-              full-screen preview, then apply it from there (see the preview
-              modal below, which is where the actual selection happens). */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] uppercase font-semibold tracking-wider text-theme-fg/50">
-              निवडा पावती टेम्पलेट (Choose Interactive Template):
-            </span>
-            <WallpaperGallery>
-              {INTERACTIVE_PAVTI_TEMPLATES.map((tmpl) => (
-                <InteractiveTemplateCard
-                  key={tmpl.id}
-                  template={tmpl}
-                  selected={(form.receiptTemplateSettings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON') === tmpl.id}
-                  onPreview={() => setPreviewTemplateId(tmpl.id)}
-                />
-              ))}
-            </WallpaperGallery>
-            <CustomDesignNote />
-          </div>
-
-          {/* Custom Blessing Message */}
-          <div className="space-y-1.5 pt-2">
-            <label className="form-label text-[11px] font-semibold text-theme-fg/80">
-              आशीर्वाद व शुभेच्छा संदेश (Divine Blessing Message on Slide 4):
-            </label>
-            <input
-              value={
-                form.receiptTemplateSettings?.blessingMessage ??
-                'गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत आणि आपल्या घरात सुख, समृद्धी आणि आरोग्य लाभो!'
-              }
-              onChange={(e) => {
-                setForm((p: any) => ({
-                  ...p,
-                  receiptTemplateSettings: {
-                    ...p.receiptTemplateSettings,
-                    blessingMessage: e.target.value,
-                  },
-                }));
-              }}
-              className="form-input font-devanagari text-xs"
-              placeholder="गणपती बाप्पा आपल्या सर्व मनोकामना पूर्ण करोत!"
-            />
-          </div>
-
-          {/* Custom Idol / Darshan Photo — upload directly, or paste a URL */}
-          <div className="space-y-2">
-            <label className="form-label text-[11px] font-semibold text-theme-fg/80">
-              मंडळ मूर्ती / दर्शन फोटो (Custom Idol / Darshan Photo — Optional):
-            </label>
-            <div className="flex items-center gap-3 p-3 rounded-xl border border-theme-fg/10 bg-theme-fg/[0.02]">
-              {form.receiptTemplateSettings?.customDarshanUrl ? (
-                <img
-                  src={form.receiptTemplateSettings.customDarshanUrl}
-                  alt=""
-                  className="w-14 h-14 rounded-lg object-cover border border-theme-fg/10 shrink-0"
-                />
-              ) : (
-                <div className="w-14 h-14 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
-                  <Sparkles size={20} />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <input
-                  type="file"
-                  id="idol-upload"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleIdolImageChange}
-                />
-                <label
-                  htmlFor="idol-upload"
-                  className="btn-secondary py-2 px-3.5 rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  {uploadingIdol ? 'Uploading...' : 'Upload Photo'}
-                </label>
-                {form.receiptTemplateSettings?.customDarshanUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setForm((p: any) => ({ ...p, receiptTemplateSettings: { ...p.receiptTemplateSettings, customDarshanUrl: '' } }))}
-                    className="ml-2 text-[11px] text-red-400 hover:underline font-medium"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            </div>
-            <details className="text-[11px]">
-              <summary className="cursor-pointer text-theme-fg/50 hover:text-theme-fg/70 select-none">Or paste an image URL instead</summary>
-              <input
-                value={form.receiptTemplateSettings?.customDarshanUrl ?? ''}
-                onChange={(e) => {
-                  setForm((p: any) => ({
-                    ...p,
-                    receiptTemplateSettings: {
-                      ...p.receiptTemplateSettings,
-                      customDarshanUrl: e.target.value,
-                    },
-                  }));
-                }}
-                className="form-input text-xs mt-1.5"
-                placeholder="https://..."
-              />
-            </details>
-            <p className="text-[10px] text-theme-fg/40">
-              रिकामे ठेवल्यास मूळ आकर्षक श्री गणेश मूर्ती दर्शन दिसेल. आपण आपल्या मंडळाच्या बाप्पाचा फोटोही अपलोड करू शकता.
-            </p>
-          </div>
+        <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/15 text-center space-y-2">
+          <Sparkles size={28} className="mx-auto text-amber-400 opacity-60" />
+          <h4 className="text-sm font-bold text-theme-fg">Interactive Pavti View Disabled</h4>
+          <p className="text-xs text-theme-fg/60 max-w-md mx-auto leading-relaxed">
+            The multi-slide interactive view has been removed. All donor receipts are generated and verified using the official standard digital receipt format.
+          </p>
         </div>
       </div>
       )}

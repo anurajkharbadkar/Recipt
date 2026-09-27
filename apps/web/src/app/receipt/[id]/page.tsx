@@ -24,7 +24,7 @@ export default function PublicReceiptPage({ params }: { params: { id: string } }
   const initialLang = (requestedLang === 'en' || requestedLang === 'hi' || requestedLang === 'mr') ? requestedLang : 'mr';
   const [language, setLanguage] = useState<'en' | 'hi' | 'mr'>(initialLang);
   const [viewMode, setViewMode] = useState<'interactive' | 'standard'>(
-    requestedView === 'standard' ? 'standard' : 'interactive'
+    requestedView === 'interactive' ? 'interactive' : 'standard'
   );
 
   const { data: receipt, isLoading, isError } = useQuery({
