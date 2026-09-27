@@ -58,17 +58,19 @@ export default function AboutMandal() {
   const { identity, history: mandalHistory } = mandal;
   const { t, getLocalized, language } = useLanguage();
   const [ref, isVisible] = useInView();
+  const [aboutImgError, setAboutImgError] = useState(false);
+  const [milestoneImgErrors, setMilestoneImgErrors] = useState({});
 
   if (mandalHistory?.enabled === false || mandalHistory?.showHistory === false) {
     return null;
   }
 
-  const mandalName = getLocalized(identity.name);
-  const tagline = getLocalized(identity.tagline);
+  const mandalName = getLocalized(identity?.name);
+  const tagline = getLocalized(identity?.tagline);
   
   // Safe extraction supporting both top-level and history-level models
-  const establishedYear = mandal.establishedYear || identity.established || mandalHistory?.establishmentYear;
-  const historyText = getLocalized(mandalHistory?.description) || getLocalized(identity.description);
+  const establishedYear = mandal.establishedYear || identity?.established || mandalHistory?.establishmentYear;
+  const historyText = getLocalized(mandalHistory?.description) || getLocalized(identity?.description);
   
   const milestones = (mandal.milestones && mandal.milestones.length > 0)
     ? mandal.milestones
@@ -162,7 +164,7 @@ export default function AboutMandal() {
             </div>
 
             {/* Archival Image if supplied */}
-            {identity.aboutImageUrl && (
+            {identity?.aboutImageUrl && !aboutImgError && (
               <div className="story-image-column">
                 <div className="story-image-frame">
                   <img
@@ -170,6 +172,7 @@ export default function AboutMandal() {
                     src={identity.aboutImageUrl}
                     alt={`${mandalName} legacy`}
                     loading="lazy"
+                    onError={() => setAboutImgError(true)}
                   />
                   {establishedYear && (
                     <div className="story-image-caption">
@@ -233,13 +236,14 @@ export default function AboutMandal() {
                         </p>
                       )}
 
-                      {milestone.image && (
+                      {milestone.image && !milestoneImgErrors[milestone.id || idx] && (
                         <div className="story-milestone-image-wrapper">
                           <img
                             src={milestone.image}
                             alt={`${milestoneTitle} (${milestone.year})`}
                             className="story-milestone-image"
                             loading="lazy"
+                            onError={() => setMilestoneImgErrors(prev => ({ ...prev, [milestone.id || idx]: true }))}
                           />
                         </div>
                       )}

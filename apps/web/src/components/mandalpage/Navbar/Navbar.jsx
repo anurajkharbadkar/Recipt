@@ -97,7 +97,8 @@ export default function Navbar() {
     }
   };
 
-  const mandalName = getLocalized(identity.name);
+  const [logoError, setLogoError] = useState(false);
+  const mandalName = getLocalized(identity?.name);
   const initials = mandalName ? mandalName.slice(0, 2) : 'मं';
 
   const navClass = [
@@ -110,8 +111,8 @@ export default function Navbar() {
       <div className="navbar__inner">
         {/* Brand */}
         <a href="#home" className="navbar__brand" onClick={(e) => handleNavClick(e, '#home')}>
-          {identity.logoUrl ? (
-            <img src={identity.logoUrl} alt="" className="navbar__brand-img" />
+          {identity?.logoUrl && !logoError ? (
+            <img src={identity.logoUrl} alt="" className="navbar__brand-img" onError={() => setLogoError(true)} />
           ) : (
             <span className="navbar__brand-icon" aria-hidden="true">{initials}</span>
           )}

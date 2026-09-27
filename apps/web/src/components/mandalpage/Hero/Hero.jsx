@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMandal } from '@/context/MandalContext';
 import { useLanguage } from '@/hooks/useLanguage';
 import { formatDateRange, getTodaySchedule } from '@/utils/dateUtils';
@@ -6,16 +7,19 @@ import './Hero.css';
 export default function Hero() {
   const { identity, devi, festival, location, schedule, sponsors } = useMandal();
   const { t, getLocalized } = useLanguage();
+  const [logoError, setLogoError] = useState(false);
+  const [heroImgError, setHeroImgError] = useState(false);
+  const [sponsorLogoError, setSponsorLogoError] = useState(false);
 
-  const mandalName = getLocalized(identity.name);
-  const tagline = getLocalized(identity.tagline);
-  const festivalName = getLocalized(festival.name);
-  const dateRange = formatDateRange(festival.startDate, festival.endDate);
+  const mandalName = getLocalized(identity?.name);
+  const tagline = getLocalized(identity?.tagline);
+  const festivalName = getLocalized(festival?.name);
+  const dateRange = formatDateRange(festival?.startDate, festival?.endDate);
 
   // Address and location resolution
-  const address = getLocalized(location.address);
-  const city = getLocalized(location.city);
-  const venue = getLocalized(location.venue);
+  const address = getLocalized(location?.address);
+  const city = getLocalized(location?.city);
+  const venue = getLocalized(location?.venue);
   const locationDisplay = address && city
     ? `${address}, ${city}`
     : (address || venue || '');
@@ -64,13 +68,14 @@ export default function Hero() {
           <div className="hero__content">
             {/* 1. Mandal Logo */}
             <div className="hero__logo-wrapper">
-              {identity.logoUrl ? (
+              {identity?.logoUrl && !logoError ? (
                 <img
                   src={identity.logoUrl}
                   alt={`${mandalName} Logo`}
                   className="hero__logo-img"
                   width="56"
                   height="56"
+                  onError={() => setLogoError(true)}
                 />
               ) : (
                 <div className="hero__logo-emblem" aria-hidden="true">
@@ -146,13 +151,14 @@ export default function Hero() {
               >
                 <span className="hero__sponsor-label">{t('presentingPartner')}</span>
                 <div className="hero__sponsor-body">
-                  {presentingSponsor.logoUrl ? (
+                  {presentingSponsor.logoUrl && !sponsorLogoError ? (
                     <img
                       src={presentingSponsor.logoUrl}
                       alt=""
                       className="hero__sponsor-logo"
                       width="28"
                       height="28"
+                      onError={() => setSponsorLogoError(true)}
                     />
                   ) : (
                     <span className="hero__sponsor-initials" aria-hidden="true">
@@ -168,7 +174,7 @@ export default function Hero() {
           {/* 8. Hero / Devi Visual */}
           <div className="hero__visual">
             <div className="hero__visual-frame">
-              {heroImage ? (
+              {heroImage && !heroImgError ? (
                 <>
                   <img
                     className="hero__visual-image"
@@ -176,6 +182,7 @@ export default function Hero() {
                     alt={`${mandalName} — ${festivalName}`}
                     loading="eager"
                     fetchPriority="high"
+                    onError={() => setHeroImgError(true)}
                   />
                   <div className="hero__visual-overlay" aria-hidden="true" />
                 </>

@@ -136,4 +136,43 @@ export class UpdateMandalPageConfigDto {
   @ValidateNested({ each: true })
   @Type(() => MandalSponsorDto)
   sponsors?: MandalSponsorDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  showHistory?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showCommunityStats?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showSocialInitiatives?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showAchievements?: boolean;
+
+  @IsOptional()
+  @IsString()
+  aboutHistoryText?: string;
+
+  @IsOptional()
+  @IsArray()
+  milestones?: any[];
+
+  @IsOptional()
+  communityStats?: any;
+
+  @IsOptional()
+  @IsArray()
+  socialInitiatives?: any[];
+
+  @IsOptional()
+  @IsArray()
+  achievements?: any[];
+
+  @IsOptional()
+  @IsArray()
+  customSections?: any[];
 }

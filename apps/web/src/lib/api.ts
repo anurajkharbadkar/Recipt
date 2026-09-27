@@ -38,10 +38,26 @@ export function getErrorMessage(err: any, fallback: string): string {
       lower.includes('database') ||
       lower.includes('foreign key') ||
       lower.includes('syntaxerror') ||
-      lower.includes('internal server error');
+      lower.includes('typeerror') ||
+      lower.includes('internal server error') ||
+      lower.includes('should not exist') ||
+      lower.includes('class-validator') ||
+      lower.includes('validation failed') ||
+      lower.includes('dto');
 
     if (!isInternal) {
       return rawMsg;
+    }
+  } else if (Array.isArray(rawMsg)) {
+    const nonTechnical = rawMsg.filter(
+      (m) =>
+        typeof m === 'string' &&
+        !m.toLowerCase().includes('should not exist') &&
+        !m.toLowerCase().includes('class-validator') &&
+        !m.toLowerCase().includes('dto')
+    );
+    if (nonTechnical.length > 0) {
+      return nonTechnical.join('. ');
     }
   }
 

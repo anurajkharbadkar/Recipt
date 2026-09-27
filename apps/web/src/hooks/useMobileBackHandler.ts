@@ -7,12 +7,12 @@ import { Capacitor } from '@capacitor/core';
 /**
  * Universal Mobile Back Navigation Handler:
  * 1. Native Mobile App (Capacitor): Intercepts physical/gesture back button via @capacitor/app.
- * 2. Mobile Web / PWA: Uses synthetic history state trapping to prevent accidental app exit.
- * 3. Routing Order:
+ * 2. Mobile Web / PWA: Uses popstate event handling to prevent accidental app exit and handle modal closing.
+ * 3. Routing Hierarchy:
  *    a) Close open modals, drawers, or dialogs without leaving the current page.
  *    b) Sub-pages (/receipts/new, /receipts/[id], /campaigns/[id]) -> navigate to parent section (/receipts, /campaigns).
  *    c) Top-level dashboard tabs (/receipts, /expenses, /members, /settings, /reports, /mandal-page, /profile, /subscription) -> navigate to /dashboard.
- *    d) Dashboard (/dashboard) -> Minimizes native app safely or prevents browser domain exit.
+ *    d) Dashboard (/dashboard) -> Minimizes native app safely or stays on dashboard.
  */
 export function useMobileBackHandler() {
   const pathname = usePathname();
@@ -23,17 +23,17 @@ export function useMobileBackHandler() {
     currentPathRef.current = pathname;
   }, [pathname]);
 
-  // Helper to check for open modals/dialogs and close them gracefully
+  // Helper to check for open modals/dialogs/drawers and close them gracefully
   const checkAndCloseModal = (): boolean => {
     if (typeof document === 'undefined') return false;
 
-    // Check for open dialogs or modal containers
-    const modalSelector = '[role="dialog"], .modal-open, [data-modal="open"], .fixed.inset-0.z-50';
+    // Check for open dialogs, bottom sheets, or modal containers
+    const modalSelector = '[role="dialog"], .modal-open, [data-modal="open"], .fixed.inset-0.z-50, [aria-modal="true"]';
     const activeModal = document.querySelector(modalSelector);
     if (activeModal) {
       // Look for close button inside modal
       const closeBtn = activeModal.querySelector<HTMLElement>(
-        'button[aria-label*="close" i], button[aria-label*="Close" i], .modal-close, button:has(svg.lucide-x)'
+        'button[aria-label*="close" i], button[aria-label*="Close" i], .modal-close, button:has(svg.lucide-x), [data-dismiss="modal"]'
       );
       if (closeBtn) {
         closeBtn.click();
@@ -82,7 +82,7 @@ export function useMobileBackHandler() {
     if (Capacitor.isNativePlatform()) {
       import('@capacitor/app').then(({ App }) => {
         App.addListener('backButton', (event) => {
-          // Priority A: Close open modal
+          // Priority A: Close open modal first
           if (checkAndCloseModal()) {
             return;
           }
@@ -107,27 +107,19 @@ export function useMobileBackHandler() {
     }
 
     return () => {
-      if (listenerHandle) {
+      if (listenerHandle && typeof listenerHandle.remove === 'function') {
         listenerHandle.remove();
       }
     };
   }, [router]);
 
-  // 2. MOBILE WEB BROWSER & PWA HISTORY TRAP
+  // 2. MOBILE WEB BROWSER & PWA POPSTATE BACK HANDLER
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    const trapKey = `app_trap_${pathname}_${Date.now()}`;
-    try {
-      window.history.pushState({ trap: trapKey }, '', window.location.href);
-    } catch {
-      // Ignore pushState errors
-    }
 
     const handlePopState = () => {
       // Priority A: Close modal if open
       if (checkAndCloseModal()) {
-        window.history.pushState({ trap: trapKey }, '', window.location.href);
         return;
       }
 
@@ -136,10 +128,6 @@ export function useMobileBackHandler() {
 
       if (parentRoute) {
         router.push(parentRoute);
-        window.history.pushState({ trap: trapKey }, '', window.location.href);
-      } else if (currentPath === '/dashboard') {
-        // Keep user on dashboard safely
-        window.history.pushState({ trap: trapKey }, '', window.location.href);
       }
     };
 
@@ -147,5 +135,5 @@ export function useMobileBackHandler() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [pathname, router]);
+  }, [router]);
 }
