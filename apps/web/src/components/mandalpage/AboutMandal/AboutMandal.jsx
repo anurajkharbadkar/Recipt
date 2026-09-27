@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMandal } from '@/context/MandalContext';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useInView } from '@/hooks/useInView';
