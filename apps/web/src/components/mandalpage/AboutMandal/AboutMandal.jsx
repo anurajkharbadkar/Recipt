@@ -87,6 +87,8 @@ export default function AboutMandal() {
     ? mandal.achievements
     : (mandalHistory?.achievements || []);
 
+  const customSections = mandal.customSections || [];
+
   // Format numbers for MR/HI vs EN
   const formatYear = (yr) => {
     if (!yr) return '';
