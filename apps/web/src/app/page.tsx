@@ -8,7 +8,7 @@ import {
   PRICING_PLANS, formatCurrency, formatPlanLimit, MAX_ACTIVE_CAMPAIGNS_BY_PLAN, BRAND_NAME, BRAND_TAGLINE,
 } from '@pavti/shared';
 import { platformWhatsappLink } from '@/lib/platform';
-import { MessageCircle, ArrowRight } from 'lucide-react';
+import { MessageCircle, ArrowRight, Smartphone, Download, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import LogoMark from '@/components/brand/LogoMark';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
@@ -515,6 +515,16 @@ export default function HomePage() {
                 ))}
               </div>
 
+              <a
+                href="/downloads/E-PavtiBook.apk"
+                download
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-saffron-700 dark:text-saffron-300 bg-saffron-500/10 border border-saffron-500/30 hover:bg-saffron-500/20 transition-all px-3 py-1.5 rounded-full shrink-0"
+                title={t('Download Android App APK', 'अँड्रॉइड ॲप डाउनलोड करा', 'एंड्रॉइड ऐप डाउनलोड करें')}
+              >
+                <Download size={13} className="text-saffron-600 dark:text-saffron-400" />
+                <span>{t('App (.apk)', 'ॲप (.apk)', 'ऐप (.apk)')}</span>
+              </a>
+
               <Link
                 href="/login"
                 className="inline-flex items-center text-xs sm:text-sm font-semibold text-saffron-800 dark:text-saffron-200 hover:text-saffron-600 transition-colors px-1 sm:px-2 py-1 whitespace-nowrap shrink-0"
@@ -568,16 +578,17 @@ export default function HomePage() {
 
             <div className="flex gap-3 flex-wrap mb-6">
               <a
-                href="#pricing"
+                href="#download-app"
                 className="btn-shimmer flex items-center gap-2 px-6 py-3 rounded-full bg-saffron-700 hover:bg-saffron-800 text-white font-semibold transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-saffron-700/30"
               >
-                {t('See plans', 'योजना पहा', 'योजनाएं देखें')} <ArrowRight size={15} />
+                <Download size={16} />
+                <span>{t('Download Android App', 'अँड्रॉइड ॲप डाउनलोड करा', 'एंड्रॉइड ऐप डाउनलोड करें')}</span>
               </a>
               <a
-                href="#how"
-                className="flex items-center gap-2 px-6 py-3 rounded-full border border-saffron-800/25 dark:border-saffron-200/25 text-saffron-800 dark:text-saffron-200 font-semibold hover:bg-saffron-800/5 transition-all"
+                href="#pricing"
+                className="flex items-center gap-2 px-5 py-3 rounded-full border border-saffron-800/25 dark:border-saffron-200/25 text-saffron-800 dark:text-saffron-200 font-semibold hover:bg-saffron-800/5 transition-all"
               >
-                {t('How it works', 'कसे काम करते', 'यह कैसे काम करता है')}
+                {t('See plans', 'योजना पहा', 'योजनाएं देखें')} <ArrowRight size={15} />
               </a>
             </div>
 
@@ -723,6 +734,90 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ======================================================= MOBILE APP DOWNLOAD */}
+        <section id="download-app" className="max-w-6xl mx-auto px-5 md:px-8 py-16">
+          <Reveal dir="up">
+            <div className="relative rounded-3xl overflow-hidden border border-saffron-500/30 bg-gradient-to-br from-[#2A1408] via-[#1F0E05] to-[#140803] text-amber-50 p-8 sm:p-12 shadow-2xl">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-saffron-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 items-center">
+                <div className="space-y-6">
+                  <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-saffron-400 border border-saffron-500/40 rounded-full px-4 py-1.5 bg-saffron-500/10">
+                    <Smartphone size={14} className="text-saffron-400 animate-pulse" />
+                    {t('Official Android App · Direct APK', 'अधिकृत अँड्रॉइड ॲप · थेट डाउनलोड', 'आधिकारिक एंड्रॉइड ऐप · सीधा डाउनलोड')}
+                  </span>
+
+                  <h2 className="text-[clamp(1.8rem,3.5vw,2.5rem)] font-bold text-amber-100 leading-tight">
+                    {t(
+                      'Get the E-PavtiBook App directly on your phone',
+                      'तुमच्या मोबाईलवर थेट E-PavtiBook ॲप घ्या',
+                      'अपने मोबाइल पर सीधे E-PavtiBook ऐप पाएं'
+                    )}
+                  </h2>
+
+                  <p className="text-sm text-amber-200/70 leading-relaxed max-w-xl">
+                    {t(
+                      'Download our official Android App (.apk file) to issue pavtis faster, use offline collection features, and manage your mandal accounts directly from your phone.',
+                      'प्ले स्टोअरशिवाय थेट तुमच्या Android मोबाईलवर इन्स्टॉल करा. जलद पावती तयार करण्यासाठी, ऑफलाइन वापरासाठी आणि मोबाईलवरून मंडळ हिशोब व्यवस्थापनासाठी.',
+                      'प्ले स्टोर के बिना सीधे अपने Android मोबाइल पर इंस्टॉल करें। तेज़ पावती बनाने और मोबाइल से मंडल प्रबंधन के लिए.'
+                    )}
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-amber-200/90 font-medium pt-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                      <span>{t('Instant WhatsApp sharing', 'व्हॉट्सॲपवर त्वरित शेअर करा', 'व्हाट्सएप पर तुरंत शेयर करें')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                      <span>{t('Fast camera QR verification', 'कॅमेऱ्याने त्वरित QR पडताळणी', 'कैमरे से तेज़ QR सत्यापन')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                      <span>{t('Stay logged in for all collectors', 'कार्यकर्त्यांसाठी सुलभ वापर', 'कार्यकर्ताओं के लिए आसान उपयोग')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                      <span>{t('100% Free & Safe APK Download', '१००% मोफत व सुरक्षित APK', '100% मुफ्त और सुरक्षित APK')}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <a
+                      href="/downloads/E-PavtiBook.apk"
+                      download
+                      className="btn-shimmer inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-saffron-600 via-amber-500 to-saffron-600 text-slate-950 font-black text-base shadow-xl shadow-saffron-950/60 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <Download size={20} className="shrink-0" />
+                      <span>{t('Download Android App (.apk)', 'अँड्रॉइड ॲप डाउनलोड करा (.apk)', 'एंड्रॉइड ऐप डाउनलोड करें (.apk)')}</span>
+                    </a>
+                    <div className="flex items-center gap-2 text-xs text-amber-200/50">
+                      <ShieldCheck size={18} className="text-emerald-400 shrink-0" />
+                      <span>v1.0.0 · Android 7.0+</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Installation Note */}
+                <div className="flex flex-col items-center justify-center text-center p-6 bg-[#180A04] border border-amber-900/40 rounded-2xl space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-saffron-500/20 border border-saffron-500/40 flex items-center justify-center text-saffron-400 mb-1">
+                    <Smartphone size={32} />
+                  </div>
+                  <h3 className="text-sm font-bold text-amber-200">
+                    {t('Easy Direct Installation', 'सोपी इन्स्टॉलेशन प्रक्रिया', 'आसान डायरेक्ट इंस्टॉलेशन')}
+                  </h3>
+                  <p className="text-xs text-amber-200/60 max-w-xs leading-relaxed font-devanagari">
+                    {t(
+                      '1. Tap Download button\n2. Open downloaded APK file\n3. Tap "Install" when prompted',
+                      '१. डाउनलोड बटणावर क्लिक करा\n२. डाउनलोड केलेली APK फाईल उघडा\n३. "Install" वर क्लिक करा',
+                      '1. डाउनलोड बटन दबाएं\n2. डाउनलोड APK फाइल खोलें\n3. "Install" पर क्लिक करें'
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
         {/* ======================================================= OCCASIONS */}
         <section id="occasions" className="max-w-6xl mx-auto px-5 md:px-8 py-16">
           <Reveal>
@@ -846,6 +941,7 @@ export default function HomePage() {
                   <div className="flex flex-col gap-2 text-xs">
                     <a href="#how" className="transition-colors hover:text-[#F7EFDD]">{t('How it works', 'कसे काम करते', 'यह कैसे काम करता है')}</a>
                     <a href="#pricing" className="transition-colors hover:text-[#F7EFDD]">{t('Pricing', 'किंमत योजना', 'मूल्य योजनाएं')}</a>
+                    <a href="#download-app" className="transition-colors text-amber-300 font-semibold hover:text-[#F7EFDD]">{t('Download App (.apk)', 'ॲप डाउनलोड करा (.apk)', 'ऐप डाउनलोड करें (.apk)')}</a>
                     <a href="#occasions" className="transition-colors hover:text-[#F7EFDD]">{t("Who it's for", 'कोणासाठी', 'किनके लिए')}</a>
                   </div>
                 </div>
