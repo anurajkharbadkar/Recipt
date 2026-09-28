@@ -267,11 +267,11 @@ const PLAN_FEATURES: Record<string, { label: string; highlight?: boolean }[]> = 
     { label: 'Unlimited digital pavtis', highlight: true },
     { label: 'Unlimited collectors', highlight: true },
     { label: 'Run up to 5 festivals at once', highlight: true },
-    { label: 'Your branding on every pavti', highlight: true },
-    { label: 'Dynamic UPI QR for instant collection', highlight: true },
-    { label: 'Shareable payment link for unpaid pavtis', highlight: true },
-    { label: 'Cinematic 4-slide pavti experience', highlight: true },
-    { label: 'Full activity log', highlight: true },
+    { label: 'Dedicated Public Mandal Webpage (/mandal/slug)', highlight: true },
+    { label: 'Sponsor & Benefactor Showcase Banners', highlight: true },
+    { label: '9-Day Navratri & 10-Day Ganeshotsav Bulletins', highlight: true },
+    { label: 'Dynamic UPI QR & Custom Branding', highlight: true },
+    { label: 'Full activity log & premium support', highlight: true },
   ],
 };
 

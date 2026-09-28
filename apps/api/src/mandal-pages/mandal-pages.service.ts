@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMandalPageConfigDto } from './dto/mandal-page.dto';
 
@@ -52,6 +52,10 @@ export class MandalPagesService {
       throw new NotFoundException('Mandal public page not found');
     }
 
+    if (config.organization.subscriptionPlan !== 'PREMIUM') {
+      throw new ForbiddenException('This Mandal public webpage requires an active Premium subscription plan.');
+    }
+
     return config;
   }
 
@@ -60,6 +64,10 @@ export class MandalPagesService {
    */
   async getMyConfig(orgId: string) {
     const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
+
+    if (org.subscriptionPlan !== 'PREMIUM') {
+      throw new ForbiddenException('Public Mandal Webpage is a Premium plan feature. Please upgrade to Premium plan to access this feature.');
+    }
 
     let config = await this.prisma.mandalPageConfig.findUnique({
       where: { orgId },
@@ -98,8 +106,12 @@ export class MandalPagesService {
    * Updates page config, schedules, and sponsors in a single transaction.
    */
   async updateConfig(orgId: string, dto: UpdateMandalPageConfigDto) {
-    let config = await this.prisma.mandalPageConfig.findUnique({ where: { orgId } });
     const org = await this.prisma.organization.findUniqueOrThrow({ where: { id: orgId } });
+    if (org.subscriptionPlan !== 'PREMIUM') {
+      throw new ForbiddenException('Updating Public Mandal Webpage requires an active Premium subscription plan.');
+    }
+
+    let config = await this.prisma.mandalPageConfig.findUnique({ where: { orgId } });
 
     if (!config) {
       config = await this.prisma.mandalPageConfig.create({

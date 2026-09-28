@@ -318,7 +318,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: SubscriptionPlan.PREMIUM,
     name: 'Premium',
-    tagline: 'For mandals who want the highest limits',
+    tagline: 'For mandals who want full features & public website',
     positioningLine: 'Elevate the Experience',
     marathiDescriptor: 'मोठ्या देवस्थान व संस्थांसाठी',
     priceInr: 1999,
@@ -326,19 +326,12 @@ export const PRICING_PLANS: PricingPlan[] = [
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.PREMIUM],
     includesFrom: 'Standard',
-    // Everything gated Standard+ (UPI ID, custom themes) is already true at
-    // Standard — Premium's only *enforced* differences today are higher
-    // collector/campaign caps. Not listing anything beyond that here (no
-    // Dedicated Web Page, no other unbuilt extras) — see MAX_COLLECTORS_BY_PLAN
-    // / MAX_ACTIVE_CAMPAIGNS_BY_PLAN for the actual numbers this reflects.
-    // The Interactive/Devotional Pavti Experience isn't plan-gated at all
-    // (every tier already has it — see InteractivePavtiView/
-    // INTERACTIVE_PAVTI_TEMPLATES) so it's not listed as a checkmark feature
-    // here; PricingCard gives Premium a dedicated visual callout for it
-    // instead, without claiming exclusivity that isn't real.
     features: [
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM], 'Collectors'), category: 'team', key: 'collectors' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.PREMIUM]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
+      { label: 'Dedicated Public Mandal Webpage & Schedule Site (/mandal/slug)', category: 'branding', key: 'publicWebpage' },
+      { label: 'Sponsor & Benefactor Showcase Banners', category: 'branding', key: 'sponsorsShowcase' },
+      { label: '9-Day Navratri & 10-Day Ganeshotsav Daily Bulletins', category: 'branding', key: 'dailyBulletins' },
     ],
   },
 ];

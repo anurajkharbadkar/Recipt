@@ -127,8 +127,13 @@ export default function Sidebar() {
               )}
             >
               <item.icon size={18} />
-              <div>
-                <div className="text-[13px]">{language === 'mr' ? item.labelMr : language === 'hi' ? item.labelHi : item.label}</div>
+              <div className="flex-1 flex items-center justify-between min-w-0">
+                <span className="text-[13px] truncate">{language === 'mr' ? item.labelMr : language === 'hi' ? item.labelHi : item.label}</span>
+                {item.href === '/mandal-page' && (
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 ml-auto shrink-0">
+                    PREMIUM
+                  </span>
+                )}
               </div>
             </Link>
           );

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
@@ -7,7 +8,7 @@ import { mandalPagesApi, orgsApi, getErrorMessage } from '@/lib/api';
 import {
   Globe, Calendar, Sparkles, Save, ExternalLink, Plus, Trash2,
   Shirt, Clock, Award, Building2, CreditCard, MapPin, Eye, Loader2,
-  Upload, ImageIcon, Layers, ArrowUp, ArrowDown, LayoutGrid, Share2
+  Upload, ImageIcon, Layers, ArrowUp, ArrowDown, LayoutGrid, Share2, Crown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -16,12 +17,66 @@ export default function MandalPageBuilderDashboard() {
   const queryClient = useQueryClient();
 
   const isAdmin = user?.role === 'ORG_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isPremium = organization?.subscriptionPlan === 'PREMIUM';
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['mandal-page-config'],
     queryFn: mandalPagesApi.getMyConfig,
-    enabled: isAdmin,
+    enabled: isAdmin && isPremium,
   });
+
+  if (!isPremium) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 px-4 space-y-8 animate-fade-in">
+        <div className="relative rounded-3xl border-2 border-amber-500/50 bg-gradient-to-br from-[#2A170B] via-[#1E1007] to-[#120904] text-amber-50 p-8 sm:p-12 shadow-2xl space-y-6 text-center">
+          <div className="w-20 h-20 rounded-2xl bg-saffron-500/20 border border-saffron-500/40 flex items-center justify-center text-amber-400 mx-auto shadow-lg shadow-saffron-950/60">
+            <Crown size={40} className="animate-pulse" />
+          </div>
+
+          <div className="space-y-2 max-w-xl mx-auto">
+            <span className="inline-block text-[11px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              🌟 Premium Plan Exclusive Feature
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-amber-100 font-devanagari">
+              मंडळ सार्वजनिक संकेतस्थळ (Public Webpage) ही Premium वैशिष्ट्य आहे
+            </h1>
+            <p className="text-xs sm:text-sm text-amber-200/70 leading-relaxed">
+              तुमच्या मंडळासाठी स्वतंत्र सार्वजनिक वेबपेज (`/mandal/your-mandal`) तयार करा. ९/१० दिवसांचे दैनिक वेळापत्रक, पोशाख, स्पॉन्सर बॅनर आणि थेट देणगी माहिती प्रदर्शित करा.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto bg-[#160B04] border border-amber-900/50 p-4 rounded-xl text-xs text-amber-200/90 font-medium">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              <span>स्वतंत्र मंडळाची युनिक लिंक (/mandal/slug)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              <span>९/१० दिवसांचे दैनिक वेळापत्रक व पोशाख</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              <span>स्पॉन्सर व जाहिरातदार बॅनर प्रदर्शन</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              <span>डिजिटल पावती व ऑनलाईन वर्गणी लिंक</span>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <Link
+              href="/subscription"
+              className="inline-flex items-center justify-center gap-2 py-3.5 px-8 rounded-xl bg-gradient-to-r from-saffron-600 via-amber-500 to-saffron-600 text-slate-950 font-black text-sm shadow-xl shadow-amber-950/80 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            >
+              <CreditCard size={18} />
+              <span>Upgrade to Premium Plan (₹1,999/season)</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [formData, setFormData] = useState<any>({
     slug: '',
