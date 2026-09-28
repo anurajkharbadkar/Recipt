@@ -195,8 +195,8 @@ export default function InteractivePavtiView({
 
         .pavti-container {
           width: 100%;
-          height: 100vh;
-          height: 100dvh;
+          height: ${embedded ? '100%' : '100vh'};
+          height: ${embedded ? '100%' : '100dvh'};
           overflow-y: scroll;
           overflow-x: hidden;
           scroll-snap-type: y mandatory;
@@ -208,21 +208,24 @@ export default function InteractivePavtiView({
         .slide {
           position: relative;
           width: 100%;
-          height: 100vh;
-          height: 100dvh;
+          height: ${embedded ? '100%' : '100vh'};
+          height: ${embedded ? '100%' : '100dvh'};
+          min-height: ${embedded ? '100%' : '100dvh'};
           scroll-snap-align: start;
           scroll-snap-stop: always;
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
+          justify-content: safe center;
+          -webkit-overflow-scrolling: touch;
         }
 
         /* Dots Navigation */
         .nav-dots {
           position: fixed;
-          right: 14px;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
           z-index: 200;
@@ -254,8 +257,8 @@ export default function InteractivePavtiView({
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          padding: calc(16vw + 10px) 24px 28px;
+          justify-content: safe center;
+          padding: clamp(36px, 7vh, 64px) 16px 20px;
           overflow: hidden;
           text-align: center;
           z-index: 10;
@@ -322,10 +325,10 @@ export default function InteractivePavtiView({
         }
 
         .logo-wrap {
-          --w: min(65vw, 36vh, 280px);
+          --w: min(60vw, 30vh, 250px);
           position: relative;
           width: var(--w);
-          margin: calc(var(--w) * 0.1) 0;
+          margin: calc(var(--w) * 0.08) 0;
         }
 
         .halo {
@@ -366,8 +369,8 @@ export default function InteractivePavtiView({
 
         .scroll-btn {
           margin-top: clamp(2px, 1vh, 8px);
-          padding: 12px 32px;
-          font-size: 0.95rem;
+          padding: 10px 28px;
+          font-size: 0.9rem;
           font-weight: 700;
           color: #3d0c14;
           background: linear-gradient(135deg, #f6de8d, #d4af37 55%, #a8801d);
@@ -462,15 +465,16 @@ export default function InteractivePavtiView({
           background: rgba(3, 17, 10, 0.88);
           border: 1px solid rgba(212, 175, 55, 0.8);
           box-shadow: 0 0 30px rgba(212, 175, 55, 0.35);
-          padding: 14px 32px;
+          padding: 12px 24px;
           border-radius: 99px;
           color: #fce8a9;
-          font-size: 0.88rem;
+          font-size: 0.82rem;
           font-weight: 700;
-          letter-spacing: 2px;
+          letter-spacing: 1.5px;
           pointer-events: none;
           transition: opacity 0.5s ease;
           animation: pulseHint 2.4s infinite ease-in-out;
+          white-space: nowrap;
         }
 
         @keyframes pulseHint {
@@ -491,12 +495,12 @@ export default function InteractivePavtiView({
             radial-gradient(circle at 50% 38%, rgba(212,175,55,0.20), transparent 56%),
             radial-gradient(circle at 50% 108%, rgba(255,122,24,0.28), transparent 55%),
             linear-gradient(180deg, #2a0710 0%, #3d0c14 55%, #1f0508 100%);
-          padding: 28px 24px;
-          gap: clamp(12px, 2.4vh, 22px);
+          padding: clamp(16px, 3vh, 28px) 16px;
+          gap: clamp(8px, 2vh, 18px);
         }
 
         .darshan {
-          --w: min(74vw, 42vh, 290px);
+          --w: min(68vw, 34vh, 260px);
           width: calc(var(--w) + 12px);
           padding: 6px;
           border-radius: calc(var(--w) / 2 + 6px) calc(var(--w) / 2 + 6px) 18px 18px;
@@ -527,15 +531,15 @@ export default function InteractivePavtiView({
         .jai-line {
           font-family: serif;
           font-weight: 500;
-          font-size: clamp(1.4rem, 6vw, 1.8rem);
+          font-size: clamp(1.25rem, 5.5vw, 1.75rem);
           line-height: 1.3;
           text-align: center;
           color: #fce8a9;
           text-shadow: 0 0 18px rgba(255,170,40,0.45);
         }
         .darshan-sub {
-          margin-top: calc(-1 * clamp(6px, 1.4vh, 14px));
-          font-size: 0.95rem;
+          margin-top: calc(-1 * clamp(4px, 1vh, 10px));
+          font-size: 0.9rem;
           text-align: center;
           color: #ded5c2;
         }
@@ -544,8 +548,8 @@ export default function InteractivePavtiView({
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 6px;
-          font-size: 0.85rem;
+          gap: 4px;
+          font-size: 0.8rem;
           color: rgba(246,242,233,0.7);
         }
 
@@ -554,7 +558,7 @@ export default function InteractivePavtiView({
           background:
             radial-gradient(circle at 50% 0%, rgba(212,175,55,0.16), transparent 55%),
             linear-gradient(180deg, #3d0c14 0%, #230508 100%);
-          padding: 20px 24px;
+          padding: 20px 14px;
         }
 
         .receipt-card {

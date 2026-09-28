@@ -1899,16 +1899,23 @@ export default function SettingsPage() {
       {previewTemplateId && (() => {
         const isApplied = (form.receiptTemplateSettings?.interactiveTemplate || 'GANESHA_ROYAL_MAROON') === previewTemplateId;
         return (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex flex-col">
-          <div className="absolute top-4 left-4 right-4 z-[110] flex items-center justify-between gap-2">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
+          {/* Top Bar for Mobile & Desktop - Non-overlapping */}
+          <div className="h-14 sm:h-16 px-3 sm:px-6 bg-[#06170e]/95 border-b border-amber-500/20 flex items-center justify-between gap-2 shrink-0 z-[110] shadow-lg">
             <button
               type="button"
               onClick={() => setPreviewTemplateId(null)}
-              className="px-4 py-2 bg-black/90 hover:bg-black border border-white/20 text-white/80 text-xs font-bold rounded-full flex items-center gap-1.5 shadow-xl transition-all"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white/90 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shrink-0 active:scale-95"
             >
-              <X size={14} />
-              <span>बंद करा (Close)</span>
+              <X size={15} />
+              <span>बंद करा</span>
             </button>
+
+            <div className="flex items-center gap-1.5 text-amber-300 text-xs font-bold truncate">
+              <Sparkles size={14} className="text-amber-400 shrink-0 hidden xs:inline" />
+              <span className="truncate">इंटेरॅक्टिव्ह प्रीव्ह्यू (Live Preview)</span>
+            </div>
+
             <button
               type="button"
               disabled={isApplied}
@@ -1918,29 +1925,34 @@ export default function SettingsPage() {
                   receiptTemplateSettings: { ...p.receiptTemplateSettings, interactiveTemplate: previewTemplateId },
                 }));
                 setPreviewTemplateId(null);
+                toast.success('इंटेरॅक्टिव्ह टेम्पलेट लागू केले!');
               }}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-60 disabled:pointer-events-none text-black text-xs font-bold rounded-full flex items-center gap-1.5 shadow-xl transition-all"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 disabled:opacity-60 disabled:pointer-events-none text-black text-xs font-bold rounded-full flex items-center gap-1.5 shadow-md transition-all shrink-0 active:scale-95"
             >
-              {isApplied ? <><Check size={14} /> लागू आहे (Applied)</> : 'हे टेम्पलेट लागू करा (Apply)'}
+              {isApplied ? <><Check size={14} /> लागू आहे</> : 'टेम्पलेट लागू करा'}
             </button>
           </div>
-          <InteractivePavtiView
-            receipt={{
-              ...previewReceipt,
-              campaign: {
-                ...previewReceipt.campaign,
-                organization: {
-                  ...previewReceipt.campaign.organization,
-                  receiptTemplateSettings: {
-                    ...previewReceipt.campaign.organization.receiptTemplateSettings,
-                    interactiveTemplate: previewTemplateId,
+
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <InteractivePavtiView
+              receipt={{
+                ...previewReceipt,
+                campaign: {
+                  ...previewReceipt.campaign,
+                  organization: {
+                    ...previewReceipt.campaign.organization,
+                    receiptTemplateSettings: {
+                      ...previewReceipt.campaign.organization.receiptTemplateSettings,
+                      interactiveTemplate: previewTemplateId,
+                    },
                   },
                 },
-              },
-            } as any}
-            language={form.receiptTemplateSettings?.language || 'mr'}
-            onSwitchToStandard={() => setPreviewTemplateId(null)}
-          />
+              } as any}
+              language={form.receiptTemplateSettings?.language || 'mr'}
+              embedded={true}
+              onSwitchToStandard={() => setPreviewTemplateId(null)}
+            />
+          </div>
         </div>
         );
       })()}
@@ -1951,15 +1963,22 @@ export default function SettingsPage() {
       {previewingTheme && (() => {
         const isApplied = (form.receiptTemplateSettings?.theme || 'DEFAULT') === previewingTheme.id;
         return (
-        <div className="fixed inset-0 z-[100] bg-black/85 flex flex-col items-center justify-center p-4 sm:p-8 animate-fade-in overflow-y-auto">
-          <button
-            type="button"
-            onClick={() => setPreviewingTheme(null)}
-            className="absolute top-4 right-4 p-2.5 rounded-full bg-black/60 hover:bg-black text-white/80 transition-colors"
-          >
-            <X size={18} />
-          </button>
-          <div className="w-full max-w-[360px] my-auto">
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-between p-4 sm:p-6 animate-fade-in overflow-y-auto">
+          <div className="w-full max-w-sm flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+            <span className="text-xs font-bold text-white/90 flex items-center gap-1.5">
+              <Palette size={15} className="text-saffron-400" />
+              {previewingTheme.label} Preview
+            </span>
+            <button
+              type="button"
+              onClick={() => setPreviewingTheme(null)}
+              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="w-full max-w-[350px] my-auto py-4">
             <ReceiptPreview
               receipt={{
                 ...previewReceipt,
@@ -1973,8 +1992,9 @@ export default function SettingsPage() {
               }}
             />
           </div>
-          <div className="flex items-center gap-3 mt-6 shrink-0">
-            <button type="button" onClick={() => setPreviewingTheme(null)} className="btn-ghost text-sm px-5 py-2.5 bg-white/5 text-white/70 hover:text-white">
+
+          <div className="flex items-center gap-3 shrink-0 pt-2 pb-2 w-full max-w-sm justify-end">
+            <button type="button" onClick={() => setPreviewingTheme(null)} className="btn-ghost text-xs px-4 py-2 bg-white/10 text-white/80 hover:text-white rounded-xl">
               Cancel
             </button>
             <button
@@ -1986,10 +2006,11 @@ export default function SettingsPage() {
                   receiptTemplateSettings: { ...p.receiptTemplateSettings, theme: previewingTheme.id },
                 }));
                 setPreviewingTheme(null);
+                toast.success(`${previewingTheme.label} theme applied!`);
               }}
-              className="btn-primary text-sm px-6 py-2.5 disabled:opacity-60 disabled:pointer-events-none"
+              className="btn-primary text-xs px-5 py-2 disabled:opacity-60 disabled:pointer-events-none rounded-xl font-bold flex items-center gap-1.5 shadow-md"
             >
-              {isApplied ? <><Check size={15} /> Applied</> : <><Check size={15} /> Apply Theme</>}
+              {isApplied ? <><Check size={14} /> Applied</> : <><Check size={14} /> Apply Theme</>}
             </button>
           </div>
         </div>
