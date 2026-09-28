@@ -41,25 +41,30 @@
 .festival-day-nav {
   margin-bottom: var(--space-xl);
   position: relative;
+  width: 100%;
 }
 
 .festival-day-nav__scroll {
   display: flex;
-  gap: var(--space-sm);
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
   overflow-x: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  padding: 4px 2px var(--space-sm);
+  padding: 8px 4px 16px;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-warm) transparent;
 }
 
 .festival-day-nav__scroll::-webkit-scrollbar {
-  height: 4px;
+  height: 5px;
 }
 
 .festival-day-nav__scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-full);
 }
 
 .festival-day-nav__scroll::-webkit-scrollbar-thumb {
@@ -69,29 +74,31 @@
 
 /* Individual Day Tab */
 .festival-day-nav__tab {
-  flex: 0 0 auto;
-  min-width: 155px;
-  max-width: 220px;
-  min-height: 60px;
+  flex: 0 0 auto !important;
+  min-width: 170px;
+  max-width: 240px;
+  min-height: 64px;
+  margin: 0 !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-  padding: 10px 14px;
+  gap: 5px;
+  padding: 10px 16px;
   background-color: var(--color-warm-paper);
   border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .festival-day-nav__tab:hover {
   background-color: var(--color-white);
   border-color: var(--color-brass);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 .festival-day-nav__tab:focus-visible {
@@ -104,7 +111,7 @@
   background: linear-gradient(135deg, var(--color-sindoor) 0%, var(--color-sindoor-dark) 100%);
   border-color: var(--color-sindoor);
   color: var(--color-white);
-  box-shadow: 0 6px 18px rgba(122, 24, 48, 0.25);
+  box-shadow: 0 6px 20px rgba(122, 24, 48, 0.3);
   transform: translateY(-2px);
 }
 
@@ -112,6 +119,7 @@
   background: linear-gradient(135deg, var(--color-sindoor) 0%, var(--color-sindoor-dark) 100%);
   border-color: var(--color-sindoor);
 }
+
 
 /* Tab Line 1: Top Row */
 .festival-day-nav__tab-top {

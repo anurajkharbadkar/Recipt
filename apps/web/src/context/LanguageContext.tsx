@@ -121,13 +121,27 @@ export function LanguageProvider({ children, initialLanguage }: { children: Reac
   );
 }
 
+const defaultContext = {
+  language: DEFAULT_LANGUAGE,
+  setLanguage: () => {},
+  t: (key: string, fallback = '') => translations[DEFAULT_LANGUAGE]?.[key] || fallback || key,
+  getLocalized: (value: any, fallbackValue = '') => {
+    if (!value) return fallbackValue || '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object') {
+      return value[DEFAULT_LANGUAGE] || value.mr || value.hi || value.en || fallbackValue || '';
+    }
+    return fallbackValue || '';
+  },
+  supportedLanguages: SUPPORTED_LANGUAGES,
+  currentLanguage: SUPPORTED_LANGUAGES[0],
+};
+
 /**
  * Hook to access language context
  */
 export function useLanguage() {
   const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
-  }
-  return context;
+  return context || defaultContext;
 }
+

@@ -366,7 +366,14 @@ export default function MandalPageBuilderDashboard() {
     );
   }
 
-  const publicUrl = `/mandal/${formData.slug || organization?.slug}`;
+  const fallbackSlug = (
+    organization?.name
+      ? organization.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      : 'shree-ganesh-mandal-pune'
+  ) || 'shree-ganesh-mandal-pune';
+
+  const activeSlug = (formData.slug || config?.slug || organization?.slug || fallbackSlug).trim();
+  const publicUrl = `/mandal/${activeSlug}`;
 
   const handleShareWebpageAdmin = async () => {
     const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${publicUrl}` : publicUrl;
@@ -396,6 +403,12 @@ export default function MandalPageBuilderDashboard() {
       } catch {
         toast.error('Failed to copy link.');
       }
+    }
+  };
+
+  const handleViewPublicWebpage = (e: React.MouseEvent) => {
+    if (typeof window !== 'undefined') {
+      window.open(publicUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -470,8 +483,10 @@ export default function MandalPageBuilderDashboard() {
           <a
             href={publicUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            onClick={handleViewPublicWebpage}
             className="btn-secondary text-xs px-3 py-2 min-h-[38px] flex items-center gap-1.5"
+            title="View Public Webpage"
           >
             <Eye size={14} /> View Public Webpage
           </a>

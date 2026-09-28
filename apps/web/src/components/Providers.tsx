@@ -4,6 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
+import { LanguageProvider } from '@/context/LanguageContext';
+import { useMobileBackHandler } from '@/hooks/useMobileBackHandler';
+
+function MobileBackListener() {
+  useMobileBackHandler();
+  return null;
+}
 
 /**
  * Applies the signed-in org's custom brand color as the --primary-brand-color
@@ -43,9 +50,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrandColorSync />
-      {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      <LanguageProvider>
+        <MobileBackListener />
+        <BrandColorSync />
+        {children}
+        <ReactQueryDevtools initialIsOpen={false} />
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
+
+
