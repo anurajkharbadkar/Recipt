@@ -23,7 +23,7 @@ export function useMobileBackHandler() {
     currentPathRef.current = pathname;
   }, [pathname]);
 
-  // Helper to check for open modals/dialogs/drawers and close them gracefully without CSS :has() errors
+  // Helper to check for open modals/dialogs/drawers and close them gracefully
   const checkAndCloseModal = (): boolean => {
     if (typeof document === 'undefined') return false;
 
@@ -34,32 +34,47 @@ export function useMobileBackHandler() {
         '.modal-open',
         '[data-modal="open"]',
         '.fixed.inset-0.z-50',
+        '.fixed.inset-0.z-40',
+        '.fixed.inset-0.bg-black\\/75',
+        '.fixed.inset-0.bg-black\\/80',
+        '.fixed.inset-0.bg-black\\/60',
+        '.lightbox',
+        '.modal',
       ];
 
       let activeModal: HTMLElement | null = null;
       for (const selector of modalSelectors) {
         const found = document.querySelector<HTMLElement>(selector);
         if (found && found.offsetWidth > 0 && found.offsetHeight > 0) {
-          activeModal = found;
-          break;
+          const style = window.getComputedStyle(found);
+          if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+            activeModal = found;
+            break;
+          }
         }
       }
 
       if (activeModal) {
-        // Safely search for close button without using unsupported :has() selector
-        const buttons = Array.from(activeModal.querySelectorAll<HTMLElement>('button, [role="button"], a'));
+        // 1. Look for close buttons inside or associated with the active modal
+        const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, [role="button"], a'));
         const closeBtn = buttons.find((btn) => {
+          if (btn.offsetWidth === 0 || btn.offsetHeight === 0) return false;
           const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
           const title = (btn.getAttribute('title') || '').toLowerCase();
           const isModalCloseClass = btn.classList.contains('modal-close') || btn.classList.contains('close-btn');
           const hasXIcon = Boolean(btn.querySelector('svg.lucide-x, svg.lucide-arrow-left, svg[data-icon="x"]'));
+          const isInside = activeModal!.contains(btn);
+          const isMobileToggle = ariaLabel.includes('toggle menu');
+
           return (
-            ariaLabel.includes('close') ||
-            ariaLabel.includes('back') ||
-            title.includes('close') ||
-            title.includes('back') ||
-            isModalCloseClass ||
-            hasXIcon
+            (isInside || isMobileToggle) &&
+            (ariaLabel.includes('close') ||
+              ariaLabel.includes('back') ||
+              ariaLabel.includes('toggle menu') ||
+              title.includes('close') ||
+              title.includes('back') ||
+              isModalCloseClass ||
+              hasXIcon)
           );
         });
 
@@ -68,7 +83,13 @@ export function useMobileBackHandler() {
           return true;
         }
 
-        // Trigger Escape key event as fallback
+        // 2. If activeModal is a backdrop overlay with click listener, click it!
+        if (activeModal.classList.contains('fixed') && activeModal.classList.contains('inset-0')) {
+          activeModal.click();
+          return true;
+        }
+
+        // 3. Fallback: Trigger Escape key event
         const escEvent = new KeyboardEvent('keydown', {
           key: 'Escape',
           code: 'Escape',
@@ -126,23 +147,33 @@ export function useMobileBackHandler() {
       }
 
       const currentPath = currentPathRef.current || '/dashboard';
-      const parentRoute = getParentRoute(currentPath);
+      const isRootOrDashboard = currentPath === '/dashboard' || currentPath === '/login' || currentPath === '/';
 
-      if (parentRoute) {
+      if (isRootOrDashboard) {
         if (event && typeof event.preventDefault === 'function') {
           event.preventDefault();
         }
-        router.push(parentRoute);
-      } else if (currentPath === '/dashboard' || currentPath === '/login' || currentPath === '/') {
         if (Capacitor.isNativePlatform()) {
           import('@capacitor/app').then(({ App }) => {
             App.minimizeApp();
           });
         }
-      } else if (window.history.length > 1) {
-        window.history.back();
+        return;
+      }
+
+      // Sub-pages or top-level tabs: Use history back or replace to parent route without creating infinite push loops
+      const parentRoute = getParentRoute(currentPath);
+
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+
+      if (window.history.length > 1) {
+        router.back();
+      } else if (parentRoute) {
+        router.replace(parentRoute);
       } else {
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
     };
 
@@ -156,8 +187,8 @@ export function useMobileBackHandler() {
     let capacitorHandle: any = null;
     if (Capacitor.isNativePlatform()) {
       import('@capacitor/app').then(({ App }) => {
-        App.addListener('backButton', (e) => {
-          handleUniversalBack(e);
+        App.addListener('backButton', (data) => {
+          handleUniversalBack(data);
         }).then((h) => {
           capacitorHandle = h;
         });
@@ -173,3 +204,4 @@ export function useMobileBackHandler() {
     };
   }, [router]);
 }
+
