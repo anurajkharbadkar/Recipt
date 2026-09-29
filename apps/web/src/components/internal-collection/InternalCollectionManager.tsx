@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { membersApi, internalCollectionsApi, receiptsApi } from '@/lib/api';
 import { formatCurrency } from '@pavti/shared';
 import { format, differenceInCalendarDays } from 'date-fns';
-import { Users2, CheckCircle2, XCircle, AlertTriangle, Pencil } from 'lucide-react';
+import { Users2, CheckCircle2, XCircle, AlertTriangle, Pencil, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function StatTile({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' | 'neutral' }) {
@@ -99,23 +99,84 @@ function DeclareContributionForm({ campaignId, existingMemberIds, onDone }: { ca
 function RosterRow({ member, campaignId }: { member: any; campaignId: string }) {
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState(String(member.amount));
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
   const queryClient = useQueryClient();
-
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['internal-collection-roster', campaignId] });
 
   const amountMutation = useMutation({
     mutationFn: () => receiptsApi.update(member.receiptId, { amount: Number(amount) }),
-    onSuccess: () => { invalidate(); setEditing(false); toast.success('Amount updated'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['internal-collection-roster', campaignId] });
+      setEditing(false);
+      toast.success('Amount updated');
+    },
     onError: () => toast.error('Failed to update amount'),
   });
 
   const statusMutation = useMutation({
-    mutationFn: (status: string) => receiptsApi.updateStatus(member.receiptId, status),
-    onSuccess: invalidate,
-    onError: () => toast.error('Failed to update status'),
+    mutationFn: (newStatus: string) => receiptsApi.updateStatus(member.receiptId, newStatus),
+    onMutate: async (newStatus: string) => {
+      // 1. Instant 0ms UI feedback
+      setOptimisticStatus(newStatus);
+
+      // 2. Cancel outgoing refetches so they don't overwrite optimistic data
+      await queryClient.cancelQueries({ queryKey: ['internal-collection-roster', campaignId] });
+
+      // 3. Snapshot previous query data
+      const previousRoster = queryClient.getQueryData(['internal-collection-roster', campaignId]);
+
+      // 4. Optimistically update React Query cache so summary stats (Collected/Pending) update instantly
+      queryClient.setQueryData(['internal-collection-roster', campaignId], (old: any) => {
+        if (!old || !old.members) return old;
+        const targetMember = old.members.find((m: any) => m.receiptId === member.receiptId);
+        if (!targetMember) return old;
+
+        const prevMemberStatus = targetMember.status;
+        const memberAmt = targetMember.amount || 0;
+
+        const updatedMembers = old.members.map((m: any) =>
+          m.receiptId === member.receiptId ? { ...m, status: newStatus } : m
+        );
+
+        let deltaPaid = 0;
+        let deltaPending = 0;
+        if (prevMemberStatus !== 'PAID' && newStatus === 'PAID') {
+          deltaPaid = memberAmt;
+          deltaPending = -memberAmt;
+        } else if (prevMemberStatus === 'PAID' && newStatus !== 'PAID') {
+          deltaPaid = -memberAmt;
+          deltaPending = memberAmt;
+        }
+
+        const newPaid = Math.max(0, (old.totalPaid || 0) + deltaPaid);
+        const newPending = Math.max(0, (old.totalPending || 0) + deltaPending);
+        const unpaidCount = updatedMembers.filter((m: any) => m.status !== 'PAID').length;
+
+        return {
+          ...old,
+          members: updatedMembers,
+          totalPaid: newPaid,
+          totalPending: newPending,
+          unpaidCount,
+        };
+      });
+
+      return { previousRoster };
+    },
+    onError: (_err, _newStatus, context: any) => {
+      setOptimisticStatus(null);
+      if (context?.previousRoster) {
+        queryClient.setQueryData(['internal-collection-roster', campaignId], context.previousRoster);
+      }
+      toast.error('Failed to update status');
+    },
+    onSettled: () => {
+      setOptimisticStatus(null);
+      queryClient.invalidateQueries({ queryKey: ['internal-collection-roster', campaignId] });
+    },
   });
 
-  const isPaid = member.status === 'PAID';
+  const currentStatus = optimisticStatus ?? member.status;
+  const isPaid = currentStatus === 'PAID';
 
   return (
     <tr>
@@ -147,10 +208,18 @@ function RosterRow({ member, campaignId }: { member: any; campaignId: string }) 
         <button
           onClick={() => statusMutation.mutate(isPaid ? 'PENDING' : 'PAID')}
           disabled={statusMutation.isPending}
-          className={`badge text-xs ${isPaid ? 'badge-success' : 'badge-danger'}`}
+          className={`badge text-xs cursor-pointer transition-all duration-150 active:scale-95 ${
+            isPaid ? 'badge-success' : 'badge-danger'
+          }`}
           title={isPaid ? 'Click to mark unpaid' : 'Click to mark paid'}
         >
-          {isPaid ? <><CheckCircle2 size={11} /> Paid</> : <><XCircle size={11} /> Unpaid</>}
+          {statusMutation.isPending ? (
+            <><Loader2 size={11} className="animate-spin" /> {isPaid ? 'Paid' : 'Unpaid'}</>
+          ) : isPaid ? (
+            <><CheckCircle2 size={11} /> Paid</>
+          ) : (
+            <><XCircle size={11} /> Unpaid</>
+          )}
         </button>
       </td>
     </tr>

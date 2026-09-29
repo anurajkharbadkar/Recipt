@@ -12,7 +12,8 @@ export default function OnboardingWelcomeModal() {
 
   useEffect(() => {
     // Open if welcome tour has not been dismissed yet
-    if (user && organization && !completedTours['welcome']) {
+    const isDismissed = typeof window !== 'undefined' && localStorage.getItem('pavti_tour_completed_welcome') === 'true';
+    if (user && organization && !completedTours['welcome'] && !isDismissed) {
       const timer = setTimeout(() => setOpen(true), 600);
       return () => clearTimeout(timer);
     }
@@ -22,6 +23,11 @@ export default function OnboardingWelcomeModal() {
 
   const handleDismiss = () => {
     markTourCompleted('welcome');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('pavti_tour_completed_welcome', 'true');
+      } catch {}
+    }
     setOpen(false);
   };
 

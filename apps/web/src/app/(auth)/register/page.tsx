@@ -36,6 +36,7 @@ const labels = {
     fillRequired: 'Please fill all required fields', accountCreated: 'Account created! 🙏',
     registrationFailed: 'Registration failed. Please check your details and try again.',
     checkoutFailed: 'Could not start checkout — please try again.', loading: 'Loading...',
+    privacyAgree: 'I agree to the', privacyPolicy: 'Privacy Policy', mustAgreePrivacy: 'Please accept the Privacy Policy to continue.',
   },
   hi: {
     back: 'वापस', title: 'अपने मंडल का पंजीकरण करें',
@@ -56,6 +57,7 @@ const labels = {
     fillRequired: 'कृपया सभी आवश्यक जानकारी भरें', accountCreated: 'खाता बन गया! 🙏',
     registrationFailed: 'पंजीकरण विफल रहा। कृपया अपनी जानकारी जांचें और फिर से प्रयास करें।',
     checkoutFailed: 'चेकआउट शुरू नहीं हो सका — कृपया फिर से प्रयास करें।', loading: 'लोड हो रहा है...',
+    privacyAgree: 'मैं सहमति देता/देती हूँ', privacyPolicy: 'गोपनीयता नीति से', mustAgreePrivacy: 'कृपया आगे बढ़ने के लिए गोपनीयता नीति स्वीकार करें।',
   },
   mr: {
     back: 'मागे', title: 'तुमच्या मंडळाची नोंदणी करा',
@@ -68,14 +70,15 @@ const labels = {
     adminAccount: 'तुमचे अ‍ॅडमिन खाते', yourName: 'तुमचे नाव *', yourNamePlaceholder: 'राजेश कुमार',
     mobileNumber: 'मोबाइल नंबर *', email: 'ईमेल (पर्यायी)', password: 'पासवर्ड *', passwordPlaceholder: 'किमान 8 अक्षरे',
     choosePlan: 'तुमचा प्लॅन निवडा',
-    freePlanNote: 'मोफत — पैसे भरण्याची गरज नाही, तुम्ही लगेच सक्रिय व्हाल.',
-    paidPlanNote: 'तुम्ही अ‍ॅप लगेच वापरणे सुरू करू शकता — पेमेंटची पुष्टी झाल्यावर तुमचा प्लॅन सक्रिय होईल.',
+    freePlanNote: 'मोफत — पैसे भरण्याची गरज नाही, तुम्ही लगेच सक्रिय व्हाल।',
+    paidPlanNote: 'तुम्ही अ‍ॅप लगेच वापरणे सुरू करू शकता — पेमेंटची पुष्टी झाल्यावर तुमचा प्लॅन सक्रिय होईल।',
     popular: 'लोकप्रिय', instant: 'त्वरित',
     creatingAccount: 'खाते तयार होत आहे...', startFreeTrial: 'मोफत ट्रायल सुरू करा', createAccount: 'खाते तयार करा व पुढे जा',
     alreadyHaveAccount: 'आधीच खाते आहे? साइन इन करा',
     fillRequired: 'कृपया सर्व आवश्यक माहिती भरा', accountCreated: 'खाते तयार झाले! 🙏',
     registrationFailed: 'नोंदणी अयशस्वी झाली. कृपया तुमची माहिती तपासा व पुन्हा प्रयत्न करा.',
     checkoutFailed: 'चेकआउट सुरू करता आले नाही — कृपया पुन्हा प्रयत्न करा.', loading: 'लोड होत आहे...',
+    privacyAgree: 'मी सहमती देतो/देते', privacyPolicy: 'गोपनीयता धोरणाशी', mustAgreePrivacy: 'कृपया पुढे जाण्यासाठी गोपनीयता धोरण स्वीकारा.',
   },
 };
 
@@ -92,6 +95,7 @@ function RegisterForm() {
   const [newMandalCode, setNewMandalCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [payingViaCheckout, setPayingViaCheckout] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(true);
 
   const preselected = searchParams.get('plan')?.toUpperCase();
   const initialEmail = searchParams.get('email') || '';
@@ -113,10 +117,11 @@ function RegisterForm() {
   const set = (patch: Partial<typeof form>) => setForm((p) => ({ ...p, ...patch }));
 
   const canSubmit = form.organizationName && form.adminName && form.phone.length >= 10
-    && form.password.length >= 8 && form.address && form.city;
+    && form.password.length >= 8 && form.address && form.city && agreePrivacy;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreePrivacy) { toast.error(l.mustAgreePrivacy); return; }
     if (!canSubmit) { toast.error(l.fillRequired); return; }
     setLoading(true);
     try {
@@ -353,6 +358,29 @@ function RegisterForm() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Privacy Policy Agreement */}
+          <div className="flex items-start gap-2.5 text-xs text-theme-fg/70 px-1 py-1">
+            <input
+              type="checkbox"
+              id="agreePrivacy"
+              checked={agreePrivacy}
+              onChange={(e) => setAgreePrivacy(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-theme text-saffron-600 focus:ring-saffron-500 cursor-pointer accent-saffron-600"
+              required
+            />
+            <label htmlFor="agreePrivacy" className="cursor-pointer leading-relaxed select-none">
+              {l.privacyAgree}{' '}
+              <Link
+                href="/privacy"
+                target="_blank"
+                className="text-saffron-700 dark:text-saffron-400 font-semibold underline underline-offset-2 hover:text-saffron-600 transition-colors"
+              >
+                {l.privacyPolicy}
+              </Link>
+              .
+            </label>
           </div>
 
           <button type="submit" disabled={!canSubmit || loading} className="btn-primary w-full">

@@ -1108,14 +1108,17 @@
    ============================================= */
 @media (min-width: 768px) {
   .festival-day-nav__scroll {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    overflow-x: visible;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 8px 4px 16px;
   }
 
   .festival-day-nav__tab {
-    flex: unset;
-    min-height: 88px;
+    flex: 0 0 auto;
+    min-width: 180px;
+    min-height: 72px;
   }
 
   .festival-day-view {

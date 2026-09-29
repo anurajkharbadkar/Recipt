@@ -8,10 +8,11 @@ import { HelpCircle, ChevronRight, ChevronLeft, Check, X, Sparkles } from 'lucid
 
 export default function PageGuideSpotlight() {
   const pathname = usePathname();
-  const { language, completedTours, markTourCompleted } = useAuthStore();
+  const { language, completedTours, markTourCompleted, hasHydrated } = useAuthStore();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [minimized, setMinimized] = useState(false);
-  const [localCompleted, setLocalCompleted] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [localCompleted, setLocalCompleted] = useState(true);
 
   // Map route pathname to tour key
   const tourKeyMap: Record<string, string> = {
@@ -27,35 +28,47 @@ export default function PageGuideSpotlight() {
   const tour = pageKey ? PAGE_TOURS[pageKey] : null;
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     setCurrentStepIndex(0);
     setMinimized(false);
-    if (pageKey) {
-      const isPersistentDone = localStorage.getItem(`pavti_tour_completed_${pageKey}`) === 'true';
-      setLocalCompleted(isPersistentDone);
+    if (typeof window !== 'undefined' && pageKey) {
+      const allDisabled = localStorage.getItem('pavti_all_tours_disabled') === 'true';
+      const pageDone = localStorage.getItem(`pavti_tour_completed_${pageKey}`) === 'true';
+      setLocalCompleted(allDisabled || pageDone);
     }
   }, [pathname, pageKey]);
 
-  if (!tour) return null;
+  if (!isMounted || !hasHydrated || !tour) return null;
 
-  const isCompleted = localCompleted || !!completedTours[tour.pageKey];
+  const allDisabledPersistent = typeof window !== 'undefined' && localStorage.getItem('pavti_all_tours_disabled') === 'true';
+  const isCompleted = localCompleted || allDisabledPersistent || !!completedTours[tour.pageKey] || !!completedTours['all_disabled'];
   if (isCompleted && !minimized) return null;
 
   const steps = tour.steps;
   const currentStep: TourStep = steps[currentStepIndex];
 
-  const completeTour = () => {
+  const completeTour = (dismissAll = false) => {
     markTourCompleted(tour.pageKey);
     setLocalCompleted(true);
-    try {
-      localStorage.setItem(`pavti_tour_completed_${tour.pageKey}`, 'true');
-    } catch {}
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`pavti_tour_completed_${tour.pageKey}`, 'true');
+        if (dismissAll) {
+          localStorage.setItem('pavti_all_tours_disabled', 'true');
+          markTourCompleted('all_disabled');
+        }
+      } catch {}
+    }
   };
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex((p) => p + 1);
     } else {
-      completeTour();
+      completeTour(false);
     }
   };
 
@@ -66,7 +79,8 @@ export default function PageGuideSpotlight() {
   };
 
   const handleDismiss = () => {
-    completeTour();
+    // When user skips or closes the tour guide, mark all tours as disabled permanently
+    completeTour(true);
   };
 
   const pageTitle = tour.title[language] || tour.title.mr;
@@ -134,9 +148,10 @@ export default function PageGuideSpotlight() {
       <div className="flex items-center justify-between pt-3 mt-3 border-t border-theme/20">
         <button
           onClick={handleDismiss}
-          className="text-[11px] text-theme-fg/40 hover:text-theme-fg font-medium"
+          className="text-[11px] text-theme-fg/50 hover:text-red-500 font-medium transition-colors"
+          title="Don't show guides again"
         >
-          {language === 'mr' ? 'रद्द करा (Skip)' : language === 'hi' ? 'छोड़ें' : 'Skip Tour'}
+          {language === 'mr' ? 'मार्गदर्शन बंद करा (Skip All)' : language === 'hi' ? 'सभी मार्गदर्शिकाएं छोड़ें' : 'Skip All Guides'}
         </button>
 
         <div className="flex items-center gap-1.5">
