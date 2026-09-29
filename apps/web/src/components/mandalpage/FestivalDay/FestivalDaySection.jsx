@@ -85,6 +85,7 @@ export default function FestivalDaySection() {
     : totalDays;
 
   const mandalName = getLocalized(mandal?.identity?.name) || 'मंडल';
+  const mandalNameMarathi = mandal?.identity?.nameMarathi || (typeof mandal?.identity?.name === 'object' ? mandal?.identity?.name?.mr : null);
   const mandalLogo = mandal?.identity?.logoUrl;
   const mandalCode = mandal?.identity?.mandalCode;
   const mandalSlug = mandal?.identity?.slug || '';
@@ -141,6 +142,7 @@ export default function FestivalDaySection() {
           isOpen={fullScheduleModalOpen}
           onClose={() => setFullScheduleModalOpen(false)}
           mandalName={mandalName}
+          mandalNameMarathi={mandalNameMarathi}
           mandalLogo={mandalLogo}
           mandalCode={mandalCode}
           mandalUrl={mandalUrl}

@@ -1,45 +1,39 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2, Globe, Calendar, Palette } from 'lucide-react';
+import { Download, Share2, X, Sparkles, Calendar, Shirt, Loader2, Globe, Palette } from 'lucide-react';
 import { formatLocalizedDate } from '@/utils/dateUtils';
 import toast from 'react-hot-toast';
 
 type BannerLang = 'mr' | 'en' | 'hi';
 type BannerTheme = 'crimson' | 'saffron' | 'midnight' | 'purple';
 
-const bannerThemes: Record<BannerTheme, { name: string; bg: string; border: string; accentClass: string; activeBtn: string }> = {
+const bannerThemes: Record<BannerTheme, { name: string; bg: string; border: string }> = {
   crimson: {
     name: 'Crimson',
-    bg: 'linear-gradient(135deg, #120500 0%, #2b0c02 40%, #0d0300 100%)',
+    bg: 'linear-gradient(135deg, #180308 0%, #3b0816 45%, #120206 100%)',
     border: '2px solid rgba(245, 158, 11, 0.45)',
-    accentClass: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
-    activeBtn: 'bg-amber-400 text-amber-950',
   },
   saffron: {
     name: 'Saffron',
     bg: 'linear-gradient(135deg, #2b0b00 0%, #7c2d12 45%, #1c0500 100%)',
     border: '2px solid rgba(251, 191, 36, 0.6)',
-    accentClass: 'border-orange-500/30 bg-orange-500/10 text-orange-200',
-    activeBtn: 'bg-orange-400 text-orange-950',
   },
   midnight: {
     name: 'Midnight',
     bg: 'linear-gradient(135deg, #030712 0%, #0f172a 45%, #020617 100%)',
     border: '2px solid rgba(56, 189, 248, 0.45)',
-    accentClass: 'border-sky-500/30 bg-sky-500/10 text-sky-200',
-    activeBtn: 'bg-sky-400 text-sky-950',
   },
   purple: {
     name: 'Royal Purple',
     bg: 'linear-gradient(135deg, #13031e 0%, #3b0764 45%, #0d0115 100%)',
     border: '2px solid rgba(192, 132, 252, 0.45)',
-    accentClass: 'border-purple-500/30 bg-purple-500/10 text-purple-200',
-    activeBtn: 'bg-purple-400 text-purple-950',
   },
 };
 
-interface DailyBannerModalProps {
+interface FullScheduleBannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   mandalName: string | any;
@@ -47,21 +41,20 @@ interface DailyBannerModalProps {
   mandalLogo?: string | null;
   mandalCode?: string | null;
   mandalUrl: string;
-  day: {
+  festivalDays: Array<{
     dayNumber: number;
-    date?: string;
+    date: string;
     title: any;
-    dressCodeColor?: any;
-    colorHex?: string | null;
-    deityAvatar?: any;
+    goddess?: any;
+    color?: string;
+    colorHex?: string;
+    dressCode?: any;
     events?: Array<{
       time?: string;
       startTime?: string;
       title: any;
-      description?: any;
-      eventType?: string;
     }>;
-  };
+  }>;
 }
 
 const resolveText = (val: any, lang: BannerLang = 'mr'): string => {
@@ -73,7 +66,7 @@ const resolveText = (val: any, lang: BannerLang = 'mr'): string => {
   return String(val);
 };
 
-export default function DailyBannerModal({
+export default function FullScheduleBannerModal({
   isOpen,
   onClose,
   mandalName,
@@ -81,27 +74,20 @@ export default function DailyBannerModal({
   mandalLogo,
   mandalCode,
   mandalUrl,
-  day,
-}: DailyBannerModalProps) {
+  festivalDays,
+}: FullScheduleBannerModalProps) {
   const bannerRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [bannerLang, setBannerLang] = useState<BannerLang>('mr');
   const [bannerTheme, setBannerTheme] = useState<BannerTheme>('crimson');
 
-  // Close modal on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    if (isOpen) window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -112,36 +98,28 @@ export default function DailyBannerModal({
     ? (mandalNameMarathi || resolveText(mandalName, 'mr') || resolveText(mandalName, 'en'))
     : (resolveText(mandalName, 'en') || mandalName);
 
-  const titleText = resolveText(day.title, bannerLang);
-  const dressCodeText = resolveText(day.dressCodeColor, bannerLang);
-  const deityAvatarText = resolveText(day.deityAvatar, bannerLang);
-  const activeColorHex = day.colorHex || '#d97706';
-  const formattedDate = day.date ? formatLocalizedDate(day.date, bannerLang) : '';
+  const totalDays = festivalDays.length || 9;
 
-  // Language dictionary for static labels inside poster
   const labels = {
     mr: {
-      dressCode: 'पोशाख / Color',
-      avatar: 'अलंकार / Avatar',
-      schedule: 'दैनिक वेळापत्रक (Schedule)',
+      heading: `संपूर्ण ${totalDays} दिवसांचे उत्सव पत्रक`,
+      subheading: 'उत्सव कार्यक्रम, रोजचा पोशाख रंग व आरती वेळ',
+      dressCode: 'रंग',
       scan: 'स्कॅन करा किंवा भेट द्या:',
-      fallback: 'काकड आरती व दैनंदिन दर्शन',
       dayPrefix: 'दिवस',
     },
     en: {
-      dressCode: 'Dress Code / Color',
-      avatar: 'Avatar / Theme',
-      schedule: 'Daily Schedule',
+      heading: `Complete ${totalDays}-Day Festival Program`,
+      subheading: 'Full schedule, daily dress code color & events',
+      dressCode: 'Color',
       scan: 'Scan or Visit:',
-      fallback: 'Kakad Aarti & Daily Darshan',
-      dayPrefix: 'DAY',
+      dayPrefix: 'Day',
     },
     hi: {
-      dressCode: 'पोशाक / Color',
-      avatar: 'अलंकार / Avatar',
-      schedule: 'दैनिक समयसारणी (Schedule)',
+      heading: `संपूर्ण ${totalDays} दिवसीय उत्सव समयसारणी`,
+      subheading: 'उत्सव कार्यक्रम, दैनिक पोशाख रंग व आरती समय',
+      dressCode: 'रंग',
       scan: 'स्कैन करें या विजिट करें:',
-      fallback: 'काकड़ आरती एवं दैनिक दर्शन',
       dayPrefix: 'दिवस',
     },
   }[bannerLang];
@@ -152,10 +130,10 @@ export default function DailyBannerModal({
     try {
       const dataUrl = await toPng(bannerRef.current, { cacheBust: true, pixelRatio: 2 });
       const link = document.createElement('a');
-      link.download = `${mandalName.replace(/\s+/g, '_')}_Day_${day.dayNumber}_Schedule_${bannerLang.toUpperCase()}.png`;
+      link.download = `${mandalName.replace(/\s+/g, '_')}_Complete_${totalDays}Days_Schedule_${bannerLang.toUpperCase()}.png`;
       link.href = dataUrl;
       link.click();
-      toast.success('Daily Bulletin Banner downloaded successfully!');
+      toast.success('Complete Festival Schedule Banner downloaded!');
     } catch (err) {
       console.error(err);
       toast.error('Could not generate banner image. Please try again.');
@@ -170,7 +148,7 @@ export default function DailyBannerModal({
     try {
       const dataUrl = await toPng(bannerRef.current, { cacheBust: true, pixelRatio: 2 });
       const blob = await (await fetch(dataUrl)).blob();
-      const fileName = `${mandalName.replace(/\s+/g, '_')}_Day_${day.dayNumber}_Banner_${bannerLang.toUpperCase()}.png`;
+      const fileName = `${mandalName.replace(/\s+/g, '_')}_Complete_${totalDays}Days_Schedule_${bannerLang.toUpperCase()}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
 
       let sharedSuccessfully = false;
@@ -178,17 +156,15 @@ export default function DailyBannerModal({
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
-            title: `${mandalName} - Day ${day.dayNumber}`,
-            text: `🚩 ${mandalName}\n✨ ${titleText}\n${mandalUrl}`,
+            title: `${mandalName} - ${labels.heading}`,
+            text: `🚩 ${mandalName}\n📅 ${labels.heading}\n🔗 ${mandalUrl}`,
             files: [file],
           });
-          toast.success('Banner image shared!');
+          toast.success('Complete schedule banner shared!');
           sharedSuccessfully = true;
           return;
         } catch (shareErr: any) {
-          if (shareErr?.name === 'AbortError') {
-            return;
-          }
+          if (shareErr?.name === 'AbortError') return;
         }
       }
 
@@ -198,7 +174,14 @@ export default function DailyBannerModal({
         link.href = dataUrl;
         link.click();
 
-        const text = `🚩 *${mandalName}* 🚩\n\n📅 *${labels.dayPrefix} ${day.dayNumber} ${formattedDate ? `- ${formattedDate} ` : ''}* (${titleText})\n👕 *${labels.dressCode}:* ${dressCodeText || 'Traditional'}\n${deityAvatarText ? `✨ *${labels.avatar}:* ${deityAvatarText}\n` : ''}\n📋 *${labels.schedule}:*\n${(day.events || []).map((e: any) => `• ${e.time || e.startTime || ''} - ${resolveText(e.title, bannerLang)}`).join('\n')}\n\n🔗 ${mandalUrl}`;
+        const summaryText = festivalDays.map((d) => {
+          const title = resolveText(d.title, bannerLang) || resolveText(d.goddess, bannerLang);
+          const colorText = resolveText(d.dressCode?.theme, bannerLang) || d.color || '';
+          const dDate = d.date ? formatLocalizedDate(d.date, bannerLang) : '';
+          return `• *${labels.dayPrefix} ${d.dayNumber}${dDate ? ` (${dDate})` : ''}:* ${title}${colorText ? ` (👕 ${colorText})` : ''}`;
+        }).join('\n');
+
+        const text = `🚩 *${mandalName}* 🚩\n📅 *${labels.heading}*\n\n${summaryText}\n\n🔗 ${mandalUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         toast.success('Banner downloaded & WhatsApp link opened!');
       }
@@ -206,7 +189,7 @@ export default function DailyBannerModal({
       if (err?.name !== 'AbortError') {
         console.error(err);
         try {
-          const text = `🚩 *${mandalName}* 🚩\n\n📅 *${titleText}*\n🔗 ${mandalUrl}`;
+          const text = `🚩 *${mandalName}* 🚩\n📅 *${labels.heading}*\n🔗 ${mandalUrl}`;
           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
           toast.success('WhatsApp link opened!');
         } catch {
@@ -220,21 +203,21 @@ export default function DailyBannerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-md overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg bg-theme-bg rounded-2xl border border-theme-fg/10 shadow-2xl p-4 sm:p-6 my-6 transition-all"
+        className="relative w-full max-w-2xl bg-theme-bg rounded-2xl border border-theme-fg/10 shadow-2xl p-4 sm:p-6 my-6 transition-all"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
+        {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-theme-fg/10 mb-3.5">
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-theme-fg/70 hover:text-theme-fg transition-colors bg-transparent border-0 outline-none cursor-pointer focus:outline-none"
+            className="p-1 text-theme-fg/70 hover:text-theme-fg transition-colors bg-transparent border-0 outline-none cursor-pointer"
             aria-label="Close"
             title="Close"
           >
@@ -242,8 +225,10 @@ export default function DailyBannerModal({
           </button>
 
           <div className="flex items-center gap-1.5 text-center">
-            <Sparkles className="text-amber-500 shrink-0" size={17} />
-            <h2 className="text-xs sm:text-sm font-bold text-theme-fg tracking-wide">Daily Festival Banner</h2>
+            <Sparkles className="text-amber-500 shrink-0" size={18} />
+            <h2 className="text-xs sm:text-sm font-bold text-theme-fg tracking-wide">
+              Full {totalDays}-Day Schedule Banner
+            </h2>
           </div>
 
           <div className="w-6" aria-hidden="true" />
@@ -300,97 +285,89 @@ export default function DailyBannerModal({
           </div>
         </div>
 
-        {/* Banner Canvas Container (9:16 Aspect Ratio) */}
+        {/* Banner Canvas Container */}
         <div className="flex justify-center mb-5 overflow-hidden">
           <div
             ref={bannerRef}
-            className="w-[330px] sm:w-[360px] rounded-2xl p-5 text-white shadow-2xl relative overflow-hidden transition-all duration-300"
+            className="w-full max-w-[540px] rounded-2xl p-4 sm:p-5 text-white shadow-2xl relative overflow-hidden transition-all duration-300"
             style={{
               background: currentTheme.bg,
               border: currentTheme.border,
             }}
           >
-            {/* Background Glow Overlay */}
-            <div
-              className="absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-30 pointer-events-none"
-              style={{ backgroundColor: activeColorHex }}
-            />
+            {/* Ambient Background Glow */}
+            <div className="absolute -top-24 -right-24 w-60 h-60 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-60 h-60 rounded-full bg-saffron-600/15 blur-3xl pointer-events-none" />
 
             {/* Top Mandal Header */}
-            <div className="text-center relative z-10 pb-3 border-b border-amber-500/20">
+            <div className="text-center relative z-10 pb-3 border-b border-amber-500/25">
               {mandalLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={mandalLogo} alt={mandalName} className="w-16 h-16 rounded-full mx-auto mb-2 border-2 border-amber-400/60 object-cover shadow-lg bg-white p-0.5" />
+                <img src={mandalLogo} alt={displayedMandalName} className="w-14 h-14 rounded-full mx-auto mb-1.5 border-2 border-amber-400/60 object-cover shadow-lg bg-white p-0.5" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400/50 mx-auto mb-2 flex items-center justify-center font-bold text-amber-400 text-2xl shadow-md">
+                <div className="w-14 h-14 rounded-full bg-amber-500/20 border-2 border-amber-400/50 mx-auto mb-1.5 flex items-center justify-center font-bold text-amber-400 text-xl shadow-md">
                   🚩
                 </div>
               )}
               <h3 className="text-sm sm:text-base font-extrabold text-amber-300 tracking-wide uppercase line-clamp-1">{displayedMandalName}</h3>
-              {mandalCode && <p className="text-[10px] text-amber-200/70 font-semibold tracking-wider">MANDAL CODE: {mandalCode}</p>}
+              <p className="text-[11px] sm:text-xs font-bold text-amber-400/90 mt-0.5 tracking-wide">{labels.heading}</p>
+              {mandalCode && <p className="text-[9px] text-amber-200/60 font-semibold tracking-wider mt-0.5">MANDAL CODE: {mandalCode}</p>}
             </div>
 
-            {/* Day Title & Date Badge */}
-            <div className="text-center my-3 relative z-10">
-              <div className="flex items-center justify-center gap-1.5 text-[10px] font-extrabold tracking-widest text-amber-300 uppercase mb-1">
-                <Calendar size={11} className="text-amber-400 shrink-0" />
-                <span>{labels.dayPrefix} {String(day.dayNumber).padStart(2, '0')}</span>
-                {formattedDate && <span>• {formattedDate}</span>}
-              </div>
+            {/* 9-Day Schedule Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 my-3 relative z-10">
+              {festivalDays.map((d) => {
+                const titleText = resolveText(d.title, bannerLang) || resolveText(d.goddess, bannerLang) || `Day ${d.dayNumber}`;
+                const dressCodeTheme = resolveText(d.dressCode?.theme, bannerLang) || d.color || '';
+                const hex = d.colorHex || d.dressCode?.colorHex || '#d97706';
+                const firstEvent = d.events && d.events[0] ? resolveText(d.events[0].title, bannerLang) : null;
+                const eventTime = d.events && d.events[0] ? (d.events[0].time || d.events[0].startTime || '') : '';
+                const formattedDate = d.date ? formatLocalizedDate(d.date, bannerLang) : '';
 
-              <span className="inline-block text-[12px] font-extrabold px-3.5 py-1 rounded-full uppercase tracking-widest text-amber-950 bg-amber-400 shadow-lg">
-                {titleText}
-              </span>
-
-              {/* Dress Code & Avatar */}
-              <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-1 items-center">
-                {dressCodeText && (
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <Shirt size={13} className="text-amber-400" />
-                    <span>{labels.dressCode}:</span>
-                    <span className="flex items-center gap-1 font-bold text-amber-300">
-                      <span className="w-3 h-3 rounded-full border border-white/40 shadow-xs" style={{ backgroundColor: activeColorHex }} />
-                      {dressCodeText}
-                    </span>
-                  </div>
-                )}
-                {deityAvatarText && (
-                  <div className="text-[11px] text-amber-200/90 font-medium">
-                    ✨ <strong className="text-amber-300">{labels.avatar}:</strong> {deityAvatarText}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Events Timeline List */}
-            <div className="space-y-2 my-3 relative z-10">
-              <p className="text-[11px] font-bold tracking-wider text-amber-400/80 uppercase border-b border-amber-500/20 pb-1 flex items-center gap-1.5">
-                <Clock size={12} /> {labels.schedule}
-              </p>
-              {day.events && day.events.length > 0 ? (
-                day.events.slice(0, 5).map((evt, idx) => (
-                  <div key={idx} className="flex items-start justify-between gap-2 text-xs bg-black/40 p-2 rounded-lg border border-amber-500/15">
-                    <span className="font-semibold text-amber-300 shrink-0 text-[11px] min-w-[65px]">{evt.time || evt.startTime || ''}</span>
-                    <div className="flex-1 text-right">
-                      <p className="font-bold text-white text-[11px]">{resolveText(evt.title, bannerLang)}</p>
-                      {evt.description && <p className="text-[10px] text-amber-200/60 line-clamp-1">{resolveText(evt.description, bannerLang)}</p>}
+                return (
+                  <div key={d.dayNumber} className="bg-black/40 border border-amber-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 uppercase tracking-wider">
+                        {labels.dayPrefix} {d.dayNumber}
+                      </span>
+                      {formattedDate && (
+                        <span className="text-[9.5px] font-semibold text-amber-300/90 flex items-center gap-1">
+                          <Calendar size={10} className="text-amber-400" />
+                          {formattedDate}
+                        </span>
+                      )}
                     </div>
+
+                    <p className="text-[11px] font-bold text-white line-clamp-1">{titleText}</p>
+
+                    {dressCodeTheme && (
+                      <div className="flex items-center gap-1 text-[9.5px] font-semibold text-amber-200/90 mt-0.5">
+                        <Shirt size={9} className="text-amber-400" />
+                        <span className="w-2 h-2 rounded-full border border-white/40" style={{ backgroundColor: hex }} />
+                        <span className="truncate max-w-[120px]">{dressCodeTheme}</span>
+                      </div>
+                    )}
+
+                    {firstEvent && (
+                      <p className="text-[9.5px] text-amber-200/70 line-clamp-1 mt-0.5">
+                        {eventTime && <strong className="text-amber-400 font-normal">{eventTime}: </strong>}
+                        {firstEvent}
+                      </p>
+                    )}
                   </div>
-                ))
-              ) : (
-                <p className="text-xs text-amber-200/50 text-center italic py-2">{labels.fallback}</p>
-              )}
+                );
+              })}
             </div>
 
-            {/* Bottom QR Code & Website URL */}
-            <div className="pt-2.5 border-t border-amber-500/20 flex items-center justify-between gap-3 relative z-10">
+            {/* Footer QR & Branding */}
+            <div className="pt-2.5 border-t border-amber-500/25 flex items-center justify-between gap-3 relative z-10">
               <div className="flex-1">
                 <p className="text-[10px] text-amber-200/70 font-semibold">{labels.scan}</p>
                 <p className="text-[9px] text-amber-400 font-mono truncate">{mandalUrl.replace(/^https?:\/\//, '')}</p>
-                <p className="text-[8px] text-amber-200/40 mt-0.5">Powered by E-PavtiBook</p>
+                <p className="text-[8px] text-amber-200/40 mt-0.5">Powered by E-PavtiBook Digital Identity</p>
               </div>
               <div className="bg-white p-1 rounded-lg shrink-0 shadow-md">
-                <QRCodeSVG value={mandalUrl} size={44} level="M" />
+                <QRCodeSVG value={mandalUrl} size={42} level="M" />
               </div>
             </div>
           </div>
@@ -405,7 +382,7 @@ export default function DailyBannerModal({
             className="btn-secondary text-xs flex-1 flex items-center justify-center gap-2 py-3 px-4 min-h-[44px] w-full rounded-xl font-semibold transition-all shadow-sm"
           >
             {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            {downloading ? 'Generating...' : 'Download Image'}
+            {downloading ? 'Generating Banner...' : 'Download Full Schedule Image'}
           </button>
           <button
             type="button"
@@ -414,7 +391,7 @@ export default function DailyBannerModal({
             className="flex-1 flex items-center justify-center gap-2 text-xs font-semibold py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white min-h-[44px] transition-all shadow-md w-full"
           >
             {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-            {sharing ? 'Sharing...' : 'Share Image / WhatsApp'}
+            {sharing ? 'Sharing Banner...' : 'Share Banner / WhatsApp'}
           </button>
         </div>
       </div>

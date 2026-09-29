@@ -40,6 +40,7 @@ export default function FestivalDayShare({ day, mandalName }) {
   };
 
   const resolvedMandalName = mandalName || getLocalized(mandal?.identity?.name) || 'मंडल';
+  const mandalNameMarathi = mandal?.identity?.nameMarathi || (typeof mandal?.identity?.name === 'object' ? mandal?.identity?.name?.mr : null);
 
   return (
     <>
@@ -80,6 +81,7 @@ export default function FestivalDayShare({ day, mandalName }) {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         mandalName={resolvedMandalName}
+        mandalNameMarathi={mandalNameMarathi}
         mandalLogo={mandalLogo}
         mandalCode={mandalCode}
         mandalUrl={mandalUrl}
@@ -90,6 +92,7 @@ export default function FestivalDayShare({ day, mandalName }) {
         isOpen={fullScheduleModalOpen}
         onClose={() => setFullScheduleModalOpen(false)}
         mandalName={resolvedMandalName}
+        mandalNameMarathi={mandalNameMarathi}
         mandalLogo={mandalLogo}
         mandalCode={mandalCode}
         mandalUrl={mandalUrl}
