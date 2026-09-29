@@ -1,9 +1,8 @@
-'use client';
-
 import { useEffect, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2, Globe } from 'lucide-react';
+import { Download, Share2, X, Sparkles, Clock, Shirt, Loader2, Globe, Calendar } from 'lucide-react';
+import { formatLocalizedDate } from '@/utils/dateUtils';
 import toast from 'react-hot-toast';
 
 type BannerLang = 'mr' | 'en' | 'hi';
@@ -17,6 +16,7 @@ interface DailyBannerModalProps {
   mandalUrl: string;
   day: {
     dayNumber: number;
+    date?: string;
     title: any;
     dressCodeColor?: any;
     colorHex?: string | null;
@@ -75,6 +75,7 @@ export default function DailyBannerModal({
   const dressCodeText = resolveText(day.dressCodeColor, bannerLang);
   const deityAvatarText = resolveText(day.deityAvatar, bannerLang);
   const activeColorHex = day.colorHex || '#d97706';
+  const formattedDate = day.date ? formatLocalizedDate(day.date, bannerLang) : '';
 
   // Language dictionary for static labels inside poster
   const labels = {
@@ -84,6 +85,7 @@ export default function DailyBannerModal({
       schedule: 'दैनिक वेळापत्रक (Schedule)',
       scan: 'स्कॅन करा किंवा भेट द्या:',
       fallback: 'काकड आरती व दैनंदिन दर्शन',
+      dayPrefix: 'दिवस',
     },
     en: {
       dressCode: 'Dress Code / Color',
@@ -91,6 +93,7 @@ export default function DailyBannerModal({
       schedule: 'Daily Schedule',
       scan: 'Scan or Visit:',
       fallback: 'Kakad Aarti & Daily Darshan',
+      dayPrefix: 'DAY',
     },
     hi: {
       dressCode: 'पोशाक / Color',
@@ -98,6 +101,7 @@ export default function DailyBannerModal({
       schedule: 'दैनिक समयसारणी (Schedule)',
       scan: 'स्कैन करें या विजिट करें:',
       fallback: 'काकड़ आरती एवं दैनिक दर्शन',
+      dayPrefix: 'दिवस',
     },
   }[bannerLang];
 
@@ -153,7 +157,7 @@ export default function DailyBannerModal({
         link.href = dataUrl;
         link.click();
 
-        const text = `🚩 *${mandalName}* 🚩\n\n📅 *${titleText}*\n👕 *${labels.dressCode}:* ${dressCodeText || 'Traditional'}\n${deityAvatarText ? `✨ *${labels.avatar}:* ${deityAvatarText}\n` : ''}\n📋 *${labels.schedule}:*\n${(day.events || []).map((e: any) => `• ${e.time || e.startTime || ''} - ${resolveText(e.title, bannerLang)}`).join('\n')}\n\n🔗 ${mandalUrl}`;
+        const text = `🚩 *${mandalName}* 🚩\n\n📅 *${labels.dayPrefix} ${day.dayNumber} ${formattedDate ? `- ${formattedDate} ` : ''}* (${titleText})\n👕 *${labels.dressCode}:* ${dressCodeText || 'Traditional'}\n${deityAvatarText ? `✨ *${labels.avatar}:* ${deityAvatarText}\n` : ''}\n📋 *${labels.schedule}:*\n${(day.events || []).map((e: any) => `• ${e.time || e.startTime || ''} - ${resolveText(e.title, bannerLang)}`).join('\n')}\n\n🔗 ${mandalUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         toast.success('Banner downloaded & WhatsApp link opened!');
       }
@@ -206,20 +210,20 @@ export default function DailyBannerModal({
           <div className="w-6" aria-hidden="true" />
         </div>
 
-        {/* Language Selector Bar */}
-        <div className="flex items-center justify-between bg-theme-fg/5 p-2 rounded-xl mb-4 border border-theme-fg/10">
-          <div className="flex items-center gap-1.5 text-xs text-theme-fg/70 font-semibold px-1">
-            <Globe size={14} className="text-amber-500 shrink-0" />
+        {/* High-Contrast Language Selector Bar */}
+        <div className="flex items-center justify-between bg-amber-500/10 p-2 rounded-xl mb-4 border border-amber-500/30">
+          <div className="flex items-center gap-1.5 text-xs text-amber-200 font-bold px-1">
+            <Globe size={14} className="text-amber-400 shrink-0" />
             <span>Language:</span>
           </div>
-          <div className="flex items-center gap-1 bg-theme-bg p-1 rounded-lg border border-theme-fg/10">
+          <div className="flex items-center gap-1 bg-black/50 p-1 rounded-lg border border-amber-500/30">
             <button
               type="button"
               onClick={() => setBannerLang('mr')}
               className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
                 bannerLang === 'mr'
-                  ? 'bg-amber-500 text-amber-950 shadow-xs'
-                  : 'text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/5'
+                  ? 'bg-amber-400 text-amber-950 shadow-md scale-[1.02]'
+                  : 'text-amber-100/80 hover:text-white hover:bg-white/10'
               }`}
             >
               मराठी
@@ -229,8 +233,8 @@ export default function DailyBannerModal({
               onClick={() => setBannerLang('en')}
               className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
                 bannerLang === 'en'
-                  ? 'bg-amber-500 text-amber-950 shadow-xs'
-                  : 'text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/5'
+                  ? 'bg-amber-400 text-amber-950 shadow-md scale-[1.02]'
+                  : 'text-amber-100/80 hover:text-white hover:bg-white/10'
               }`}
             >
               English
@@ -240,8 +244,8 @@ export default function DailyBannerModal({
               onClick={() => setBannerLang('hi')}
               className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
                 bannerLang === 'hi'
-                  ? 'bg-amber-500 text-amber-950 shadow-xs'
-                  : 'text-theme-fg/60 hover:text-theme-fg hover:bg-theme-fg/5'
+                  ? 'bg-amber-400 text-amber-950 shadow-md scale-[1.02]'
+                  : 'text-amber-100/80 hover:text-white hover:bg-white/10'
               }`}
             >
               हिंदी
@@ -279,9 +283,15 @@ export default function DailyBannerModal({
               {mandalCode && <p className="text-[10px] text-amber-200/70 font-semibold tracking-wider">MANDAL CODE: {mandalCode}</p>}
             </div>
 
-            {/* Day Title Badge */}
+            {/* Day Title & Date Badge */}
             <div className="text-center my-3 relative z-10">
-              <span className="inline-block text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-widest text-amber-950 bg-amber-400 shadow-lg">
+              <div className="flex items-center justify-center gap-1.5 text-[10px] font-extrabold tracking-widest text-amber-300 uppercase mb-1">
+                <Calendar size={11} className="text-amber-400 shrink-0" />
+                <span>{labels.dayPrefix} {String(day.dayNumber).padStart(2, '0')}</span>
+                {formattedDate && <span>• {formattedDate}</span>}
+              </div>
+
+              <span className="inline-block text-[12px] font-extrabold px-3.5 py-1 rounded-full uppercase tracking-widest text-amber-950 bg-amber-400 shadow-lg">
                 {titleText}
               </span>
 
