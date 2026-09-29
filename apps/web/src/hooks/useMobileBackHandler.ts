@@ -6,13 +6,12 @@ import { Capacitor } from '@capacitor/core';
 
 /**
  * Universal Mobile Back Navigation Handler:
- * 1. Native Mobile App (Capacitor / Android WebView / TWA): Intercepts physical/gesture back button via backbutton event & @capacitor/app.
- * 2. Mobile Web / PWA: Uses popstate event handling to prevent accidental app exit and handle modal closing.
- * 3. Routing Hierarchy:
- *    a) Close open modals, drawers, or dialogs without leaving the current page.
- *    b) Sub-pages (/receipts/new, /receipts/[id], /campaigns/[id]) -> navigate to parent section (/receipts, /campaigns).
- *    c) Top-level dashboard tabs (/receipts, /expenses, /members, /settings, /reports, /mandal-page, /profile, /subscription) -> navigate to /dashboard.
- *    d) Dashboard (/dashboard) -> Minimizes native app safely or stays on dashboard.
+ * 1. Native Mobile App (Capacitor / Android WebView / TWA / PWA): Intercepts physical/gesture back button & popstate.
+ * 2. Hierarchy & Interception:
+ *    a) If a modal/drawer is open -> close it, prevent navigation/exit.
+ *    b) If on sub-pages (/receipts/new, /receipts/[id]) -> navigate to section root (/receipts).
+ *    c) If on top-level tabs (/receipts, /expenses, /members, /settings) -> navigate to /dashboard.
+ *    d) If on root/dashboard (/dashboard, /login, /) -> minimize app safely or prevent exit.
  */
 export function useMobileBackHandler() {
   const pathname = usePathname();
@@ -83,13 +82,13 @@ export function useMobileBackHandler() {
           return true;
         }
 
-        // 2. If activeModal is a backdrop overlay with click listener, click it!
+        // 2. Backdrop click
         if (activeModal.classList.contains('fixed') && activeModal.classList.contains('inset-0')) {
           activeModal.click();
           return true;
         }
 
-        // 3. Fallback: Trigger Escape key event
+        // 3. Fallback: Escape key
         const escEvent = new KeyboardEvent('keydown', {
           key: 'Escape',
           code: 'Escape',
@@ -108,7 +107,6 @@ export function useMobileBackHandler() {
     return false;
   };
 
-  // Helper to determine parent route fallback for mobile back press
   const getParentRoute = (path: string): string | null => {
     if (!path) return null;
     if (path.startsWith('/receipts/')) return '/receipts';
@@ -137,58 +135,70 @@ export function useMobileBackHandler() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleUniversalBack = (event?: any) => {
-      // Priority A: Close modal if open
+    // Helper to lock state on root page so mobile webview doesn't terminate on back
+    const pushStateLock = () => {
+      try {
+        window.history.pushState({ appStateLock: true }, '', window.location.href);
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    const handleBackAction = (isPopstate = false) => {
+      // 1. Close modal if open
       if (checkAndCloseModal()) {
-        if (event && typeof event.preventDefault === 'function') {
-          event.preventDefault();
+        if (isPopstate) {
+          pushStateLock();
         }
-        return;
+        return true;
       }
 
       const currentPath = currentPathRef.current || '/dashboard';
       const isRootOrDashboard = currentPath === '/dashboard' || currentPath === '/login' || currentPath === '/';
 
       if (isRootOrDashboard) {
-        if (event && typeof event.preventDefault === 'function') {
-          event.preventDefault();
-        }
         if (Capacitor.isNativePlatform()) {
           import('@capacitor/app').then(({ App }) => {
             App.minimizeApp();
           });
+        } else if (isPopstate) {
+          pushStateLock();
         }
-        return;
+        return true;
       }
 
-      // Sub-pages or top-level tabs: Use history back or replace to parent route without creating infinite push loops
+      // 2. Parent navigation
       const parentRoute = getParentRoute(currentPath);
-
-      if (event && typeof event.preventDefault === 'function') {
-        event.preventDefault();
-      }
-
-      if (window.history.length > 1) {
-        router.back();
-      } else if (parentRoute) {
+      if (parentRoute) {
         router.replace(parentRoute);
       } else {
         router.replace('/dashboard');
       }
+      return true;
     };
 
-    // 1. Android WebView / Cordova / TWA native backbutton event
-    document.addEventListener('backbutton', handleUniversalBack, false);
+    // Android Cordova / WebView / TWA native backbutton event
+    const handleNativeBackButton = (event: any) => {
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
+      handleBackAction(false);
+    };
 
-    // 2. Mobile Web & PWA popstate event
-    window.addEventListener('popstate', handleUniversalBack);
+    // Mobile Web & PWA popstate event
+    const handlePopState = (event: PopStateEvent) => {
+      handleBackAction(true);
+    };
 
-    // 3. Capacitor Native platform App backButton
+    document.addEventListener('backbutton', handleNativeBackButton, false);
+    window.addEventListener('popstate', handlePopState);
+
+    // Capacitor Native platform App backButton
     let capacitorHandle: any = null;
     if (Capacitor.isNativePlatform()) {
       import('@capacitor/app').then(({ App }) => {
         App.addListener('backButton', (data) => {
-          handleUniversalBack(data);
+          handleBackAction(false);
         }).then((h) => {
           capacitorHandle = h;
         });
@@ -196,8 +206,8 @@ export function useMobileBackHandler() {
     }
 
     return () => {
-      document.removeEventListener('backbutton', handleUniversalBack, false);
-      window.removeEventListener('popstate', handleUniversalBack);
+      document.removeEventListener('backbutton', handleNativeBackButton, false);
+      window.removeEventListener('popstate', handlePopState);
       if (capacitorHandle && typeof capacitorHandle.remove === 'function') {
         capacitorHandle.remove();
       }

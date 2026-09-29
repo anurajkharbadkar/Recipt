@@ -15,7 +15,6 @@ import OnboardingWelcomeModal from '@/components/onboarding/OnboardingWelcomeMod
 import PageGuideSpotlight from '@/components/onboarding/PageGuideSpotlight';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import PushNotificationInit from '@/components/layout/PushNotificationInit';
-import { useMobileBackHandler } from '@/hooks/useMobileBackHandler';
 import toast from 'react-hot-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -23,9 +22,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const canView = useModuleAccessResolver();
-
-  // Activate smart mobile back handler
-  useMobileBackHandler();
 
   const { data: freshOrg } = useQuery({
     queryKey: ['org'],
