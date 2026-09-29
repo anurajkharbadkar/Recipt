@@ -251,22 +251,13 @@ export const PRICING_PLANS: PricingPlan[] = [
     priceNote: `Free for ${FREE_TRIAL_PERIOD_DAYS} days, no payment needed`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE],
-    // Deliberately NOT listing the Standard+ features (UPI ID on receipts,
-    // custom branding) that FREE also gets during its 7-day window — those
-    // are unlocked functionally (see organizations.service.ts's PREMIUM_
-    // FEATURE_PLANS), but adding them here as keyed bullets would bubble
-    // up through BASIC's `includesFrom` inheritance and falsely claim BASIC
-    // has them too — this ladder has no way to grant a lower tier something
-    // a higher one intentionally doesn't get. A trial user discovers those
-    // in the app itself rather than the pricing page overpromising what
-    // BASIC actually buys (2026-08-22).
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.FREE], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.FREE]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.FREE], 'Collectors'), category: 'team', key: 'collectors' },
       { label: 'Internal Collection & Expense Tracking', category: 'collections', key: 'internalCollection' },
-      { label: 'Multi-Role Access', category: 'team', key: 'multiRole' },
-      { label: 'Reports & Analytics', category: 'reports', key: 'reports' },
+      { label: 'Multi-Role Staff Access', category: 'team', key: 'multiRole' },
+      { label: 'Reports & Summary Download', category: 'reports', key: 'reports' },
       { label: 'No Payment Needed to Start' },
     ],
   },
@@ -281,18 +272,13 @@ export const PRICING_PLANS: PricingPlan[] = [
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC],
     receiptLimit: MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC],
     includesFrom: 'Take your first step towards digital collections',
-    // The three limit bullets above the line are what actually differ from
-    // FREE. The three below are true of BASIC today but weren't listed
-    // anywhere on its own card — none of them are Standard+-gated (only
-    // UPI QR and custom branding are, see PREMIUM_FEATURE_PLANS in
-    // organizations.service.ts), so listing them here doesn't overpromise.
     features: [
       { label: formatPlanLimit(MAX_RECEIPTS_BY_PLAN[SubscriptionPlan.BASIC], 'Digital Receipts'), category: 'pavti', key: 'receipts' },
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.BASIC], 'Collectors'), category: 'team', key: 'collectors' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.BASIC]} Active Event at a Time`, category: 'collections', key: 'activeFestivals' },
-      { label: 'Interactive Digital Darshan Pavti', category: 'pavti', key: 'interactivePavti' },
-      { label: 'Instant WhatsApp Receipt Sharing', category: 'pavti', key: 'whatsappShare' },
-      { label: 'Receipts in English, Hindi & Marathi', category: 'pavti', key: 'multiLanguage' },
+      { label: '4-Slide Interactive Devotional Pavti (Curtain Reveal & Darshan)', category: 'pavti', key: 'interactivePavti' },
+      { label: 'Instant 1-Click WhatsApp Receipt Sharing', category: 'pavti', key: 'whatsappShare' },
+      { label: 'Receipts in Marathi, Hindi & English', category: 'pavti', key: 'multiLanguage' },
     ],
   },
   {
@@ -310,9 +296,9 @@ export const PRICING_PLANS: PricingPlan[] = [
     features: [
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.STANDARD], 'Collectors'), category: 'team', key: 'collectors' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.STANDARD]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
-      { label: 'Dynamic UPI QR for Instant Collection', category: 'payments', key: 'upiId' },
-      { label: 'Shareable WhatsApp Link for Unpaid Pavtis', category: 'payments', key: 'unpaidLink' },
-      { label: 'Custom Branded Receipt Design', category: 'branding', key: 'customBranding' },
+      { label: "Mandal's Own UPI Payment QR Code on every receipt", category: 'payments', key: 'upiId' },
+      { label: 'Direct WhatsApp Payment Link for pending donations', category: 'payments', key: 'unpaidLink' },
+      { label: 'Custom Mandal Logo & Header Design on receipts', category: 'branding', key: 'customBranding' },
     ],
   },
   {
@@ -329,9 +315,9 @@ export const PRICING_PLANS: PricingPlan[] = [
     features: [
       { label: formatPlanLimit(MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM], 'Collectors'), category: 'team', key: 'collectors' },
       { label: `Up to ${MAX_ACTIVE_CAMPAIGNS_BY_PLAN[SubscriptionPlan.PREMIUM]} Active Events at Once`, category: 'collections', key: 'activeFestivals' },
-      { label: 'Dedicated Public Mandal Webpage & Schedule Site (/mandal/slug)', category: 'branding', key: 'publicWebpage' },
-      { label: 'Sponsor & Benefactor Showcase Banners', category: 'branding', key: 'sponsorsShowcase' },
-      { label: '9-Day Navratri & 10-Day Ganeshotsav Daily Bulletins', category: 'branding', key: 'dailyBulletins' },
+      { label: "Your Mandal's Own Public Website (Schedule, Aarti Timings & Donors)", category: 'branding', key: 'publicWebpage' },
+      { label: 'Showcase Sponsor & Advertiser Banners on your public website', category: 'branding', key: 'sponsorsShowcase' },
+      { label: 'Publish Daily Utsav Bulletins & Announcements for Devotees', category: 'branding', key: 'dailyBulletins' },
     ],
   },
 ];

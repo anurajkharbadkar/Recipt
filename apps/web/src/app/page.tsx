@@ -246,32 +246,36 @@ const CARD_TONES = {
 // multi-role, PDF download) are surfaced in the footnote below the grid so
 // the cards stay short and scannable.
 const PLAN_FEATURES: Record<string, { label: string; highlight?: boolean }[]> = {
-  FREE: [],
+  FREE: [
+    { label: '10 digital receipts (7-day trial)' },
+    { label: 'No credit card or payment required' },
+  ],
   BASIC: [
     { label: 'Unlimited digital pavtis', highlight: true },
-    { label: 'Up to 5 collectors' },
-    { label: '1 active festival or drive' },
-    { label: 'PDF download & print' },
+    { label: 'Up to 5 volunteer collectors' },
+    { label: '1 active festival at a time' },
+    { label: '4-Slide Interactive Devotional Pavti' },
+    { label: '1-Click WhatsApp receipt sharing' },
+    { label: 'PDF download & print support' },
   ],
   STANDARD: [
     { label: 'Unlimited digital pavtis', highlight: true },
-    { label: 'Up to 10 collectors', highlight: true },
-    { label: 'Run 2 festivals at once', highlight: true },
-    { label: 'Your branding on every pavti', highlight: true },
-    { label: 'Dynamic UPI QR for instant collection', highlight: true },
-    { label: 'Shareable payment link for unpaid pavtis', highlight: true },
-    { label: 'Cinematic 4-slide pavti experience', highlight: true },
-    { label: 'PDF download & print' },
+    { label: 'Up to 10 volunteer collectors', highlight: true },
+    { label: 'Run 2 festivals at the same time', highlight: true },
+    { label: "Mandal's Own UPI QR Code on every receipt", highlight: true },
+    { label: 'WhatsApp payment link for pending donations', highlight: true },
+    { label: 'Mandal logo & custom header design', highlight: true },
+    { label: '4-Slide Interactive Devotional Pavti', highlight: true },
   ],
   PREMIUM: [
     { label: 'Unlimited digital pavtis', highlight: true },
-    { label: 'Unlimited collectors', highlight: true },
+    { label: 'Unlimited volunteer collectors', highlight: true },
     { label: 'Run up to 5 festivals at once', highlight: true },
-    { label: 'Dedicated Public Mandal Webpage (/mandal/slug)', highlight: true },
-    { label: 'Sponsor & Benefactor Showcase Banners', highlight: true },
-    { label: '9-Day Navratri & 10-Day Ganeshotsav Bulletins', highlight: true },
-    { label: 'Dynamic UPI QR & Custom Branding', highlight: true },
-    { label: 'Full activity log & premium support', highlight: true },
+    { label: "Your Mandal's Own Public Website (Schedule & Aarti Timings)", highlight: true },
+    { label: 'Showcase Sponsor & Advertiser Banners on website', highlight: true },
+    { label: 'Publish Daily Utsav Bulletins & Announcements', highlight: true },
+    { label: 'Mandal UPI QR & Custom Logo Branding', highlight: true },
+    { label: 'Full activity log & priority support', highlight: true },
   ],
 };
 
