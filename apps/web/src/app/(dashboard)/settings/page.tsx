@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import ReceiptPreview from '@/components/receipt/ReceiptPreview';
 import InteractivePavtiView from '@/components/receipt/InteractivePavtiView';
 import { platformWhatsappLink } from '@/lib/platform';
+import AppDownloadStatsCard from '@/components/telemetry/AppDownloadStatsCard';
 import {
   RECEIPT_THEMES,
   RECEIPT_GOLD_ACCENT,
@@ -665,6 +666,9 @@ export default function SettingsPage() {
 
       {activeTab === 'general' && (
       <>
+      {/* App Installation Telemetry & Metrics */}
+      <AppDownloadStatsCard />
+
       {/* App Language — a personal, this-device preference (stored locally),
           not part of the organization profile below. Kept separate from the
           Receipt Design language picker further down, which controls what

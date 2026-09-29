@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Noto_Sans_Devanagari } from 'next/font/google';
 import { Cormorant_Garamond, Yatra_One, Tiro_Devanagari_Marathi } from 'next/font/google';
 import Providers from '@/components/Providers';
+import PwaInstallTracker from '@/components/pwa/PwaInstallTracker';
 import { Toaster } from 'react-hot-toast';
 import { BRAND_NAME, BRAND_TAGLINE, BRAND_TAGLINE_ALT } from '@pavti/shared';
 import './globals.css';
@@ -102,6 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>
+          <PwaInstallTracker />
           {children}
           <Toaster
             position="top-right"

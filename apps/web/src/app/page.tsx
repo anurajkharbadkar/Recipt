@@ -520,7 +520,7 @@ export default function HomePage() {
               </div>
 
               <a
-                href="/downloads/E-PavtiBook.apk"
+                href="/api/telemetry/download"
                 download
                 className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-saffron-700 dark:text-saffron-300 bg-saffron-500/10 border border-saffron-500/30 hover:bg-saffron-500/20 transition-all px-3 py-1.5 rounded-full shrink-0"
                 title={t('Download Android App APK', 'अँड्रॉइड ॲप डाउनलोड करा', 'एंड्रॉइड ऐप डाउनलोड करें')}
@@ -787,7 +787,7 @@ export default function HomePage() {
 
                   <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                     <a
-                      href="/downloads/E-PavtiBook.apk"
+                      href="/api/telemetry/download"
                       download
                       className="btn-shimmer inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-saffron-600 via-amber-500 to-saffron-600 text-slate-950 font-black text-base shadow-xl shadow-saffron-950/60 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
                     >
