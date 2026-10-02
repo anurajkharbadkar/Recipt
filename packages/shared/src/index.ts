@@ -306,7 +306,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     name: 'Premium',
     tagline: 'For mandals who want full features & public website',
     positioningLine: 'Elevate the Experience',
-    marathiDescriptor: 'मोठ्या देवस्थान व संस्थांसाठी',
+    marathiDescriptor: 'प्रीमियम अनुभवाची आवड असणाऱ्या मंडळांसाठी',
     priceInr: 1999,
     priceNote: `Valid for ${SUBSCRIPTION_PERIOD_DAYS} days from signup`,
     collectorLimit: MAX_COLLECTORS_BY_PLAN[SubscriptionPlan.PREMIUM],
